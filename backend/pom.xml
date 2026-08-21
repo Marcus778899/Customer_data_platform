@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.5</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.cdp</groupId>
+  <artifactId>cdp-backend</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>CDP Backend</name>
+  <description>Customer Data Platform - 旅程編排引擎與行銷觸達</description>
+
+  <properties>
+    <java.version>21</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <archunit.version>1.3.0</archunit.version>
+    <db-scheduler.version>14.0.3</db-scheduler.version>
+    <spotless.version>2.43.0</spotless.version>
+  </properties>
+
+  <dependencies>
+    <!-- ===== Web ===== -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- ===== 資料層 =====
+         使用 JDBC 而非 JPA：StateStore 需要 FOR UPDATE SKIP LOCKED 等
+         明確 SQL 控制（見 docs/spec/02-enrollment-model.md §9） -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+
+    <!-- ===== 計時器（Timer 抽象的自建實作）=====
+         見 docs/spec/04-node-contract.md §7 -->
+    <dependency>
+      <groupId>com.github.kagkarlsson</groupId>
+      <artifactId>db-scheduler-spring-boot-starter</artifactId>
+      <version>${db-scheduler.version}</version>
+    </dependency>
+
+    <!-- ===== 可觀測性 ===== -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <!-- ===== 開發輔助 ===== -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- ===== 測試 ===== -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- 架構規則：保住「自建 → Temporal」的換路可能性
+         見 docs/spec/04-node-contract.md §9 -->
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <version>${archunit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- ===== Phase 2 才需要，先留註記 =====
+      JobRunr        背景任務（C 類非同步）
+      Redis          頻率上限計數、分散式鎖
+      Handlebars     模板渲染（必須 logic-less，見 spec 05 §8）
+      line-bot-sdk   LINE 通道
+    -->
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- 只做會造成 diff 雜訊的整理，不套用整份格式化器，
+           避免 google-java-format 在 JDK 21 上的模組存取問題 -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <java>
+            <removeUnusedImports/>
+            <trimTrailingWhitespace/>
+            <endWithNewline/>
+            <importOrder>
+              <order>java,javax,jakarta,org,com,</order>
+            </importOrder>
+          </java>
+          <pom>
+            <sortPom>
+              <expandEmptyElements>false</expandEmptyElements>
+            </sortPom>
+          </pom>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs>
+            <arg>-parameters</arg>
+            <arg>-Xlint:all</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

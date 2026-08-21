@@ -1,0 +1,59 @@
+# ---------- Java / Maven ----------
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+dependency-reduced-pom.xml
+
+# ---------- Node / Frontend ----------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+.eslintcache
+coverage/
+
+# ---------- 環境變數與機密 ----------
+# ⚠️ 本平台保存租戶通道憑證，任何 .env 一律不得進版控
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+
+# ---------- 內部文件 ----------
+# 開發規格與計劃書不進版控，不隨 remote 散布
+docs/
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.settings/
+.project
+.classpath
+*.swp
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 本機開發產物 ----------
+development/data/
+development/logs/
+*.log
+
+# ---------- 測試與工具 ----------
+.pytest_cache/
+__pycache__/

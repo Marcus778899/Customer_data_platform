@@ -1,0 +1,41 @@
+name: cdp-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cdp-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cdp}
+      POSTGRES_USER: ${POSTGRES_USER:-cdp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cdp}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-cdp} -d ${POSTGRES_DB:-cdp}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: cdp-redis
+    command: redis-server --appendonly yes
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 本機收信，避免開發時真的把測試信寄出去
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: cdp-mailhog
+    ports:
+      - '${MAILHOG_SMTP_PORT:-1025}:1025'
+      - '${MAILHOG_UI_PORT:-8025}:8025'

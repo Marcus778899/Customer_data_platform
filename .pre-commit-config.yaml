@@ -1,0 +1,81 @@
+# pre-commit 設定
+#
+# 安裝：
+#   pip install pre-commit
+#   pre-commit install --install-hooks
+#   pre-commit install --hook-type commit-msg
+#
+# 手動全檔執行：
+#   pre-commit run --all-files
+
+default_install_hook_types: [pre-commit, commit-msg]
+fail_fast: false
+
+repos:
+  # ---------- 通用檢查 ----------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+        exclude: '^frontend/tsconfig.*\.json$'   # tsconfig 允許註解，非標準 JSON
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+
+  # ---------- 機密掃描 ----------
+  # 本平台保存租戶通道憑證（LINE token、ESP key），這道防線是必須的
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # ---------- Commit message 規範 ----------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  # ---------- 前端 ----------
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend / eslint
+        entry: npm --prefix frontend run lint
+        language: system
+        files: '^frontend/.*\.(ts|tsx|js|jsx)$'
+        pass_filenames: false
+
+      - id: frontend-format
+        name: frontend / prettier
+        entry: npm --prefix frontend run format:check
+        language: system
+        files: '^frontend/.*\.(ts|tsx|js|jsx|css|json|md)$'
+        pass_filenames: false
+
+      - id: frontend-typecheck
+        name: frontend / tsc
+        entry: npm --prefix frontend run typecheck
+        language: system
+        files: '^frontend/.*\.(ts|tsx)$'
+        pass_filenames: false
+
+  # ---------- 後端 ----------
+  - repo: local
+    hooks:
+      - id: backend-format
+        name: backend / spotless
+        entry: mvn -q -f backend/pom.xml spotless:check
+        language: system
+        files: '^backend/.*\.java$'
+        pass_filenames: false

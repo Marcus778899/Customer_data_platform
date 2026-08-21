@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: cdp-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cdp}
+    username: ${DB_USER:cdp}
+    password: ${DB_PASSWORD:cdp}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
