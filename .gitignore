@@ -57,3 +57,7 @@ development/logs/
 # ---------- 測試與工具 ----------
 .pytest_cache/
 __pycache__/
+
+# ---------- 本機工具腳本 ----------
+# 內含個人 OAuth client id 等機器專屬設定，不進版控
+.claude/scripts/

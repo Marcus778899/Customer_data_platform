@@ -7,7 +7,7 @@
 ```
 CDP/
 ├─ frontend/      React + TypeScript + Vite
-├─ backend/       Spring Boot 3 + Java 21 + PostgreSQL
+├─ backend/       Spring Boot 3 + Java 17 + PostgreSQL
 └─ development/   本機開發環境（docker-compose）
 ```
 
@@ -17,7 +17,7 @@ CDP/
 
 | 工具 | 版本 |
 |---|---|
-| JDK | 21 |
+| JDK | 17 |
 | Node.js | 20+ |
 | Docker | 含 Compose v2 |
 | Python | 3.8+（僅 pre-commit 需要） |
