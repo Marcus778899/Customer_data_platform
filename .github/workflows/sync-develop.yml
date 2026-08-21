@@ -1,0 +1,37 @@
+name: Sync develop
+
+# develop 併入 main 之後，把 develop 同步回 main，讓下一輪 feat/* 從乾淨的基準長出來。
+#
+# 前提：main 的合併策略必須是 merge commit。
+# 這樣 develop 的每個 commit 都已在 main 裡，同步就只是一次快轉，不需要 force push。
+# 若改用 Squash / Rebase merge，下面會落到 --no-edit 那條路，develop 上會多出合併節點。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-develop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync develop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync develop with main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B develop origin/develop
+          # 正常路徑是快轉；分岔時（squash merge、直接 commit 到 main）改用合併。
+          # 兩者都不會改寫 develop 歷史，衝突時這一步會失敗，不會推上去。
+          git merge --ff-only origin/main || git merge --no-edit origin/main
+          git push origin develop
