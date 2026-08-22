@@ -1,0 +1,18 @@
+{
+  "event_id": "01JCXYZB6P7Q8R9S0T1U2ABCDE",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "source_type": "EXTERNAL_SYSTEM",
+  "source_id": "channel-line",
+  "name": "message_opened",
+  "occurred_at": "2026-08-21T12:41:05Z",
+  "received_at": "2026-08-21T12:41:09Z",
+  "identity": { "profile_id": "01JCXYZPROFILE00000000001" },
+  "properties": {
+    "journey_id": "01JCXYZJOURNEY0000000001",
+    "enrollment_id": "01JCXYZENROLL000000000001",
+    "node_id": "send_vip",
+    "template_id": "tpl_vip_cart",
+    "channel_type": "LINE"
+  },
+  "context": { "trust_level": "VERIFIED" }
+}

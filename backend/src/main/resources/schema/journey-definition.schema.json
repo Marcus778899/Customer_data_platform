@@ -1,0 +1,760 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cdp:schema:journey-definition",
+  "title": "Journey Definition",
+  "description": "可執行契約，對應 docs/spec/03-journey-definition.md，涵蓋該節定義的全部 22 種節點型別。本檔負責結構層驗證：節點 config 形狀、必填出口（規則 4、9）、outputs 值型別（規則 14）、恰一個 StartNode（規則 1 前半）。以下規則本檔表達不出來，一律由 Java 圖驗證器負責：規則 1 後半（StartNode 須為 entry_node）、2（Source 只接 Start 之後）、3（outputs 指向存在的 id）、5（無孤兒節點）、6（所有路徑可達出口）、7（無等待迴圈）、8（SplitTest 權重總和 = 100，JSON Schema 無加總能力）、10~13（模板／通道／字典存在性與警告）。另兩條跨欄位規則同樣歸 Java：SplitTestNode 的 outputs 必須涵蓋每個 variant 的 port；SwitchNode 的 outputs 必須涵蓋每個 case 的 port。新增節點型別時必須同步擴充 $defs/nodeType 的 enum 與 $defs/node 的 allOf 分派，否則該型別會被判為非法節點型別。",
+  "type": "object",
+  "required": ["journey_id", "tenant_id", "version", "name", "status", "entry_node", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "journey_id": { "$ref": "#/$defs/id" },
+    "tenant_id": { "$ref": "#/$defs/id" },
+    "version": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "status": {
+      "enum": ["DRAFT", "TESTING", "PENDING_APPROVAL", "ACTIVE", "PAUSED", "ARCHIVED", "ABORTED"]
+    },
+    "entry_node": { "$ref": "#/$defs/nodeId" },
+    "settings": { "$ref": "#/$defs/settings" },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/node" },
+      "contains": {
+        "type": "object",
+        "required": ["type"],
+        "properties": { "type": { "const": "StartNode" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    }
+  },
+
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[0-9A-Za-z]{10,32}$" },
+
+    "nodeId": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+
+    "iso8601Duration": {
+      "type": "string",
+      "description": "ISO-8601 期間。日曆語意（每個自然年一次等，G8／Phase 4）不得塞進本型別。",
+      "pattern": "^P(?=\\d|T\\d)(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?)?$"
+    },
+
+    "outputsString": {
+      "type": "object",
+      "description": "規則 14：非 StartNode 的節點，outputs 的值必須是 string。",
+      "additionalProperties": { "type": "string" }
+    },
+
+    "outputsTerminal": {
+      "type": "object",
+      "description": "終端節點無出口。",
+      "maxProperties": 0
+    },
+
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "priority": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "reentry": { "$ref": "#/$defs/reentry" },
+        "global_exit": { "$ref": "#/$defs/globalExit" },
+        "goal": { "$ref": "#/$defs/goal" },
+        "budget": { "$ref": "#/$defs/budget" },
+        "on_pause": { "enum": ["FREEZE", "DRAIN"] }
+      }
+    },
+
+    "reentry": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": ["ONCE", "DEDUP_KEY", "COOLDOWN", "DEDUP_KEY_WITH_COOLDOWN", "UNLIMITED"]
+        },
+        "dedup_key_path": { "type": "string", "minLength": 1 },
+        "cooldown": { "$ref": "#/$defs/iso8601Duration" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["mode"],
+            "properties": { "mode": { "enum": ["DEDUP_KEY", "DEDUP_KEY_WITH_COOLDOWN"] } }
+          },
+          "then": { "required": ["dedup_key_path"] }
+        },
+        {
+          "if": {
+            "required": ["mode"],
+            "properties": { "mode": { "enum": ["COOLDOWN", "DEDUP_KEY_WITH_COOLDOWN"] } }
+          },
+          "then": { "required": ["cooldown"] }
+        }
+      ]
+    },
+
+    "globalExit": {
+      "type": "object",
+      "required": ["conditions", "on_match"],
+      "additionalProperties": false,
+      "description": "頂層 on_match 是預設值；個別條件可用自己的 on_match 覆寫（例如「已購買」算達標、「已退訂」只是退出）。",
+      "properties": {
+        "conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/exitCondition" }
+        },
+        "on_match": { "enum": ["EXITED", "GOAL_MET"] }
+      }
+    },
+
+    "exitCondition": {
+      "type": "object",
+      "description": "條件內容沿用 Segment DSL（spec/06），本檔只驗共通鍵；完整條件樹驗證屬另一份 schema。",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["event", "attribute", "segment", "behavior"] },
+        "since": { "enum": ["ENROLLMENT", "ALWAYS"] },
+        "on_match": { "enum": ["EXITED", "GOAL_MET"] }
+      }
+    },
+
+    "goal": {
+      "type": "object",
+      "required": ["goal_id", "condition"],
+      "additionalProperties": false,
+      "properties": {
+        "goal_id": { "type": "string", "minLength": 1 },
+        "condition": { "type": "object" },
+        "window": { "$ref": "#/$defs/iso8601Duration" }
+      }
+    },
+
+    "budget": {
+      "type": "object",
+      "description": "只計入且只擋下行銷型訊息；交易型不受預算約束（spec/05 §2）。",
+      "additionalProperties": false,
+      "properties": {
+        "max_messages": { "type": "integer", "minimum": 0 },
+        "max_cost": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "on_exceed": { "enum": ["STOP_AND_ALERT", "ALERT_ONLY"] }
+      }
+    },
+
+    "timeOfDay": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
+
+    "timezoneMode": { "enum": ["PLATFORM", "PROFILE_LOCAL"] },
+
+    "waitUntilTarget": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["ABSOLUTE", "DAILY_TIME", "WEEKLY", "DYNAMIC"] }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "ABSOLUTE" } } },
+          "then": {
+            "required": ["at"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "at": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "DAILY_TIME" } } },
+          "then": {
+            "required": ["time"],
+            "additionalProperties": false,
+            "properties": { "kind": true, "time": { "$ref": "#/$defs/timeOfDay" } }
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "WEEKLY" } } },
+          "then": {
+            "required": ["day_of_week", "time"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "day_of_week": {
+                "enum": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+              },
+              "time": { "$ref": "#/$defs/timeOfDay" }
+            }
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "DYNAMIC" } } },
+          "then": {
+            "required": ["anchor"],
+            "additionalProperties": false,
+            "description": "G7（Phase 4）：相對於旅程變數的動態時間。欄位命名對齊 spec/06 的 ProfileRelative(anchorField, offset, direction)。offset 與 direction 必須成對出現；省略兩者即為錨點當下。time 用於「錨點那一天的某個時刻」。",
+            "properties": {
+              "kind": true,
+              "anchor": { "type": "string", "minLength": 1 },
+              "offset": { "$ref": "#/$defs/iso8601Duration" },
+              "direction": { "enum": ["BEFORE", "AFTER"] },
+              "time": { "$ref": "#/$defs/timeOfDay" }
+            },
+            "dependentRequired": {
+              "offset": ["direction"],
+              "direction": ["offset"]
+            }
+          }
+        }
+      ]
+    },
+
+    "nodeType": {
+      "enum": [
+        "StartNode",
+        "EventSourceNode",
+        "AudienceSourceNode",
+        "ScheduleSourceNode",
+        "ManualSourceNode",
+        "WaitDelayNode",
+        "WaitUntilNode",
+        "WaitForEventNode",
+        "ConditionNode",
+        "SwitchNode",
+        "SplitTestNode",
+        "FilterNode",
+        "MergeNode",
+        "SendMessageNode",
+        "UpdateProfileNode",
+        "AudienceMembershipNode",
+        "WebhookNode",
+        "InternalNotifyNode",
+        "GoalNode",
+        "ExitNode",
+        "EndNode",
+        "GoToJourneyNode"
+      ]
+    },
+
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "config", "outputs"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nodeId" },
+        "type": { "$ref": "#/$defs/nodeType" },
+        "name": { "type": "string" },
+        "config": { "type": "object" },
+        "outputs": { "type": "object" }
+      },
+
+      "allOf": [
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "StartNode" } } },
+          "then": {
+            "properties": {
+              "config": { "type": "object", "maxProperties": 0 },
+              "outputs": {
+                "type": "object",
+                "required": ["next"],
+                "description": "唯一允許陣列的位置：多個 Source 節點掛在同一個 StartNode 之下（spec/03 §4）。",
+                "additionalProperties": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "type": "array", "minItems": 1, "items": { "type": "string" } }
+                  ]
+                }
+              }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "EventSourceNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["event_name"],
+                "additionalProperties": false,
+                "properties": {
+                  "event_name": { "type": "string", "minLength": 1 },
+                  "event_filter": { "type": ["object", "null"] },
+                  "profile_filter": { "type": ["object", "null"] }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "AudienceSourceNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["segment_id", "mode"],
+                "additionalProperties": false,
+                "properties": {
+                  "segment_id": { "$ref": "#/$defs/id" },
+                  "mode": { "enum": ["SNAPSHOT", "ON_ENTER", "ON_EXIT"] },
+                  "debounce": {
+                    "$ref": "#/$defs/iso8601Duration",
+                    "description": "抖動抑制：客戶在此期間內反覆進出受眾時只觸發一次。"
+                  }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "ScheduleSourceNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["cron"],
+                "additionalProperties": false,
+                "properties": {
+                  "cron": { "type": "string", "pattern": "^\\S+( \\S+){5}$" },
+                  "condition": { "type": ["object", "null"] },
+                  "timezone_mode": { "$ref": "#/$defs/timezoneMode" }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "ManualSourceNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "allow_api": { "type": "boolean" },
+                  "allow_import": { "type": "boolean" }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "WaitDelayNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["duration"],
+                "additionalProperties": false,
+                "properties": { "duration": { "$ref": "#/$defs/iso8601Duration" } }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "WaitUntilNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["target"],
+                "additionalProperties": false,
+                "properties": {
+                  "target": { "$ref": "#/$defs/waitUntilTarget" },
+                  "timezone_mode": { "$ref": "#/$defs/timezoneMode" }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "WaitForEventNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["event_name"],
+                "additionalProperties": false,
+                "properties": {
+                  "event_name": { "type": "string", "minLength": 1 },
+                  "event_filter": { "type": ["object", "null"] },
+                  "timeout": {
+                    "oneOf": [{ "$ref": "#/$defs/iso8601Duration" }, { "type": "null" }]
+                  }
+                }
+              },
+              "outputs": {
+                "$ref": "#/$defs/outputsString",
+                "required": ["occurred", "timeout"]
+              }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "ConditionNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["condition"],
+                "additionalProperties": false,
+                "properties": { "condition": { "type": "object" } }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["yes", "no"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "SwitchNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["field", "cases"],
+                "additionalProperties": false,
+                "properties": {
+                  "field": { "type": "string", "minLength": 1 },
+                  "cases": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["value", "port"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "value": {},
+                        "port": { "type": "string", "minLength": 1 }
+                      }
+                    }
+                  }
+                }
+              },
+              "outputs": {
+                "$ref": "#/$defs/outputsString",
+                "required": ["default"],
+                "description": "規則 9：default 出口必填，處理沒填／沒值／不在清單內的人。出口須涵蓋每個 case 的 port——跨欄位規則，由 Java 檢查。"
+              }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "FilterNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["condition", "exit_reason"],
+                "additionalProperties": false,
+                "properties": {
+                  "condition": { "type": "object" },
+                  "exit_reason": { "type": "string", "minLength": 1 }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["pass"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "SplitTestNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["variants"],
+                "additionalProperties": false,
+                "properties": {
+                  "variants": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "object",
+                      "required": ["port", "weight"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "port": { "type": "string", "minLength": 1 },
+                        "weight": { "type": "integer", "minimum": 0, "maximum": 100 },
+                        "label": { "type": "string" },
+                        "is_control": { "type": "boolean" }
+                      }
+                    },
+                    "contains": {
+                      "type": "object",
+                      "required": ["is_control"],
+                      "properties": { "is_control": { "const": true } }
+                    },
+                    "minContains": 0,
+                    "maxContains": 1
+                  },
+                  "assignment_seed": { "type": "string" }
+                }
+              },
+              "outputs": {
+                "$ref": "#/$defs/outputsString",
+                "minProperties": 2,
+                "description": "出口必須涵蓋每個 variant 的 port——跨欄位規則，由 Java 圖驗證器檢查。"
+              }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "MergeNode" } } },
+          "then": {
+            "properties": {
+              "config": { "type": "object", "maxProperties": 0 },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "SendMessageNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["template_id", "channel_id"],
+                "additionalProperties": false,
+                "description": "channel_type 由 channel_id 推導、message_type 由 template_id 推導，兩者都不得出現在節點上（G9）。",
+                "properties": {
+                  "template_id": { "type": "string", "minLength": 1 },
+                  "channel_id": { "type": "string", "minLength": 1 },
+                  "variables": { "type": "object" },
+                  "on_skip": {
+                    "enum": ["CONTINUE", "RETRY_NEXT_DAY", "EXIT"],
+                    "default": "CONTINUE",
+                    "description": "省略時預設為 CONTINUE（spec/03 §5）。被擋下的人不該被當成已觸達，否則成效報表的分母是錯的。"
+                  }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["sent"] }
+            },
+            "allOf": [
+              {
+                "description": "on_skip 明寫 RETRY_NEXT_DAY／EXIT 才免除 skipped 出口；省略即套用預設值 CONTINUE，一樣必填。",
+                "if": {
+                  "required": ["config"],
+                  "properties": {
+                    "config": {
+                      "required": ["on_skip"],
+                      "properties": { "on_skip": { "enum": ["RETRY_NEXT_DAY", "EXIT"] } }
+                    }
+                  }
+                },
+                "then": true,
+                "else": { "properties": { "outputs": { "required": ["skipped"] } } }
+              }
+            ]
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "UpdateProfileNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["operations"],
+                "additionalProperties": false,
+                "properties": {
+                  "operations": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["op"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "op": { "enum": ["SET", "INCREMENT", "TAG", "UNTAG"] },
+                        "field": { "type": "string", "minLength": 1 },
+                        "value": {}
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "required": ["op"],
+                            "properties": { "op": { "enum": ["SET", "INCREMENT"] } }
+                          },
+                          "then": { "required": ["field", "value"] }
+                        },
+                        {
+                          "if": {
+                            "required": ["op"],
+                            "properties": { "op": { "enum": ["TAG", "UNTAG"] } }
+                          },
+                          "then": { "required": ["value"] }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "AudienceMembershipNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["segment_id", "action"],
+                "additionalProperties": false,
+                "description": "目標必須是靜態受眾；對動態受眾操作屬語意錯誤，由 Java 圖驗證器檢查（規則 10 同類）。",
+                "properties": {
+                  "segment_id": { "$ref": "#/$defs/id" },
+                  "action": { "enum": ["ADD", "REMOVE"] }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "InternalNotifyNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["recipients", "message"],
+                "additionalProperties": false,
+                "properties": {
+                  "recipients": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["type", "value"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": { "enum": ["ROLE", "USER", "EMAIL"] },
+                        "value": { "type": "string", "minLength": 1 }
+                      }
+                    }
+                  },
+                  "message": { "type": "string", "minLength": 1 }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "required": ["next"] }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "WebhookNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["url", "method"],
+                "additionalProperties": false,
+                "properties": {
+                  "url": { "type": "string", "format": "uri" },
+                  "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+                  "payload": { "type": "object" },
+                  "wait_for_response": { "type": "boolean" },
+                  "timeout": { "$ref": "#/$defs/iso8601Duration" },
+                  "response_mapping": { "type": "object" }
+                }
+              },
+              "outputs": { "$ref": "#/$defs/outputsString", "minProperties": 1 }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "required": ["config"],
+                  "properties": {
+                    "config": {
+                      "required": ["wait_for_response"],
+                      "properties": { "wait_for_response": { "const": true } }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": { "outputs": { "required": ["success", "failure"] } }
+                }
+              }
+            ]
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "GoalNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["goal_id"],
+                "additionalProperties": false,
+                "properties": { "goal_id": { "type": "string", "minLength": 1 } }
+              },
+              "outputs": { "$ref": "#/$defs/outputsTerminal" }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "ExitNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["reason"],
+                "additionalProperties": false,
+                "description": "reason 必填：terminationReason 取自它，退出原因是診斷受眾圈錯的關鍵資料。",
+                "properties": { "reason": { "type": "string", "minLength": 1 } }
+              },
+              "outputs": { "$ref": "#/$defs/outputsTerminal" }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "EndNode" } } },
+          "then": {
+            "properties": {
+              "config": { "type": "object", "maxProperties": 0 },
+              "outputs": { "$ref": "#/$defs/outputsTerminal" }
+            }
+          }
+        },
+
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "GoToJourneyNode" } } },
+          "then": {
+            "properties": {
+              "config": {
+                "type": "object",
+                "required": ["target_journey_id"],
+                "additionalProperties": false,
+                "properties": { "target_journey_id": { "$ref": "#/$defs/id" } }
+              },
+              "outputs": { "$ref": "#/$defs/outputsTerminal" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "journey_id": "01JCXYZJOURNEY0000000002",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "version": 1,
+  "name": "生日禮",
+  "description": "計劃書附錄 C 場景二（日期驅動）。提前 7 天預告、當天祝賀、到期前催用。",
+  "status": "ACTIVE",
+  "entry_node": "start_1",
+
+  "settings": {
+    "priority": 600,
+    "reentry": {
+      "mode": "COOLDOWN",
+      "cooldown": "P365D"
+    },
+    "global_exit": {
+      "conditions": [
+        { "type": "attribute", "field": "marketing_opt_out", "operator": "EQ", "value": true }
+      ],
+      "on_match": "EXITED"
+    },
+    "goal": {
+      "goal_id": "birthday_coupon_used",
+      "condition": { "type": "event", "event": "coupon_redeemed" },
+      "window": "P14D"
+    },
+    "on_pause": "DRAIN"
+  },
+
+  "nodes": [
+    { "id": "start_1", "type": "StartNode", "config": {},
+      "outputs": { "next": "src_1" } },
+
+    { "id": "src_1", "type": "ScheduleSourceNode", "name": "每日掃描生日在 7 天後的人",
+      "config": {
+        "cron": "0 0 3 * * *",
+        "condition": {
+          "op": "AND",
+          "children": [
+            { "type": "attribute", "field": "birthday", "operator": "WITHIN_NEXT", "value": "P7D" }
+          ]
+        },
+        "timezone_mode": "PROFILE_LOCAL"
+      },
+      "outputs": { "next": "cond_active" } },
+
+    { "id": "cond_active", "type": "ConditionNode", "name": "近 365 天有消費？",
+      "config": {
+        "condition": {
+          "type": "behavior", "event": "order_completed",
+          "occurrence": "ANY",
+          "time_window": { "kind": "RELATIVE", "last": "P365D" }
+        }
+      },
+      "outputs": { "yes": "hook_big", "no": "hook_small" } },
+
+    { "id": "hook_big", "type": "WebhookNode", "name": "發 500 元生日券",
+      "config": {
+        "url": "https://coupon.example.com/issue",
+        "method": "POST",
+        "payload": { "profile_id": "$.profile_id", "amount": 500, "campaign": "birthday" },
+        "wait_for_response": true,
+        "timeout": "PT10S",
+        "response_mapping": {
+          "coupon_code": "$.body.code",
+          "coupon_expires_at": "$.body.expires_at"
+        }
+      },
+      "outputs": { "success": "send_big", "failure": "end_1" } },
+
+    { "id": "hook_small", "type": "WebhookNode", "name": "發小額生日券",
+      "config": {
+        "url": "https://coupon.example.com/issue",
+        "method": "POST",
+        "payload": { "profile_id": "$.profile_id", "amount": 100, "campaign": "birthday" },
+        "wait_for_response": true,
+        "timeout": "PT10S",
+        "response_mapping": {
+          "coupon_code": "$.body.code",
+          "coupon_expires_at": "$.body.expires_at"
+        }
+      },
+      "outputs": { "success": "send_small", "failure": "end_1" } },
+
+    { "id": "send_big", "type": "SendMessageNode", "name": "LINE：生日大禮",
+      "config": {
+        "template_id": "tpl_bday_big",
+        "channel_id": "ch_line_main",
+        "variables": { "coupon_code": "$.variables.coupon_code" },
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "send_small", "type": "SendMessageNode", "name": "Email：生日祝福 + 小額券",
+      "config": {
+        "template_id": "tpl_bday_small",
+        "channel_id": "ch_email_main",
+        "variables": { "coupon_code": "$.variables.coupon_code" },
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "merge_1", "type": "MergeNode", "config": {},
+      "outputs": { "next": "wait_birthday" } },
+
+    { "id": "wait_birthday", "type": "WaitUntilNode", "name": "等到生日當天上午 10:00",
+      "config": {
+        "target": {
+          "kind": "DYNAMIC",
+          "anchor": "$.profile.birthday",
+          "time": "10:00"
+        },
+        "timezone_mode": "PROFILE_LOCAL"
+      },
+      "outputs": { "next": "send_bday" } },
+
+    { "id": "send_bday", "type": "SendMessageNode", "name": "LINE：今天是你的生日",
+      "config": {
+        "template_id": "tpl_bday_wish",
+        "channel_id": "ch_line_main",
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "wait_redeem", "skipped": "wait_redeem" } },
+
+    { "id": "wait_redeem", "type": "WaitForEventNode", "name": "等使用生日券，逾時 14 天",
+      "config": { "event_name": "coupon_redeemed", "timeout": "P14D" },
+      "outputs": { "occurred": "goal_1", "timeout": "wait_expiry" } },
+
+    { "id": "goal_1", "type": "GoalNode",
+      "config": { "goal_id": "birthday_coupon_used" }, "outputs": {} },
+
+    { "id": "wait_expiry", "type": "WaitUntilNode", "name": "等到券到期前 2 天",
+      "config": {
+        "target": {
+          "kind": "DYNAMIC",
+          "anchor": "$.variables.coupon_expires_at",
+          "offset": "P2D",
+          "direction": "BEFORE"
+        },
+        "timezone_mode": "PROFILE_LOCAL"
+      },
+      "outputs": { "next": "send_expiry" } },
+
+    { "id": "send_expiry", "type": "SendMessageNode", "name": "Email：你的生日券快過期了",
+      "config": {
+        "template_id": "tpl_bday_expiry",
+        "channel_id": "ch_email_main",
+        "variables": { "coupon_code": "$.variables.coupon_code" },
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "end_1", "skipped": "end_1" } },
+
+    { "id": "end_1", "type": "EndNode", "config": {}, "outputs": {} }
+  ]
+}

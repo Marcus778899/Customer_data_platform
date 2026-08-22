@@ -20,6 +20,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <archunit.version>1.3.0</archunit.version>
     <db-scheduler.version>14.0.3</db-scheduler.version>
+    <json-schema-validator.version>1.5.2</json-schema-validator.version>
     <spotless.version>2.43.0</spotless.version>
   </properties>
 
@@ -53,6 +54,16 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+
+    <!-- ===== 旅程定義驗證 =====
+         結構層驗證器（JSON Schema 2020-12）。發布旅程時的第一道關卡：
+         schema 管 config 形狀與必填出口，圖規則另由 Java 驗證器負責。
+         見 src/main/resources/schema/journey-definition.schema.json -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>${json-schema-validator.version}</version>
     </dependency>
 
     <!-- ===== 計時器（Timer 抽象的自建實作）=====

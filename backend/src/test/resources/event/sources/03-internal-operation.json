@@ -1,0 +1,19 @@
+{
+  "event_id": "01JCXYZA5N6P7Q8R9S0T1ABCDE",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "source_type": "INTERNAL_OPERATION",
+  "source_id": "user01JCXYZSALES0000000001",
+  "name": "sales_contact_completed",
+  "occurred_at": "2026-08-21T11:30:00Z",
+  "identity": { "profile_id": "01JCXYZPROFILE00000000002" },
+  "properties": {
+    "outcome": "REACHED",
+    "note": "客戶表示近期有採購需求",
+    "next_action": "SEND_QUOTE"
+  },
+  "context": {
+    "actor_id": "user01JCXYZSALES0000000001",
+    "actor_role": "SALES",
+    "trust_level": "VERIFIED"
+  }
+}

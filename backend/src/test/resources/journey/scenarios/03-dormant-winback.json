@@ -1,0 +1,159 @@
+{
+  "journey_id": "01JCXYZJOURNEY0000000003",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "version": 1,
+  "name": "沉睡喚醒",
+  "description": "計劃書附錄 C 場景三（受眾驅動）。高價值先給真人一次機會，喚不醒就停損轉低頻經營。",
+  "status": "ACTIVE",
+  "entry_node": "start_1",
+
+  "settings": {
+    "priority": 450,
+    "reentry": {
+      "mode": "COOLDOWN",
+      "cooldown": "P90D"
+    },
+    "global_exit": {
+      "conditions": [
+        { "type": "event", "event": "order_completed", "since": "ENROLLMENT", "on_match": "GOAL_MET" },
+        { "type": "attribute", "field": "marketing_opt_out", "operator": "EQ", "value": true }
+      ],
+      "on_match": "EXITED"
+    },
+    "goal": {
+      "goal_id": "winback_purchase",
+      "condition": { "type": "event", "event": "order_completed" },
+      "window": "P30D"
+    },
+    "on_pause": "DRAIN"
+  },
+
+  "nodes": [
+    { "id": "start_1", "type": "StartNode", "config": {},
+      "outputs": { "next": "src_1" } },
+
+    { "id": "src_1", "type": "AudienceSourceNode", "name": "進入「沉睡客戶」受眾時觸發",
+      "config": {
+        "segment_id": "01JCXYZSEGMENTDORMANT0001",
+        "mode": "ON_ENTER",
+        "debounce": "P1D"
+      },
+      "outputs": { "next": "filter_1" } },
+
+    { "id": "filter_1", "type": "FilterNode", "name": "排除近 30 天已收過 3 則以上推播的人",
+      "config": {
+        "condition": {
+          "type": "attribute",
+          "field": "messages_received_30d",
+          "operator": "LT",
+          "value": 3
+        },
+        "exit_reason": "近期已被推播過多，不再加碼"
+      },
+      "outputs": { "pass": "switch_1" } },
+
+    { "id": "switch_1", "type": "SwitchNode", "name": "依歷史消費等級分流",
+      "config": {
+        "field": "customer_value_tier",
+        "cases": [
+          { "value": "HIGH", "port": "high" },
+          { "value": "MID",  "port": "mid" },
+          { "value": "LOW",  "port": "low" }
+        ]
+      },
+      "outputs": {
+        "high": "notify_sales",
+        "mid": "send_mid",
+        "low": "send_low",
+        "default": "send_default"
+      } },
+
+    { "id": "notify_sales", "type": "InternalNotifyNode", "name": "通知業務致電",
+      "config": {
+        "recipients": [ { "type": "ROLE", "value": "SALES" } ],
+        "message": "高價值客戶 {{profile.name}} 出現流失徵兆，請於 3 日內聯繫"
+      },
+      "outputs": { "next": "wait_contact" } },
+
+    { "id": "wait_contact", "type": "WaitForEventNode", "name": "等業務回報已聯繫，逾時 3 天",
+      "config": { "event_name": "sales_contact_completed", "timeout": "P3D" },
+      "outputs": { "occurred": "exit_manual", "timeout": "send_mid" } },
+
+    { "id": "exit_manual", "type": "ExitNode",
+      "config": { "reason": "轉人工經營" }, "outputs": {} },
+
+    { "id": "send_mid", "type": "SendMessageNode", "name": "LINE：我們想你了 + 折扣",
+      "config": {
+        "template_id": "tpl_winback_mid",
+        "channel_id": "ch_line_main",
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "send_low", "type": "SendMessageNode", "name": "Email：新品推薦，不給折扣",
+      "config": {
+        "template_id": "tpl_winback_low",
+        "channel_id": "ch_email_main",
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "send_default", "type": "SendMessageNode", "name": "Email：一般喚醒",
+      "config": {
+        "template_id": "tpl_winback_default",
+        "channel_id": "ch_email_main",
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "merge_1", "type": "MergeNode", "config": {},
+      "outputs": { "next": "wait_browse" } },
+
+    { "id": "wait_browse", "type": "WaitForEventNode", "name": "等瀏覽，逾時 7 天",
+      "config": { "event_name": "product_viewed", "timeout": "P7D" },
+      "outputs": { "occurred": "send_boost", "timeout": "send_wave2" } },
+
+    { "id": "send_boost", "type": "SendMessageNode", "name": "有看沒買 → 限時加碼",
+      "config": {
+        "template_id": "tpl_winback_boost",
+        "channel_id": "ch_line_main",
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "wait_purchase", "skipped": "wait_purchase" } },
+
+    { "id": "send_wave2", "type": "SendMessageNode", "name": "第二波：換通道",
+      "config": {
+        "template_id": "tpl_winback_wave2",
+        "channel_id": "ch_line_main",
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "wait_purchase", "skipped": "wait_purchase" } },
+
+    { "id": "wait_purchase", "type": "WaitForEventNode", "name": "等購買，逾時 14 天",
+      "config": { "event_name": "order_completed", "timeout": "P14D" },
+      "outputs": { "occurred": "goal_1", "timeout": "tag_1" } },
+
+    { "id": "goal_1", "type": "GoalNode",
+      "config": { "goal_id": "winback_purchase" }, "outputs": {} },
+
+    { "id": "tag_1", "type": "UpdateProfileNode", "name": "標記喚醒失敗",
+      "config": {
+        "operations": [
+          { "op": "TAG", "value": "winback_failed" },
+          { "op": "SET", "field": "last_winback_at", "value": "$.now" }
+        ]
+      },
+      "outputs": { "next": "remove_from_list" } },
+
+    { "id": "remove_from_list", "type": "AudienceMembershipNode", "name": "移出可行銷名單（停損）",
+      "config": {
+        "segment_id": "01JCXYZSEGMENTMARKETABLE1",
+        "action": "REMOVE"
+      },
+      "outputs": { "next": "goto_lowfreq" } },
+
+    { "id": "goto_lowfreq", "type": "GoToJourneyNode", "name": "轉入低頻內容經營旅程",
+      "config": { "target_journey_id": "01JCXYZJOURNEY0000000009" },
+      "outputs": {} }
+  ]
+}

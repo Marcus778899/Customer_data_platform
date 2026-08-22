@@ -1,0 +1,24 @@
+{
+  "event_id": "01JCXYZ8K3M4N5P6Q7R8S9T0AB",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "source_type": "CUSTOMER_BEHAVIOR",
+  "source_id": "web-sdk",
+  "name": "cart_item_added",
+  "occurred_at": "2026-08-21T09:15:32Z",
+  "identity": {
+    "identifiers": [
+      { "type": "EMAIL", "value": "user@example.com" },
+      { "type": "DEVICE_ID", "value": "dev_8f3a2b" }
+    ]
+  },
+  "properties": {
+    "cart_id": "CART-99201",
+    "cart_total": 1580,
+    "currency": "TWD",
+    "items": [
+      { "sku": "SKU-001", "name": "保濕精華液", "price": 980, "qty": 1 },
+      { "sku": "SKU-042", "name": "洗面乳", "price": 600, "qty": 1 }
+    ]
+  },
+  "context": { "trust_level": "VERIFIED", "ip": "203.0.113.5" }
+}

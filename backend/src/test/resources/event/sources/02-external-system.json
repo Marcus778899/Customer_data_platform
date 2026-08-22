@@ -1,0 +1,16 @@
+{
+  "event_id": "01JCXYZ9M4N5P6Q7R8S9T0ABCD",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "source_type": "EXTERNAL_SYSTEM",
+  "source_id": "coupon-service",
+  "name": "coupon_redeemed",
+  "occurred_at": "2026-08-21T10:02:11Z",
+  "identity": { "profile_id": "01JCXYZPROFILE00000000001" },
+  "properties": {
+    "coupon_code": "BDAY500",
+    "coupon_id": "CPN-7781",
+    "discount_amount": 500,
+    "order_id": "ORD-55012"
+  },
+  "context": { "trust_level": "VERIFIED" }
+}

@@ -1,0 +1,110 @@
+{
+  "journey_id": "01JCXYZJOURNEY0000000001",
+  "tenant_id": "01JCXYZ0000TENANT0000000001",
+  "version": 1,
+  "name": "棄單挽回",
+  "status": "ACTIVE",
+  "entry_node": "start_1",
+
+  "settings": {
+    "priority": 750,
+    "reentry": {
+      "mode": "DEDUP_KEY_WITH_COOLDOWN",
+      "dedup_key_path": "$.trigger.properties.cart_id",
+      "cooldown": "P7D"
+    },
+    "global_exit": {
+      "conditions": [
+        { "type": "attribute", "field": "marketing_opt_out", "operator": "EQ", "value": true }
+      ],
+      "on_match": "EXITED"
+    },
+    "goal": {
+      "goal_id": "checkout",
+      "condition": { "type": "event", "event": "order_completed" },
+      "window": "P7D"
+    },
+    "on_pause": "DRAIN"
+  },
+
+  "nodes": [
+    { "id": "start_1", "type": "StartNode", "config": {},
+      "outputs": { "next": "src_1" } },
+
+    { "id": "src_1", "type": "EventSourceNode", "name": "加入購物車",
+      "config": {
+        "event_name": "cart_item_added",
+        "event_filter": { "cart_total": { "operator": "GT", "value": 500 } }
+      },
+      "outputs": { "next": "wait_1" } },
+
+    { "id": "wait_1", "type": "WaitDelayNode", "name": "等 1 小時",
+      "config": { "duration": "PT1H" },
+      "outputs": { "next": "cond_vip" } },
+
+    { "id": "cond_vip", "type": "ConditionNode", "name": "是 VIP？",
+      "config": {
+        "condition": {
+          "type": "attribute", "field": "member_tier",
+          "operator": "IN", "value": ["GOLD", "PLATINUM"]
+        }
+      },
+      "outputs": { "yes": "send_vip", "no": "send_normal" } },
+
+    { "id": "send_vip", "type": "SendMessageNode", "name": "LINE 專屬關心",
+      "config": { "template_id": "tpl_vip_cart", "channel_id": "ch_line_main", "on_skip": "CONTINUE" },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "send_normal", "type": "SendMessageNode", "name": "Email 提醒",
+      "config": { "template_id": "tpl_std_cart", "channel_id": "ch_email_main", "on_skip": "CONTINUE" },
+      "outputs": { "sent": "merge_1", "skipped": "merge_1" } },
+
+    { "id": "merge_1", "type": "MergeNode", "config": {},
+      "outputs": { "next": "wait_order_1" } },
+
+    { "id": "wait_order_1", "type": "WaitForEventNode", "name": "等結帳 24h",
+      "config": { "event_name": "order_completed", "timeout": "P1D" },
+      "outputs": { "occurred": "goal_1", "timeout": "split_1" } },
+
+    { "id": "goal_1", "type": "GoalNode", "config": { "goal_id": "checkout" }, "outputs": {} },
+
+    { "id": "split_1", "type": "SplitTestNode", "name": "發券 A/B",
+      "config": {
+        "variants": [
+          { "port": "coupon", "weight": 50, "label": "發折價券" },
+          { "port": "control", "weight": 50, "label": "對照組", "is_control": true }
+        ]
+      },
+      "outputs": { "coupon": "hook_coupon", "control": "exit_control" } },
+
+    { "id": "exit_control", "type": "ExitNode",
+      "config": { "reason": "對照組" }, "outputs": {} },
+
+    { "id": "hook_coupon", "type": "WebhookNode", "name": "發券",
+      "config": {
+        "url": "https://coupon.example.com/issue", "method": "POST",
+        "payload": { "profile_id": "$.profile_id" },
+        "wait_for_response": true, "timeout": "PT10S",
+        "response_mapping": { "coupon_code": "$.body.code" }
+      },
+      "outputs": { "success": "send_coupon", "failure": "end_1" } },
+
+    { "id": "send_coupon", "type": "SendMessageNode", "name": "LINE 券已送達",
+      "config": {
+        "template_id": "tpl_coupon", "channel_id": "ch_line_main",
+        "variables": { "coupon_code": "$.variables.coupon_code" },
+        "on_skip": "CONTINUE"
+      },
+      "outputs": { "sent": "wait_order_2", "skipped": "wait_order_2" } },
+
+    { "id": "wait_order_2", "type": "WaitForEventNode", "name": "等結帳 48h",
+      "config": { "event_name": "order_completed", "timeout": "P2D" },
+      "outputs": { "occurred": "goal_1", "timeout": "tag_1" } },
+
+    { "id": "tag_1", "type": "UpdateProfileNode",
+      "config": { "operations": [ { "op": "TAG", "value": "discount_insensitive" } ] },
+      "outputs": { "next": "end_1" } },
+
+    { "id": "end_1", "type": "EndNode", "config": {}, "outputs": {} }
+  ]
+}

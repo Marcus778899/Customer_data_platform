@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cdp:schema:event",
+  "title": "Event Contract",
+  "description": "Ingestion 的對外契約，對應 docs/spec/01-event-contract.md。這是改動成本最高的一份規格——所有下游（去重、身分解析、旅程觸發、WaitForEventNode）都只認它。本檔驗證結構與三種來源各自的必填規則（§4）、identity 擇一規則（§5）、回流事件的必帶屬性（§10）。以下屬執行期語意，不在本檔：去重（tenant_id + event_id，§7）、遲到事件門檻與未來時間拒絕（§6）、簽章驗證與速率限制（§4）。",
+  "type": "object",
+  "required": ["event_id", "tenant_id", "source_type", "name", "occurred_at", "identity"],
+  "additionalProperties": false,
+
+  "properties": {
+    "event_id": {
+      "$ref": "#/$defs/ulid",
+      "description": "由產生端提供，用於去重。同一筆業務動作重送時必須用同一個 id。"
+    },
+    "tenant_id": {
+      "$ref": "#/$defs/ulid",
+      "description": "由認證憑證推導，不接受請求端指定——本檔無法強制，由 Ingestion 覆寫。"
+    },
+    "source_type": { "$ref": "#/$defs/sourceType" },
+    "source_id": { "type": "string", "minLength": 1 },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "事件名稱，snake_case。"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "事件實際發生時間，不是寫入時間。所有受眾時間窗以它計算（§6）。"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "平台接收時間，由 Ingestion 填入。只用於監控延遲與除錯，不得用於任何業務邏輯。"
+    },
+    "identity": { "$ref": "#/$defs/identity" },
+    "properties": { "type": "object" },
+    "context": { "$ref": "#/$defs/context" }
+  },
+
+  "allOf": [
+    {
+      "description": "§4：EXTERNAL_SYSTEM 與 INTERNAL_OPERATION 必須指明來源（哪個系統／哪個使用者）。",
+      "if": {
+        "required": ["source_type"],
+        "properties": {
+          "source_type": { "enum": ["EXTERNAL_SYSTEM", "INTERNAL_OPERATION"] }
+        }
+      },
+      "then": { "required": ["source_id"] }
+    },
+    {
+      "description": "§4：INTERNAL_OPERATION 會直接推進旅程，因此必須留下是誰送的——出事時要查得到。",
+      "if": {
+        "required": ["source_type"],
+        "properties": { "source_type": { "const": "INTERNAL_OPERATION" } }
+      },
+      "then": {
+        "required": ["context"],
+        "properties": {
+          "context": { "required": ["actor_id"] }
+        }
+      }
+    },
+    {
+      "description": "§4：客戶行為事件沒有操作者。出現 actor_id 通常代表 source_type 標錯了。",
+      "if": {
+        "required": ["source_type"],
+        "properties": { "source_type": { "const": "CUSTOMER_BEHAVIOR" } }
+      },
+      "then": {
+        "properties": {
+          "context": {
+            "properties": { "actor_id": false, "actor_role": false }
+          }
+        }
+      }
+    },
+    {
+      "description": "§10：回流事件必帶這五個屬性，WaitForEventNode 才能精準等待「這一則」訊息被開啟，而不是「任何訊息」。",
+      "if": {
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "enum": [
+              "message_delivered",
+              "message_opened",
+              "message_clicked",
+              "message_failed",
+              "message_unsubscribed"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": ["properties"],
+        "properties": {
+          "properties": {
+            "required": ["journey_id", "enrollment_id", "node_id", "template_id", "channel_type"],
+            "properties": {
+              "journey_id": { "$ref": "#/$defs/ulid" },
+              "enrollment_id": { "$ref": "#/$defs/ulid" },
+              "node_id": { "type": "string", "minLength": 1 },
+              "template_id": { "type": "string", "minLength": 1 },
+              "channel_type": { "$ref": "#/$defs/channelType" }
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+    "ulid": { "type": "string", "pattern": "^[0-9A-Za-z]{10,32}$" },
+
+    "sourceType": {
+      "enum": ["CUSTOMER_BEHAVIOR", "EXTERNAL_SYSTEM", "INTERNAL_OPERATION"],
+      "description": "三類事件的可信度、身分識別方式、稽核要求都不同，但下游用同一套邏輯處理，所以統一契約、以本欄區分。"
+    },
+
+    "channelType": { "enum": ["LINE", "EMAIL", "SMS", "APP_PUSH"] },
+
+    "identifierType": {
+      "enum": ["EMAIL", "PHONE", "LINE_USER_ID", "MEMBER_ID", "DEVICE_ID"]
+    },
+
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "§5：profile_id 與 identifiers 至少擇一。兩者都給時以 profile_id 為準，identifiers 仍寫入身分解析供未來合併參考。",
+      "properties": {
+        "profile_id": { "$ref": "#/$defs/ulid" },
+        "identifiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["type", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "$ref": "#/$defs/identifierType" },
+              "value": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      },
+      "anyOf": [{ "required": ["profile_id"] }, { "required": ["identifiers"] }]
+    },
+
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": { "type": "string", "minLength": 1 },
+        "actor_role": { "type": "string", "minLength": 1 },
+        "trust_level": { "enum": ["VERIFIED", "UNVERIFIED"] },
+        "ip": { "type": "string", "minLength": 1 },
+        "user_agent": { "type": "string" },
+        "request_id": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
