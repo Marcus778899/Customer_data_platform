@@ -37,7 +37,7 @@ CREATE TABLE enrollment_record (
     updated_at         TIMESTAMPTZ NOT NULL,
     terminated_at      TIMESTAMPTZ,
     termination_reason TEXT,
-    
+
     CONSTRAINT ck_enrollment_delivery_history_size
         CHECK (jsonb_array_length(delivery_history) <= 50),
     CONSTRAINT ck_enrollment_variables_size
