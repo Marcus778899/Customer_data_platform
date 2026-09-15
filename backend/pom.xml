@@ -22,6 +22,10 @@
     <db-scheduler.version>14.0.3</db-scheduler.version>
     <json-schema-validator.version>1.5.2</json-schema-validator.version>
     <spotless.version>2.43.0</spotless.version>
+    <!-- 覆寫 Spring Boot 3.3.5 管的 1.19.8：其內建的 docker-java 固定用 API 1.32，
+         而 Docker Engine 29+ 最低要求 1.40，直接被拒。
+         註：Windows + Docker Desktop 4.81 另有 named pipe 的問題，見 development/README.md -->
+    <testcontainers.version>1.21.3</testcontainers.version>
   </properties>
 
   <dependencies>
@@ -153,6 +157,16 @@
               <expandEmptyElements>false</expandEmptyElements>
             </sortPom>
           </pom>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <api.version>1.44</api.version>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
 
