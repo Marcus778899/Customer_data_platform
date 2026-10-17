@@ -1,0 +1,8 @@
+.env
+.worktrees/
+tasks/
+reports/
+.hooklog/
+.venv/
+node_modules/
+__pycache__/

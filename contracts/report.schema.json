@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkerReport",
+  "$comment": "TODO(AE-08): 調整欄位；validate_report.py 依此驗證",
+  "type": "object",
+  "required": ["task_id", "status", "files_changed", "verification", "open_questions"],
+  "additionalProperties": false,
+  "properties": {
+    "task_id": { "type": "string" },
+    "status": { "enum": ["done", "blocked", "failed"] },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "verification": {
+      "type": "object",
+      "required": ["command", "exit_code", "tail"],
+      "additionalProperties": false,
+      "properties": {
+        "command": { "type": "string" },
+        "exit_code": { "type": "integer" },
+        "tail": { "type": "string", "description": "驗證輸出的最後幾行" }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}

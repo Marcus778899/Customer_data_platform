@@ -1,0 +1,69 @@
+{
+  "enabledMcpjsonServers": ["playwright"],
+  "permissions": {
+    "allow": [
+      "Bash(make check)",
+      "Bash(python3 scripts/board.py:*)",
+      "Bash(python3 scripts/task.py:*)",
+      "Bash(python3 scripts/pr.py:*)",
+      "Bash(python3 scripts/docs.py:*)",
+      "Bash(python3 scripts/check_env.py)",
+      "Bash(python3 scripts/validate_report.py:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "ask": [
+      "Bash(python3 scripts/init_project.py:*)",
+      "Bash(python3 scripts/release.py:*)",
+      "Bash(python3 scripts/pr.py approve:*)",
+      "Bash(python3 scripts/pr.py unblock:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh release create:*)",
+      "Bash(gh release delete:*)",
+      "Bash(gh release edit:*)",
+      "Bash(gh release upload:*)",
+      "Bash(gh repo:*)",
+      "Read(**/.env)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/guard_paths.py\""
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "backend|frontend",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/validate_report.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
