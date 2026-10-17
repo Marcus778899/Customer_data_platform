@@ -461,7 +461,7 @@ class JourneyEngineAcceptanceTest {
         assertThat(row.get("current_node_id")).isEqualTo("wait_1");
         assertThat(row.get("journey_version")).isEqualTo(1);
         assertThat(row.get("tenant_id")).isEqualTo("01JTESTTENANT0000000000001");
-        assertThat(((OffsetDateTime) row.get("next_wake_at")).toInstant())
+        assertThat(((java.sql.Timestamp) row.get("next_wake_at")).toInstant())
                 .isEqualTo(clock.instant().plus(Duration.ofHours(1)));
         assertThat(outboxCount(eid)).isZero();
 
