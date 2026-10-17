@@ -17,14 +17,13 @@
 摘要由 UI 以 `status`／`wake_condition`／`delivery_history` 組出，回答「走到哪、為什麼沒收到」；Enrollment 已 COMPLETED 但有 `PENDING` 發送時，固定句型「目前狀況：旅程已走完，但有 N 則訊息仍待送，尚未送出。」（設計稿同）。
 軌跡第一列是 EventSourceNode；`node_type` 用完整名（WaitDelayNode…）；出口 `next`／`sent`，仍在節點或終點顯示「—」。
 `journey_name` 必有值；`node_name` 為 null 時顯示 `node_type` 並標「未命名」。
-遮罩（D-014）：只有 `masked_paths` 列出的值才標「已遮罩」徽章（文字，不比對 `***`）；詳情上方一句說明「無法解除」，沒有解除入口、不可複製原文。
+遮罩（D-014）：只有 `masked_paths` 列出的值才標「已遮罩」徽章（文字，不比對 `***`）；詳情上方一句說明「無法解除」，沒有解除入口，也不提供複製遮罩值的功能（畫面上從不出現原文）。
 發送歷史顯示 `template_id`、`channel_id`（`channel_type` 一律 MOCK）；訊息類型為 null 顯示「—」。結果：待送、已送出、發送失敗、已取消（`SKIPPED` 為已略過＋`skip_reason`，v0.1.0 不會出現）。
 
 ## 狀態
 
 | 畫面 | 空 | 載入中 | 錯誤 | 成功 |
 |---|---|---|---|---|
-| 登入 | 帳號＋密碼（D-013）；頁首顯示帳號與「登出」 | 未登入或任何 API 回 401 時導向 `/login`，成功後回原頁 |
 | 登入 | 初始：空白表單 | 按鈕「登入中…」、欄位唯讀 | 401：「帳號或密碼不正確」（唯一一種）；400：「請輸入帳號與密碼」；5xx：附 `request_id` | 204 後回原頁；session 逾時顯示「登入已逾時，請重新登入」 |
 | 查詢＋列表 | 初始：提示輸入；查無（200 `items: []`）：說明可能原因 | 骨架列，按鈕顯示「查詢中…」 | 400／5xx：紅色提示＋`request_id`＋「重試」 | 表格，筆數＋「載入更多」（`next_cursor`） |
 | 詳情 | 發送歷史無資料：「尚無發送紀錄」；`profile_snapshot` 為 `{}`：「此版本未記錄客戶屬性快照」 | 骨架區塊 | 404 `ENROLLMENT_NOT_FOUND`（只在詳情）與 5xx 分開寫，皆附 `request_id` | 見上，終態另顯示 `terminated_at` 與 `termination_reason`；發送歷史有「載入更早紀錄」（`delivery_history_next_cursor`） |
