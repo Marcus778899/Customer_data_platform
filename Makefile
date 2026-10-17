@@ -19,16 +19,16 @@ WEB_DIR := web
 MVNW := ./mvnw -B
 COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 
-.PHONY: help setup ci-setup check lint test api-run web-dev db-up db-down
+.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down
 
 help:
-	@echo "make setup     install deps (Maven repo in ~/.m2, node_modules at checkout root)"
-	@echo "make ci-setup  install deps in CI (same steps as setup)"
-	@echo "make check     lint + tests (incl. acceptance tests)"
-	@echo "make db-up     start local PostgreSQL (docker compose)"
-	@echo "make db-down   stop local PostgreSQL (data kept)"
-	@echo "make api-run   run backend on API_PORT"
-	@echo "make web-dev   run frontend dev server on WEB_PORT"
+	@echo "make setup      install deps (Maven repo in ~/.m2, node_modules at checkout root)"
+	@echo "make ci-setup   install deps in CI (same steps as setup)"
+	@echo "make check      lint + tests (incl. acceptance tests)"
+	@echo "make infra-up   start local PostgreSQL + RabbitMQ (docker compose)"
+	@echo "make infra-down stop local services (data kept)"
+	@echo "make api-run    run backend on API_PORT"
+	@echo "make web-dev    run frontend dev server on WEB_PORT"
 
 # 前端相依由根目錄 package.json 的 npm workspaces 安裝到 checkout 根目錄的 node_modules
 setup:
@@ -68,8 +68,8 @@ api-run:
 web-dev:
 	npm run dev -w "$(WEB_DIR)"
 
-db-up:
+infra-up:
 	$(COMPOSE) up -d --wait
 
-db-down:
+infra-down:
 	$(COMPOSE) down
