@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設計稿：Enrollment 軌跡查詢（UI-01）</title>
+  <!-- 設計 token：與前端共用同一份，不複製 -->
+  <link rel="stylesheet" href="../../../web/src/styles/tokens.css">
+  <style>
+    /* ---- 設計稿本身的排版（狀態標籤、分隔） ---- */
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font-body); font-size: var(--text-md); line-height: var(--line-height); background: var(--color-bg); color: var(--color-text); }
+    .state { padding: var(--space-5); border-bottom: 2px dashed var(--color-border-strong); }
+    .state > h2 { font: 600 var(--text-xs)/1 var(--font-mono); color: var(--color-text-muted); margin: 0 0 var(--space-4); text-transform: uppercase; }
+    .toc { padding: var(--space-5); }
+    .toc ul { columns: 2; margin: 0; padding-left: var(--space-5); }
+    /* iframe 窄螢幕預覽：只顯示被 :target 指到的區塊 */
+    html:has(.state:target) .toc, html:has(.state:target) .state:not(:target) { display: none; }
+    html:has(.state:target) .state { border: 0; padding: 0; }
+    html:has(.state:target) .state > h2 { display: none; }
+    iframe.narrow { width: 375px; height: 640px; border: 2px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg); }
+
+    /* ---- 畫面樣式（只用 token） ---- */
+    .app { max-width: var(--content-max-width); margin: 0 auto; }
+    .app > header { padding-bottom: var(--space-4); }
+    h1 { font-size: var(--text-xl); margin: 0 0 var(--space-1); }
+    h3 { font-size: var(--text-lg); margin: var(--space-5) 0 var(--space-3); }
+    .muted { color: var(--color-text-muted); font-size: var(--text-sm); }
+    .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
+    a { color: var(--color-primary); }
+    :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+    .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); }
+    form.search { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: var(--space-1); flex: 1 1 220px; }
+    .field label { font-size: var(--text-sm); font-weight: 600; }
+    input, select { font: inherit; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); min-height: 40px; }
+    .btn { font: inherit; font-weight: 600; min-height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-sm); border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-text); cursor: pointer; }
+    .btn.secondary { background: var(--color-surface); color: var(--color-primary); }
+    .badge { display: inline-block; padding: 0 var(--space-2); border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+    .b-info { background: var(--color-info-bg); color: var(--color-info-fg); }
+    .b-success { background: var(--color-success-bg); color: var(--color-success-fg); }
+    .b-warning { background: var(--color-warning-bg); color: var(--color-warning-fg); }
+    .b-danger { background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .b-neutral { background: var(--color-neutral-bg); color: var(--color-neutral-fg); }
+    table { width: 100%; border-collapse: collapse; }
+    caption { text-align: left; padding-bottom: var(--space-2); }
+    th, td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); vertical-align: top; }
+    th { font-size: var(--text-sm); color: var(--color-text-muted); font-weight: 600; }
+    .msg { text-align: center; padding: var(--space-6) var(--space-4); }
+    .msg.error { background: var(--color-danger-bg); color: var(--color-danger-fg); border-radius: var(--radius-md); text-align: left; }
+    .skel { display: block; height: 1em; margin: var(--space-3) 0; background: var(--color-neutral-bg); border-radius: var(--radius-sm); }
+    .summary { background: var(--color-warning-bg); color: var(--color-warning-fg); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0; }
+    .summary.ok { background: var(--color-success-bg); color: var(--color-success-fg); }
+    dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); margin: 0; }
+    dl.kv dt { color: var(--color-text-muted); font-size: var(--text-sm); }
+    dl.kv dd { margin: 0; word-break: break-all; }
+    ol.trace { list-style: none; margin: 0; padding: 0; }
+    ol.trace > li { position: relative; padding: 0 0 var(--space-4) var(--space-5); border-left: 2px solid var(--color-border-strong); margin-left: var(--space-2); }
+    ol.trace > li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-surface); border: 2px solid var(--color-border-strong); }
+    ol.trace > li.current { border-left-color: var(--color-warning-fg); }
+    ol.trace > li.current::before { background: var(--color-warning-fg); border-color: var(--color-warning-fg); }
+    ol.trace .head { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
+    .reason { margin: var(--space-1) 0; }
+    details > summary { cursor: pointer; color: var(--color-primary); font-size: var(--text-sm); }
+    details dl.kv { margin-top: var(--space-2); }
+    .scroll { overflow-x: auto; }
+    .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-2) 0 var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
+    .topbar .who { display: flex; gap: var(--space-3); align-items: center; }
+    .login { max-width: 400px; margin: var(--space-6) auto 0; display: flex; flex-direction: column; gap: var(--space-4); }
+    .login .msg.error, .login .msg.info { padding: var(--space-3) var(--space-4); text-align: left; }
+    .login .msg.info { background: var(--color-info-bg); color: var(--color-info-fg); border-radius: var(--radius-md); }
+    .login .msg p, .msg.error p { margin: 0; }
+    .mask-note { background: var(--color-neutral-bg); color: var(--color-neutral-fg); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font-size: var(--text-sm); margin: var(--space-3) 0; }
+
+    /* 窄螢幕：表格轉卡片 */
+    @media (max-width: 640px) {
+      .state { padding: var(--space-4); }
+      table.stack thead { position: absolute; left: -9999px; }
+      table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+      table.stack tr { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-2); margin-bottom: var(--space-3); }
+      table.stack td { border: 0; padding: var(--space-1) var(--space-2); }
+      table.stack td[data-label]::before { content: attr(data-label) "："; color: var(--color-text-muted); font-size: var(--text-sm); }
+      .btn, input, select { min-height: 44px; }
+      dl.kv { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: no-preference) { .skel { animation: pulse 1.2s ease-in-out infinite; } }
+    @keyframes pulse { 50% { opacity: .5; } }
+  </style>
+</head>
+<body>
+  <nav class="toc" aria-label="設計稿目錄">
+    <h1>Enrollment 軌跡查詢設計稿</h1>
+    <p class="muted">假資料、無邏輯。每個區塊是一個畫面狀態。規格見 docs/ui/enrollment-trace.md。</p>
+    <ul>
+      <li><a href="#login-initial">登入：初始</a></li>
+      <li><a href="#login-loading">登入：登入中</a></li>
+      <li><a href="#login-error">登入：帳密錯誤／欄位未填</a></li>
+      <li><a href="#login-server-error">登入：伺服器錯誤</a></li>
+      <li><a href="#login-expired">登入：session 逾時（401 導回）</a></li>
+      <li><a href="#search-initial">查詢：初始</a></li>
+      <li><a href="#list-loading">列表：載入中</a></li>
+      <li><a href="#list-filled">列表：有資料</a></li>
+      <li><a href="#list-empty">列表：查無資料</a></li>
+      <li><a href="#list-error">列表：錯誤</a></li>
+      <li><a href="#detail-loading">詳情：載入中</a></li>
+      <li><a href="#detail-waiting">詳情：等待中（進行中）</a></li>
+      <li><a href="#detail-pending">詳情：已完成但訊息仍待送</a></li>
+      <li><a href="#detail-masked">詳情：個資已遮罩</a></li>
+      <li><a href="#detail-deliveries">詳情：發送狀態一覽與載入更早紀錄</a></li>
+      <li><a href="#detail-notfound">詳情：找不到</a></li>
+      <li><a href="#detail-error">詳情：載入失敗</a></li>
+      <li><a href="#narrow">窄螢幕（375px）預覽</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== 登入（契約 §1.2） ===== -->
+  <section class="state" id="login-initial">
+    <h2>登入：初始</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <p class="muted" style="margin:0">請登入後查詢。</p>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u1">帳號</label><input id="u1" name="username" autocomplete="username"></div>
+        <div class="field"><label for="p1">密碼</label><input id="p1" name="password" type="password" autocomplete="current-password"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-loading">
+    <h2>登入：登入中</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入" aria-busy="true">
+        <div class="field"><label for="u2">帳號</label><input id="u2" name="username" autocomplete="username" value="support01" readonly></div>
+        <div class="field"><label for="p2">密碼</label><input id="p2" name="password" type="password" autocomplete="current-password" value="xxxxxxxx" readonly></div>
+        <button class="btn" type="submit" aria-disabled="true">登入中…</button>
+      </form>
+      <p role="status" class="muted" style="margin:0">登入中…</p>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-error">
+    <h2>登入：帳密錯誤（401 INVALID_CREDENTIALS）</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <div class="msg error" role="alert" id="e3"><p><strong>帳號或密碼不正確</strong></p></div>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u3">帳號</label><input id="u3" name="username" autocomplete="username" value="support01" aria-describedby="e3"></div>
+        <div class="field"><label for="p3">密碼</label><input id="p3" name="password" type="password" autocomplete="current-password" aria-describedby="e3"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+      <p class="muted" style="margin:0">錯誤訊息只有這一種，不說明是帳號或密碼錯。失敗後焦點回到密碼欄並清空。欄位未填（400）：「請輸入帳號與密碼」。</p>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-server-error">
+    <h2>登入：伺服器錯誤（5xx／連不上）</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <div class="msg error" role="alert"><p><strong>目前無法登入</strong></p><p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000003</span>。</p></div>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u4">帳號</label><input id="u4" name="username" autocomplete="username" value="support01"></div>
+        <div class="field"><label for="p4">密碼</label><input id="p4" name="password" type="password" autocomplete="current-password"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-expired">
+    <h2>登入：session 逾時（任何 API 回 401 UNAUTHENTICATED 導回；登入成功後回原頁）</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <div class="msg info" role="status"><p><strong>登入已逾時，請重新登入</strong></p><p>登入後會回到剛才的頁面（<span class="mono">/enrollments/01JCXYZENROLL000000000001</span>）。</p></div>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u5">帳號</label><input id="u5" name="username" autocomplete="username"></div>
+        <div class="field"><label for="p5">密碼</label><input id="p5" name="password" type="password" autocomplete="current-password"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+    </main></div>
+  </section>
+
+  <!-- ===== 查詢：初始 ===== -->
+  <section class="state" id="search-initial">
+    <h2>查詢：初始（尚未查詢）</h2>
+    <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
+      <header><h1>客戶旅程軌跡</h1><p class="muted">唯讀。查某位客戶走到哪、為什麼沒收到訊息。</p></header>
+      <form class="search card" role="search" aria-label="查詢 Enrollment">
+        <div class="field">
+          <label for="q1">客戶 ID 或 Enrollment ID</label>
+          <input id="q1" name="q" placeholder="例：01JCXYZPROFILE00000000001（精確比對）">
+        </div>
+        <div class="field" style="flex-basis:160px">
+          <label for="s1">狀態</label>
+          <select id="s1"><option>全部</option><option>進行中（ACTIVE）</option><option>等待中（WAITING）</option><option>已完成（COMPLETED）</option><option>失敗（FAILED）</option></select>
+        </div>
+        <button class="btn" type="submit">查詢</button>
+      </form>
+      <p class="msg muted">輸入客戶 ID 或 Enrollment ID 開始查詢。</p>
+    </div>
+  </section>
+
+  <!-- ===== 列表：載入中 ===== -->
+  <section class="state" id="list-loading">
+    <h2>列表：載入中</h2>
+    <div class="app">
+      <form class="search card" role="search"><div class="field"><label for="q2">客戶 ID 或 Enrollment ID</label><input id="q2" value="01JCXYZPROFILE00000000001"></div><button class="btn" type="submit" aria-disabled="true">查詢中…</button></form>
+      <div role="status" aria-live="polite" aria-busy="true" class="card" style="margin-top:var(--space-4)">
+        <span class="muted">載入中…</span>
+        <span class="skel"></span><span class="skel"></span><span class="skel" style="width:70%"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 列表：有資料 ===== -->
+  <section class="state" id="list-filled">
+    <h2>列表：有資料</h2>
+    <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
+      <form class="search card" role="search"><div class="field"><label for="q3">客戶 ID 或 Enrollment ID</label><input id="q3" value="01JCXYZPROFILE00000000001"></div><div class="field" style="flex-basis:160px"><label for="s3">狀態</label><select id="s3"><option>全部</option></select></div><button class="btn" type="submit">查詢</button></form>
+      <div class="card scroll" style="margin-top:var(--space-4)">
+        <table class="stack">
+          <caption>共 3 筆，依進入時間新到舊</caption>
+          <thead><tr><th scope="col">旅程（版本）</th><th scope="col">狀態</th><th scope="col">目前節點</th><th scope="col">進入時間</th><th scope="col">最後更新</th></tr></thead>
+          <tbody>
+            <tr><td data-label="旅程"><a href="#detail-waiting">棄單挽回（v2）</a><br><span class="mono muted">01JCXYZENROLL000000000001</span></td><td data-label="狀態"><span class="badge b-warning">等待中</span></td><td data-label="目前節點">等 3 天<br><span class="mono muted">WaitDelayNode</span></td><td data-label="進入時間">2026-10-18 10:00</td><td data-label="最後更新">2026-10-18 10:00</td></tr>
+            <tr><td data-label="旅程"><a href="#detail-pending">棄單挽回（v2）</a><br><span class="mono muted">01JCXYZENROLL000000000002</span></td><td data-label="狀態"><span class="badge b-success">已完成</span></td><td data-label="目前節點">EndNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-10 09:12</td><td data-label="最後更新">2026-10-13 09:13</td></tr>
+            <tr><td data-label="旅程"><a href="#detail-error">新客歡迎（v1）</a><br><span class="mono muted">01JCXYZENROLL000000000003</span></td><td data-label="狀態"><span class="badge b-danger">失敗</span></td><td data-label="目前節點">SendMessageNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-01 14:30</td><td data-label="最後更新">2026-10-01 14:35</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted"><a href="#list-filled">載入更多</a>（<code>next_cursor</code> 為 null 時不出現）</p>
+    </div>
+  </section>
+
+  <!-- ===== 列表：查無資料 ===== -->
+  <section class="state" id="list-empty">
+    <h2>列表：查無資料</h2>
+    <div class="app">
+      <form class="search card" role="search"><div class="field"><label for="q4">客戶 ID 或 Enrollment ID</label><input id="q4" value="01JUNKNOWN0000000000000000"></div><button class="btn" type="submit">查詢</button></form>
+      <div class="msg card" style="margin-top:var(--space-4)" role="status">
+        <p><strong>找不到「01JUNKNOWN0000000000000000」的任何旅程紀錄</strong></p>
+        <p class="muted">可能原因：ID 輸入有誤；這位客戶尚未觸發任何旅程；或該事件發生已超過 24 小時，系統收下但不建立旅程紀錄。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 列表：錯誤 ===== -->
+  <section class="state" id="list-error">
+    <h2>列表：錯誤</h2>
+    <div class="app">
+      <form class="search card" role="search"><div class="field"><label for="q5">客戶 ID 或 Enrollment ID</label><input id="q5" value="01JCXYZPROFILE00000000001"></div><button class="btn" type="submit">查詢</button></form>
+      <div class="msg error" role="alert" style="margin-top:var(--space-4)">
+        <p><strong>查詢失敗，沒有取得資料</strong></p>
+        <p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000001</span>。</p>
+        <button class="btn secondary" type="button">重試</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：載入中 ===== -->
+  <section class="state" id="detail-loading">
+    <h2>詳情：載入中</h2>
+    <div class="app">
+      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <div role="status" aria-live="polite" aria-busy="true" class="card"><span class="muted">載入軌跡中…</span><span class="skel" style="width:40%;height:1.5em"></span><span class="skel"></span><span class="skel"></span><span class="skel" style="width:60%"></span></div>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：等待中 ===== -->
+  <section class="state" id="detail-waiting">
+    <h2>詳情：等待中（進行中）</h2>
+    <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
+      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <header>
+        <h1>棄單挽回（v2） <span class="badge b-warning">等待中</span></h1>
+        <p class="muted mono">01JCXYZENROLL000000000001　客戶 01JCXYZPROFILE00000000001</p>
+        <p class="muted"><button class="btn secondary" type="button">重新整理</button>　資料更新於 2026-10-18 10:00:05（<code>as_of</code>）</p>
+      </header>
+      <p class="summary" role="status"><strong>目前狀況：</strong>停在「等 3 天」，預計 2026-10-21 10:00 繼續（實際喚醒最多晚一個輪詢間隔）。</p>
+
+      <h3>節點軌跡</h3>
+      <ol class="trace" aria-label="節點軌跡，由舊到新">
+        <li>
+          <div class="head"><strong>1. 加入購物車</strong><span class="muted mono">EventSourceNode · src_1</span></div>
+          <div class="muted">2026-10-18 10:00:00 → 10:00:00　出口：<span class="mono">next</span></div>
+          <p class="reason">原因：收到事件 cart_item_added，建立 Enrollment。</p>
+          <details><summary>判斷時取得的值（1）</summary><dl class="kv"><dt>event_id</dt><dd class="mono">01JCXYZ8K3M4N5P6Q7R8S9T0AB</dd></dl></details>
+        </li>
+        <li class="current" aria-current="step">
+          <div class="head"><strong>2. 等 3 天</strong><span class="badge b-warning">目前在此</span><span class="muted mono">WaitDelayNode · wait_1</span></div>
+          <div class="muted">2026-10-18 10:00:00 → 尚未離開　出口：—</div>
+          <p class="reason">原因：等待 P3D，預計 2026-10-21T02:00:00Z 喚醒。</p>
+          <details><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>duration</dt><dd class="mono">P3D</dd><dt>wake_at</dt><dd class="mono">2026-10-21T02:00:00Z</dd></dl></details>
+        </li>
+      </ol>
+
+      <h3>發送歷史</h3>
+      <p class="msg muted card">尚無發送紀錄。</p>
+
+      <h3>觸發事件</h3>
+      <details class="card"><summary>展開觸發當下的事件快照</summary>
+        <dl class="kv"><dt>事件</dt><dd>cart_item_added（2026-10-18 09:59:41）</dd><dt>來源類型</dt><dd class="mono">CUSTOMER_BEHAVIOR</dd><dt>事件屬性</dt><dd class="mono">cart_id=CART-99201, cart_total=1580</dd><dt>客戶屬性快照</dt><dd class="muted">此版本未記錄客戶屬性快照。</dd></dl>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：已完成但訊息仍待送 ===== -->
+  <section class="state" id="detail-pending">
+    <h2>詳情：Enrollment 已完成，訊息仍待送（回答「為什麼沒收到」）</h2>
+    <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
+      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <header>
+        <h1>棄單挽回（v2） <span class="badge b-success">已完成</span></h1>
+        <p class="muted mono">01JCXYZENROLL000000000002　客戶 01JCXYZPROFILE00000000001</p>
+        <p class="muted">進入 2026-10-10 09:12　結束 2026-10-13 09:13（原因：已走到終點）　資料更新於 2026-10-13 09:20</p>
+      </header>
+      <p class="summary" role="status"><strong>目前狀況：</strong>旅程已走完，但有 1 則訊息仍待送，尚未送出。</p>
+
+      <h3>節點軌跡</h3>
+      <ol class="trace" aria-label="節點軌跡，由舊到新">
+        <li><div class="head"><strong>1. 加入購物車</strong><span class="muted mono">EventSourceNode · src_1</span></div><div class="muted">2026-10-10 09:12:00 → 09:12:00　出口：<span class="mono">next</span></div><p class="reason">原因：收到事件 cart_item_added，建立 Enrollment。</p></li>
+        <li><div class="head"><strong>2. WaitDelayNode</strong><span class="muted">（未命名）</span><span class="muted mono">wait_1</span></div><div class="muted">2026-10-10 09:12:00 → 2026-10-13 09:12:00　出口：<span class="mono">next</span></div><p class="reason">原因：等待 P3D，於 2026-10-13T01:12:00Z 喚醒。</p><details><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>duration</dt><dd class="mono">P3D</dd><dt>wake_at</dt><dd class="mono">2026-10-13T01:12:00Z</dd></dl></details></li>
+        <li><div class="head"><strong>3. 發送優惠通知</strong><span class="badge b-info">待送</span><span class="muted mono">SendMessageNode · send_1</span></div><div class="muted">2026-10-13 09:12:00 → 09:12:01　出口：<span class="mono">sent</span></div><p class="reason">原因：已將模板 tpl_cart_reminder 排入通道 ch_mock_1 發送。</p></li>
+        <li><div class="head"><strong>4. EndNode</strong><span class="muted">（未命名）</span><span class="muted mono">end_1</span></div><div class="muted">2026-10-13 09:13:00　出口：—</div><p class="reason">原因：已走到終點，Enrollment 完成。</p></li>
+      </ol>
+
+      <h3>發送歷史</h3>
+      <div class="card scroll">
+        <table class="stack">
+          <caption class="muted">最新 50 筆，新到舊</caption>
+          <thead><tr><th scope="col">時間</th><th scope="col">節點</th><th scope="col">模板 ID</th><th scope="col">通道 ID（類型）</th><th scope="col">訊息類型</th><th scope="col">結果</th></tr></thead>
+          <tbody><tr><td data-label="時間">2026-10-13 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_cart_reminder</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-info">待送</span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：個資已遮罩（契約 §4.4，以 masked_paths 判斷） ===== -->
+  <section class="state" id="detail-masked">
+    <h2>詳情：個資已遮罩（無解除入口）</h2>
+    <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
+      <header>
+        <h1>棄單挽回（v2） <span class="badge b-warning">等待中</span></h1>
+        <p class="muted mono">01JCXYZENROLL000000000001　客戶 01JCXYZPROFILE00000000001</p>
+      </header>
+      <p class="mask-note" role="note">標示「已遮罩」的值，系統基於個資保護不顯示完整內容，此頁無法解除。ID、時間與事件名稱不遮罩。</p>
+
+      <h3>節點軌跡</h3>
+      <ol class="trace" aria-label="節點軌跡，由舊到新">
+        <li class="current" aria-current="step">
+          <div class="head"><strong>2. 等 3 天</strong><span class="badge b-warning">目前在此</span><span class="muted mono">WaitDelayNode · wait_1</span></div>
+          <details open><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>wake_at</dt><dd class="mono">2026-10-21T02:00:00Z</dd><dt>phone</dt><dd><span class="mono">***</span> <span class="badge b-neutral">已遮罩</span></dd></dl></details>
+        </li>
+      </ol>
+
+      <h3>觸發事件</h3>
+      <details class="card" open><summary>觸發當下的事件快照</summary>
+        <dl class="kv"><dt>事件</dt><dd>cart_item_added（2026-10-18 09:59:41）</dd><dt>來源類型</dt><dd class="mono">CUSTOMER_BEHAVIOR</dd>
+        <dt>email</dt><dd><span class="mono">a***@example.com</span> <span class="badge b-neutral">已遮罩</span></dd>
+        <dt>name</dt><dd><span class="mono">***</span> <span class="badge b-neutral">已遮罩</span></dd>
+        <dt>cart_total</dt><dd class="mono">1580</dd></dl>
+      </details>
+      <p class="muted">Email 保留首字與網域，其他值顯示「***」。是否遮罩只依 <code>masked_paths</code> 判斷，不比對字樣。</p>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：發送狀態一覽 ===== -->
+  <section class="state" id="detail-deliveries">
+    <h2>詳情：發送狀態一覽（示意，涵蓋各狀態與「載入更早紀錄」）</h2>
+    <div class="app">
+      <h3>發送歷史</h3>
+      <div class="card scroll">
+        <table class="stack">
+          <caption class="muted">最新 50 筆，新到舊</caption>
+          <thead><tr><th scope="col">時間</th><th scope="col">節點</th><th scope="col">模板 ID</th><th scope="col">通道 ID（類型）</th><th scope="col">訊息類型</th><th scope="col">結果</th></tr></thead>
+          <tbody>
+            <tr><td data-label="時間">2026-10-13 09:12</td><td data-label="節點">SendMessageNode（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-info">待送</span></td></tr>
+            <tr><td data-label="時間">2026-10-12 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-success">已送出</span><br><span class="mono muted">delivery_id: msg_0042</span></td></tr>
+            <tr><td data-label="時間">2026-10-11 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-danger">發送失敗</span></td></tr>
+            <tr><td data-label="時間">2026-10-10 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-neutral">已取消</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><button class="btn secondary" type="button">載入更早紀錄</button>　<span class="muted">（<code>delivery_history_next_cursor</code> 有值時顯示；載入中按鈕顯示「載入中…」，失敗顯示可重試的錯誤與請求代碼）</span></p>
+    </div>
+  </section>
+
+  
+<!-- ===== 詳情：找不到 ===== -->
+  <section class="state" id="detail-notfound">
+    <h2>詳情：找不到</h2>
+    <div class="app">
+      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <div class="msg card" role="alert"><p><strong>找不到這筆 Enrollment</strong></p><p class="muted">ID 可能有誤，或這筆紀錄不存在。</p><a href="#search-initial">回到查詢</a></div>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：載入失敗 ===== -->
+  <section class="state" id="detail-error">
+    <h2>詳情：載入失敗</h2>
+    <div class="app">
+      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <div class="msg error" role="alert"><p><strong>無法載入軌跡</strong></p><p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000002</span>。</p><button class="btn secondary" type="button">重試</button></div>
+    </div>
+  </section>
+
+  <!-- ===== 窄螢幕預覽（以 iframe 套用真實 media query） ===== -->
+  <section class="state" id="narrow">
+    <h2>窄螢幕 375px：列表與詳情</h2>
+    <div style="display:flex;gap:var(--space-5);flex-wrap:wrap">
+      <iframe class="narrow" title="窄螢幕列表" src="index.html#list-filled"></iframe>
+      <iframe class="narrow" title="窄螢幕詳情" src="index.html#detail-pending"></iframe>
+    </div>
+  </section>
+</body>
+</html>
