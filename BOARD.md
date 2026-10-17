@@ -26,11 +26,11 @@
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
-| INIT-01 | architect | in-progress | 0 |  |
+| INIT-01 | architect | done | 0 | PR #2 |
 
 ## 卡住／待甲方決定
 
-- （無）
+- 待甲方填 .env（API_PORT、WEB_PORT、POSTGRES_*、RABBITMQ_*），填完才能開實作單
 
 ## 注意事項（踩過的坑）
 
