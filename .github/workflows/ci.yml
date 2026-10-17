@@ -25,7 +25,7 @@ jobs:
       - name: Detect Makefile
         id: detect
         run: if [ -f Makefile ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
-      # TODO(INIT): architect 依技術棧調整下面的語言版本
+      # 語言版本與本機開發環境一致（Python 3.12、Node 24）；技術棧定案後依 docs/design/INIT-01.md 待決定調整
       - name: Set up Python
         if: steps.detect.outputs.found == 'true'
         uses: actions/setup-python@v5
