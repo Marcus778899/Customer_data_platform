@@ -29,7 +29,7 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | INIT-01 | architect | done | 0 | PR #2 |
-| DESIGN-01 | architect | in-progress | 0 |  |
+| DESIGN-01 | architect | todo | 0 |  |
 | UI-01 | designer | in-progress | 0 |  |
 | CHORE-01 | architect | done | 0 | PR #6 |
 
