@@ -25,17 +25,20 @@ jobs:
       - name: Detect Makefile
         id: detect
         run: if [ -f Makefile ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
-      # 語言版本與本機開發環境一致（Python 3.12、Node 24）；技術棧定案後依 docs/design/INIT-01.md 待決定調整
-      - name: Set up Python
+      # 語言版本與本機開發環境一致（Temurin 17、Node 24）；版本理由見 docs/design/INIT-01.md
+      - name: Set up Java
         if: steps.detect.outputs.found == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-java@v4
         with:
-          python-version: "3.12"
+          distribution: temurin
+          java-version: "17"
+          cache: maven
       - name: Set up Node
         if: steps.detect.outputs.found == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: npm
       # CI 用 .env.example 的預設值；需要機密的測試改用 GitHub secrets
       - name: Prepare env
         if: steps.detect.outputs.found == 'true'

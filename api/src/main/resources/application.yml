@@ -1,0 +1,6 @@
+# 設定只從環境變數讀（變數清單見 .env.example）；這裡不寫任何實際值或預設值
+spring:
+  application:
+    name: cdp-api
+server:
+  port: ${API_PORT}

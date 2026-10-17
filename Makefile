@@ -1,46 +1,43 @@
-# 開發指令入口。技術棧與目錄慣例見 docs/design/INIT-01.md。
+# 開發指令入口。技術棧、目錄與測試慣例見 docs/design/INIT-01.md。
 # 需在 Git Bash（Windows）與 Linux（CI）都能執行；GNU Make 3.81 相容。
 # recipe 內只用 ASCII：Windows 版 make 會以系統 codepage 轉碼指令，中文會變亂碼。
 
 SHELL := sh
 
-# worktree 共用主目錄的 .venv／node_modules／.env：以 git common dir 的上一層當主目錄
+# worktree 共用主目錄的 .env：以 git common dir 的上一層當主目錄
 ROOT := $(patsubst %/.git,%,$(shell git rev-parse --path-format=absolute --git-common-dir))
 
 -include $(ROOT)/.env
-
-PYTHON ?= python
+# 把 .env.example 列出的變數全部 export 給子程序（mvnw、vite、docker compose）
+ENV_VARS := $(shell sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' .env.example 2>/dev/null)
+export $(ENV_VARS)
 export PYTHONUTF8 := 1
 
-VENV := $(ROOT)/.venv
-ifeq ($(OS),Windows_NT)
-VENV_BIN := $(VENV)/Scripts
-else
-VENV_BIN := $(VENV)/bin
-endif
-VPY := $(VENV_BIN)/python
-
-# 服務目錄（見設計文件「目錄結構」）；尚未建立時對應步驟自動略過
+# 服務目錄；尚未建立時對應步驟自動略過
 API_DIR := api
 WEB_DIR := web
+MVNW := ./mvnw -B
+COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 
-.PHONY: help setup ci-setup check lint test
+.PHONY: help setup ci-setup check lint test api-run web-dev db-up db-down
 
 help:
-	@echo "make setup     create local env (.venv, node_modules in main repo dir)"
+	@echo "make setup     install deps (Maven repo in ~/.m2, node_modules at checkout root)"
 	@echo "make ci-setup  install deps in CI (same steps as setup)"
-	@echo "make check     lint + tests (incl. */tests/acceptance)"
+	@echo "make check     lint + tests (incl. acceptance tests)"
+	@echo "make db-up     start local PostgreSQL (docker compose)"
+	@echo "make db-down   stop local PostgreSQL (data kept)"
+	@echo "make api-run   run backend on API_PORT"
+	@echo "make web-dev   run frontend dev server on WEB_PORT"
 
+# 前端相依由根目錄 package.json 的 npm workspaces 安裝到 checkout 根目錄的 node_modules
 setup:
-	@if [ ! -x "$(VPY)" ] && [ ! -x "$(VPY).exe" ]; then \
-		echo "create $(VENV)"; $(PYTHON) -m venv "$(VENV)"; \
-	fi
-	@if [ -f "$(API_DIR)/requirements.txt" ]; then \
-		"$(VPY)" -m pip install -q -r "$(API_DIR)/requirements.txt"; \
-	else echo "skip python deps: no $(API_DIR)/requirements.txt"; fi
-	@if [ -f "$(WEB_DIR)/package.json" ]; then \
-		cd "$(WEB_DIR)" && npm install; \
-	else echo "skip node deps: no $(WEB_DIR)/package.json"; fi
+	@if [ -f "$(API_DIR)/pom.xml" ]; then \
+		cd "$(API_DIR)" && $(MVNW) -q -DskipTests test-compile; \
+	else echo "skip api deps: no $(API_DIR)/pom.xml"; fi
+	@if [ -f package-lock.json ]; then \
+		npm ci; \
+	else echo "skip web deps: no package-lock.json"; fi
 
 # CI 與本機走同一套步驟，避免兩邊不一致
 ci-setup: setup
@@ -49,17 +46,30 @@ check: lint test
 	@echo "check passed"
 
 lint:
-	@if [ -d "$(API_DIR)" ]; then \
-		"$(VPY)" -m ruff check "$(API_DIR)"; \
-	else echo "skip python lint: no $(API_DIR)/"; fi
+	@if [ -f "$(API_DIR)/pom.xml" ]; then \
+		cd "$(API_DIR)" && $(MVNW) -q spotless:check; \
+	else echo "skip api lint: no $(API_DIR)/pom.xml"; fi
 	@if [ -f "$(WEB_DIR)/package.json" ]; then \
-		cd "$(WEB_DIR)" && npm run lint; \
+		npm run lint -w "$(WEB_DIR)"; \
 	else echo "skip web lint: no $(WEB_DIR)/package.json"; fi
 
+# mvnw verify 跑 src/test/java 全部（含 com.cdp.acceptance）；vitest 跑 src/ 與 tests/（含 tests/acceptance）
 test:
-	@if [ -d "$(API_DIR)" ]; then \
-		"$(VPY)" -m pytest "$(API_DIR)"; \
-	else echo "skip python tests: no $(API_DIR)/"; fi
+	@if [ -f "$(API_DIR)/pom.xml" ]; then \
+		cd "$(API_DIR)" && $(MVNW) verify; \
+	else echo "skip api tests: no $(API_DIR)/pom.xml"; fi
 	@if [ -f "$(WEB_DIR)/package.json" ]; then \
-		cd "$(WEB_DIR)" && npm test; \
+		npm test -w "$(WEB_DIR)"; \
 	else echo "skip web tests: no $(WEB_DIR)/package.json"; fi
+
+api-run:
+	cd "$(API_DIR)" && $(MVNW) spring-boot:run
+
+web-dev:
+	npm run dev -w "$(WEB_DIR)"
+
+db-up:
+	$(COMPOSE) up -d --wait
+
+db-down:
+	$(COMPOSE) down
