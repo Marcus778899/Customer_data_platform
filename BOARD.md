@@ -42,6 +42,8 @@
 | DESIGN-01 | architect | done | 0 | PR #7 |
 | UI-01 | designer | done | 1 | PR #8 |
 | CHORE-01 | architect | done | 0 | PR #6 |
+| BE-01 | backend | in-progress | 0 |  |
+| FE-01 | frontend | done | 0 | PR #11 |
 
 ## 卡住／待甲方決定
 
