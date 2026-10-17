@@ -42,12 +42,14 @@
 | DESIGN-01 | architect | done | 0 | PR #7 |
 | UI-01 | designer | done | 1 | PR #8 |
 | CHORE-01 | architect | done | 0 | PR #6 |
-| BE-01 | backend | in-progress | 0 |  |
+| BE-01 | backend | done | 0 | PR #13 |
 | FE-01 | frontend | done | 0 | PR #11 |
+| BE-04 | backend | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- 待甲方補 .env（BE-01 新增 13 個變數），補完才能開新派工單
+- 甲方要求：BE-04 合併後全部暫停
 
 ## 注意事項（踩過的坑）
 
