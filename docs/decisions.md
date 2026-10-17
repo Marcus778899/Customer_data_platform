@@ -13,13 +13,13 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-010 LICENSE 上的著作權人名稱
-- 背景：D-008 要求 LICENSE 寫明不授權、所有權歸甲方個人；需要寫上的名稱
-- 選項：A. GitHub 帳號 Marcus778899 ／ B. 甲方提供的本名
-- 建議：B，法律文件以本名較明確
-- 提出：manager（INIT-01）
-
 ## 已決定
+
+### D-010 LICENSE 沿用 ../CDP/LICENSE，著作權人 Marcus Lin
+- 決定：範本 A. 沿用 `../CDP/LICENSE`，著作權人改為「Marcus Lin」，刪掉與 public repo 矛盾的「CONFIDENTIAL」
+- 理由：查無可信來源的現成範本（docs/research/license-template.md）；甲方指定名稱
+- 影響：INIT-01（`LICENSE`）
+- 日期：2026-10-18
 
 ### D-001 產品方向
 - 決定：依甲方的骨幹計劃書 `../CDP/docs/plan/backbone-plan.md`（規格在 `../CDP/docs/spec/`）發想；甲方表示裡面部分架構可能有誤解，團隊要審視並提出修正
