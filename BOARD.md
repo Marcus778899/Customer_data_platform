@@ -21,6 +21,8 @@
 | 2026-10-17 | D-008 | spec 進 docs/spec/，LICENSE 保留所有權利 |
 | 2026-10-17 | D-009 | 相依套件由團隊安排 |
 | 2026-10-17 | D-010 | LICENSE 沿用 ../CDP/LICENSE，著作權人 Marcus Lin |
+| 2026-10-17 | D-011 | Windows 開啟開發人員模式以建 symlink |
+| 2026-10-17 | D-012 | .claude/agent-memory/ 加進 .gitignore |
 
 ## 任務狀態
 
@@ -30,7 +32,7 @@
 
 ## 卡住／待甲方決定
 
-- （無）
+- 等甲方開啟 Windows 開發人員模式（D-011），才能重開 DESIGN-01／UI-01
 
 ## 注意事項（踩過的坑）
 

@@ -15,6 +15,18 @@
 
 ## 已決定
 
+### D-011 Windows symlink 權限：開啟開發人員模式
+- 決定：A. 甲方開啟 Windows 開發人員模式，讓 task.py 能建 symlink；不改腳本
+- 理由：不必改流程腳本
+- 影響：DESIGN-01 重開
+- 日期：2026-10-18
+
+### D-012 agent 專案記憶不進版控
+- 決定：B. `.claude/agent-memory/` 加進 `.gitignore`，只留本機
+- 理由：甲方選擇
+- 影響：CHORE-01
+- 日期：2026-10-18
+
 ### D-010 LICENSE 沿用 ../CDP/LICENSE，著作權人 Marcus Lin
 - 決定：範本 A. 沿用 `../CDP/LICENSE`，著作權人改為「Marcus Lin」，刪掉與 public repo 矛盾的「CONFIDENTIAL」
 - 理由：查無可信來源的現成範本（docs/research/license-template.md）；甲方指定名稱
