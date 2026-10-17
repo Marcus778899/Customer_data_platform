@@ -8,3 +8,4 @@ node_modules/
 __pycache__/
 api/target/
 web/dist/
+.claude/agent-memory/
