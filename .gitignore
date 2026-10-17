@@ -6,3 +6,5 @@ reports/
 .venv/
 node_modules/
 __pycache__/
+api/target/
+web/dist/

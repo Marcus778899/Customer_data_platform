@@ -1,0 +1,42 @@
+# 本機外部服務。由 make infra-up / infra-down 操作（會帶 --env-file 主目錄 .env）；變數說明見 .env.example。
+# 只放 v0.1.0 需要的服務（PostgreSQL、RabbitMQ）；Redis 等見 docs/design/INIT-01.md「延後」，不要先加。
+# 測試不用這套：後端整合測試由 Testcontainers 自起容器（映像版本須與此一致）。
+name: cdp
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 只承接 C 類背景任務（Effect 執行）；角色與三條紅線見 docs/design/INIT-01.md「RabbitMQ」
+  rabbitmq:
+    image: rabbitmq:4.3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  pgdata:
+  rabbitmqdata:
