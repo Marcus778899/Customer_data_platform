@@ -26,6 +26,16 @@ spring:
       enabled: true
 server:
   port: ${API_PORT}
+  servlet:
+    session:
+      # 客服 session（契約 §1.2）；閒置逾時由甲方定
+      timeout: ${CDP_SESSION_IDLE_TIMEOUT}
+      cookie:
+        name: CDP_SESSION
+        http-only: true
+        secure: true
+        same-site: strict
+        path: /api
 cdp:
   # v0.1.0 單租戶：所有資料寫入此 tenant_id（docs/contracts/journey-engine.md「Auth」）
   tenant-id: ${CDP_TENANT_ID}
@@ -35,3 +45,12 @@ cdp:
   relay:
     poll-interval: ${OUTBOX_RELAY_POLL_INTERVAL}
     batch-size: ${OUTBOX_RELAY_BATCH_SIZE}
+  security:
+    # 契約 §1.1、§1.2；機密只在 .env
+    ingest-api-key: ${CDP_INGEST_API_KEY}
+    admin-api-key: ${CDP_ADMIN_API_KEY}
+    support-username: ${CDP_SUPPORT_USERNAME}
+    support-password: ${CDP_SUPPORT_PASSWORD}
+  trace:
+    # 契約 §4.4：逗號分隔、可明文顯示的屬性鍵；空 = 全部遮罩
+    plain-keys: ${CDP_TRACE_PLAIN_KEYS}

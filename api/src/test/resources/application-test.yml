@@ -12,6 +12,12 @@ spring:
     password: test
 server:
   port: 0
+  servlet:
+    session:
+      timeout: PT30M
+      cookie:
+        # 測試走 http，Secure cookie 不會被測試用戶端送回
+        secure: false
 cdp:
   tenant-id: 01JTESTTENANT0000000000001
   engine:
@@ -20,3 +26,11 @@ cdp:
   relay:
     poll-interval: PT0.2S
     batch-size: 100
+  # 測試專用假憑證（非機密）；驗收測試以此呼叫各角色
+  security:
+    ingest-api-key: test-ingest-key
+    admin-api-key: test-admin-key
+    support-username: test-support
+    support-password: test-support-password
+  trace:
+    plain-keys: cart_id,cart_total

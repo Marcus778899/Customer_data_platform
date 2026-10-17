@@ -7,7 +7,7 @@ import java.util.Map;
 import com.cdp.engine.model.EnrollmentStatus;
 import com.cdp.engine.model.TriggerSnapshot;
 
-/** 契約 §4.1 EnrollmentDetail。deliveryHistory 為最新 50 筆，更舊的用 deliveryHistoryNextCursor 續查。 */
+/** 契約 §4.1 EnrollmentDetail。deliveryHistory 為最新 50 筆，更舊的用 deliveryHistoryNextCursor 續查；個資已依契約 §4.4 遮罩，maskedPaths 列出被遮罩的 JSON 路徑。 */
 public record EnrollmentDetail(
         String enrollmentId,
         String journeyId,
@@ -28,4 +28,5 @@ public record EnrollmentDetail(
         List<TraceEntry> trace,
         List<DeliveryEntry> deliveryHistory,
         String deliveryHistoryNextCursor,
-        Instant asOf) {}
+        Instant asOf,
+        List<String> maskedPaths) {}
