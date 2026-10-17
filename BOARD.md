@@ -29,13 +29,13 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | INIT-01 | architect | done | 0 | PR #2 |
-| DESIGN-01 | architect | todo | 0 |  |
+| DESIGN-01 | architect | in-progress | 0 |  |
 | UI-01 | designer | in-progress | 0 |  |
 | CHORE-01 | architect | done | 0 | PR #6 |
 
 ## 卡住／待甲方決定
 
-- 甲方要求暫停：額度不足，暫不派新工作；DESIGN-01 進行中、UI-01 待對齊契約
+- （無）
 
 ## 注意事項（踩過的坑）
 
