@@ -64,6 +64,13 @@
     details > summary { cursor: pointer; color: var(--color-primary); font-size: var(--text-sm); }
     details dl.kv { margin-top: var(--space-2); }
     .scroll { overflow-x: auto; }
+    .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-2) 0 var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
+    .topbar .who { display: flex; gap: var(--space-3); align-items: center; }
+    .login { max-width: 400px; margin: var(--space-6) auto 0; display: flex; flex-direction: column; gap: var(--space-4); }
+    .login .msg.error, .login .msg.info { padding: var(--space-3) var(--space-4); text-align: left; }
+    .login .msg.info { background: var(--color-info-bg); color: var(--color-info-fg); border-radius: var(--radius-md); }
+    .login .msg p, .msg.error p { margin: 0; }
+    .mask-note { background: var(--color-neutral-bg); color: var(--color-neutral-fg); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font-size: var(--text-sm); margin: var(--space-3) 0; }
 
     /* 窄螢幕：表格轉卡片 */
     @media (max-width: 640px) {
@@ -85,6 +92,11 @@
     <h1>Enrollment 軌跡查詢設計稿</h1>
     <p class="muted">假資料、無邏輯。每個區塊是一個畫面狀態。規格見 docs/ui/enrollment-trace.md。</p>
     <ul>
+      <li><a href="#login-initial">登入：初始</a></li>
+      <li><a href="#login-loading">登入：登入中</a></li>
+      <li><a href="#login-error">登入：帳密錯誤／欄位未填</a></li>
+      <li><a href="#login-server-error">登入：伺服器錯誤</a></li>
+      <li><a href="#login-expired">登入：session 逾時（401 導回）</a></li>
       <li><a href="#search-initial">查詢：初始</a></li>
       <li><a href="#list-loading">列表：載入中</a></li>
       <li><a href="#list-filled">列表：有資料</a></li>
@@ -93,6 +105,7 @@
       <li><a href="#detail-loading">詳情：載入中</a></li>
       <li><a href="#detail-waiting">詳情：等待中（進行中）</a></li>
       <li><a href="#detail-pending">詳情：已完成但訊息仍待送</a></li>
+      <li><a href="#detail-masked">詳情：個資已遮罩</a></li>
       <li><a href="#detail-deliveries">詳情：發送狀態一覽與載入更早紀錄</a></li>
       <li><a href="#detail-notfound">詳情：找不到</a></li>
       <li><a href="#detail-error">詳情：載入失敗</a></li>
@@ -100,10 +113,78 @@
     </ul>
   </nav>
 
+  <!-- ===== 登入（契約 §1.2） ===== -->
+  <section class="state" id="login-initial">
+    <h2>登入：初始</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <p class="muted" style="margin:0">請登入後查詢。</p>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u1">帳號</label><input id="u1" name="username" autocomplete="username"></div>
+        <div class="field"><label for="p1">密碼</label><input id="p1" name="password" type="password" autocomplete="current-password"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-loading">
+    <h2>登入：登入中</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入" aria-busy="true">
+        <div class="field"><label for="u2">帳號</label><input id="u2" name="username" autocomplete="username" value="support01" readonly></div>
+        <div class="field"><label for="p2">密碼</label><input id="p2" name="password" type="password" autocomplete="current-password" value="xxxxxxxx" readonly></div>
+        <button class="btn" type="submit" aria-disabled="true">登入中…</button>
+      </form>
+      <p role="status" class="muted" style="margin:0">登入中…</p>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-error">
+    <h2>登入：帳密錯誤（401 INVALID_CREDENTIALS）</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <div class="msg error" role="alert" id="e3"><p><strong>帳號或密碼不正確</strong></p></div>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u3">帳號</label><input id="u3" name="username" autocomplete="username" value="support01" aria-describedby="e3"></div>
+        <div class="field"><label for="p3">密碼</label><input id="p3" name="password" type="password" autocomplete="current-password" aria-describedby="e3"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+      <p class="muted" style="margin:0">錯誤訊息只有這一種，不說明是帳號或密碼錯。失敗後焦點回到密碼欄並清空。欄位未填（400）：「請輸入帳號與密碼」。</p>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-server-error">
+    <h2>登入：伺服器錯誤（5xx／連不上）</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <div class="msg error" role="alert"><p><strong>目前無法登入</strong></p><p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000003</span>。</p></div>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u4">帳號</label><input id="u4" name="username" autocomplete="username" value="support01"></div>
+        <div class="field"><label for="p4">密碼</label><input id="p4" name="password" type="password" autocomplete="current-password"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+    </main></div>
+  </section>
+
+  <section class="state" id="login-expired">
+    <h2>登入：session 逾時（任何 API 回 401 UNAUTHENTICATED 導回；登入成功後回原頁）</h2>
+    <div class="app"><main class="login card">
+      <h1>客戶旅程軌跡</h1>
+      <div class="msg info" role="status"><p><strong>登入已逾時，請重新登入</strong></p><p>登入後會回到剛才的頁面（<span class="mono">/enrollments/01JCXYZENROLL000000000001</span>）。</p></div>
+      <form style="display:flex;flex-direction:column;gap:var(--space-3)" aria-label="登入">
+        <div class="field"><label for="u5">帳號</label><input id="u5" name="username" autocomplete="username"></div>
+        <div class="field"><label for="p5">密碼</label><input id="p5" name="password" type="password" autocomplete="current-password"></div>
+        <button class="btn" type="submit">登入</button>
+      </form>
+    </main></div>
+  </section>
+
   <!-- ===== 查詢：初始 ===== -->
   <section class="state" id="search-initial">
     <h2>查詢：初始（尚未查詢）</h2>
     <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
       <header><h1>客戶旅程軌跡</h1><p class="muted">唯讀。查某位客戶走到哪、為什麼沒收到訊息。</p></header>
       <form class="search card" role="search" aria-label="查詢 Enrollment">
         <div class="field">
@@ -136,6 +217,7 @@
   <section class="state" id="list-filled">
     <h2>列表：有資料</h2>
     <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
       <form class="search card" role="search"><div class="field"><label for="q3">客戶 ID 或 Enrollment ID</label><input id="q3" value="01JCXYZPROFILE00000000001"></div><div class="field" style="flex-basis:160px"><label for="s3">狀態</label><select id="s3"><option>全部</option></select></div><button class="btn" type="submit">查詢</button></form>
       <div class="card scroll" style="margin-top:var(--space-4)">
         <table class="stack">
@@ -144,7 +226,7 @@
           <tbody>
             <tr><td data-label="旅程"><a href="#detail-waiting">棄單挽回（v2）</a><br><span class="mono muted">01JCXYZENROLL000000000001</span></td><td data-label="狀態"><span class="badge b-warning">等待中</span></td><td data-label="目前節點">等 3 天<br><span class="mono muted">WaitDelayNode</span></td><td data-label="進入時間">2026-10-18 10:00</td><td data-label="最後更新">2026-10-18 10:00</td></tr>
             <tr><td data-label="旅程"><a href="#detail-pending">棄單挽回（v2）</a><br><span class="mono muted">01JCXYZENROLL000000000002</span></td><td data-label="狀態"><span class="badge b-success">已完成</span></td><td data-label="目前節點">EndNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-10 09:12</td><td data-label="最後更新">2026-10-13 09:13</td></tr>
-            <tr><td data-label="旅程"><a href="#detail-error">（未命名旅程）v1</a><br><span class="mono muted">01JCXYZENROLL000000000003</span></td><td data-label="狀態"><span class="badge b-danger">失敗</span></td><td data-label="目前節點">SendMessageNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-01 14:30</td><td data-label="最後更新">2026-10-01 14:35</td></tr>
+            <tr><td data-label="旅程"><a href="#detail-error">新客歡迎（v1）</a><br><span class="mono muted">01JCXYZENROLL000000000003</span></td><td data-label="狀態"><span class="badge b-danger">失敗</span></td><td data-label="目前節點">SendMessageNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-01 14:30</td><td data-label="最後更新">2026-10-01 14:35</td></tr>
           </tbody>
         </table>
       </div>
@@ -190,6 +272,7 @@
   <section class="state" id="detail-waiting">
     <h2>詳情：等待中（進行中）</h2>
     <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
       <p><a href="#list-filled">&larr; 回到列表</a></p>
       <header>
         <h1>棄單挽回（v2） <span class="badge b-warning">等待中</span></h1>
@@ -228,13 +311,14 @@
   <section class="state" id="detail-pending">
     <h2>詳情：Enrollment 已完成，訊息仍待送（回答「為什麼沒收到」）</h2>
     <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
       <p><a href="#list-filled">&larr; 回到列表</a></p>
       <header>
         <h1>棄單挽回（v2） <span class="badge b-success">已完成</span></h1>
         <p class="muted mono">01JCXYZENROLL000000000002　客戶 01JCXYZPROFILE00000000001</p>
         <p class="muted">進入 2026-10-10 09:12　結束 2026-10-13 09:13（原因：已走到終點）　資料更新於 2026-10-13 09:20</p>
       </header>
-      <p class="summary" role="status"><strong>這位客戶還沒收到訊息：</strong>旅程已走完，但有 1 則訊息仍在待送（PENDING），已排入、尚未送出。</p>
+      <p class="summary" role="status"><strong>目前狀況：</strong>旅程已走完，但有 1 則訊息仍待送，尚未送出。</p>
 
       <h3>節點軌跡</h3>
       <ol class="trace" aria-label="節點軌跡，由舊到新">
@@ -252,6 +336,36 @@
           <tbody><tr><td data-label="時間">2026-10-13 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_cart_reminder</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-info">待送</span></td></tr></tbody>
         </table>
       </div>
+    </div>
+  </section>
+
+  <!-- ===== 詳情：個資已遮罩（契約 §4.4，以 masked_paths 判斷） ===== -->
+  <section class="state" id="detail-masked">
+    <h2>詳情：個資已遮罩（無解除入口）</h2>
+    <div class="app">
+      <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
+      <header>
+        <h1>棄單挽回（v2） <span class="badge b-warning">等待中</span></h1>
+        <p class="muted mono">01JCXYZENROLL000000000001　客戶 01JCXYZPROFILE00000000001</p>
+      </header>
+      <p class="mask-note" role="note">標示「已遮罩」的值，系統基於個資保護不顯示完整內容，此頁無法解除。ID、時間與事件名稱不遮罩。</p>
+
+      <h3>節點軌跡</h3>
+      <ol class="trace" aria-label="節點軌跡，由舊到新">
+        <li class="current" aria-current="step">
+          <div class="head"><strong>2. 等 3 天</strong><span class="badge b-warning">目前在此</span><span class="muted mono">WaitDelayNode · wait_1</span></div>
+          <details open><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>wake_at</dt><dd class="mono">2026-10-21T02:00:00Z</dd><dt>phone</dt><dd><span class="mono">***</span> <span class="badge b-neutral">已遮罩</span></dd></dl></details>
+        </li>
+      </ol>
+
+      <h3>觸發事件</h3>
+      <details class="card" open><summary>觸發當下的事件快照</summary>
+        <dl class="kv"><dt>事件</dt><dd>cart_item_added（2026-10-18 09:59:41）</dd><dt>來源類型</dt><dd class="mono">CUSTOMER_BEHAVIOR</dd>
+        <dt>email</dt><dd><span class="mono">a***@example.com</span> <span class="badge b-neutral">已遮罩</span></dd>
+        <dt>name</dt><dd><span class="mono">***</span> <span class="badge b-neutral">已遮罩</span></dd>
+        <dt>cart_total</dt><dd class="mono">1580</dd></dl>
+      </details>
+      <p class="muted">Email 保留首字與網域，其他值顯示「***」。是否遮罩只依 <code>masked_paths</code> 判斷，不比對字樣。</p>
     </div>
   </section>
 
