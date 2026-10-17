@@ -26,11 +26,11 @@ public final class StartNode implements JourneyNode {
 
     @Override
     public NodeResult execute(NodeContext context) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        throw new IllegalStateException("StartNode 不推進 Enrollment，不應被執行");
     }
 
     @Override
     public ValidationResult validate(NodeConfig config, JourneyDefinition journey) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return ValidationResult.OK;
     }
 }

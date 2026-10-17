@@ -1,5 +1,7 @@
 package com.cdp.engine.node.builtin;
 
+import java.util.Map;
+
 import org.springframework.stereotype.Component;
 
 import com.cdp.engine.node.DataRequirements;
@@ -26,11 +28,12 @@ public final class EndNode implements JourneyNode {
 
     @Override
     public NodeResult execute(NodeContext context) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        String reason = "旅程走到終點節點 " + context.nodeId() + "，已完成。";
+        return NodeResult.complete(reason, reason, Map.of());
     }
 
     @Override
     public ValidationResult validate(NodeConfig config, JourneyDefinition journey) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return ValidationResult.OK;
     }
 }

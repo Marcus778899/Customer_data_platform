@@ -20,6 +20,9 @@ public record JourneyDefinition(
         Instant publishedAt) {
 
     public Optional<JourneyNodeDefinition> node(String nodeId) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        if (nodes == null || nodeId == null) {
+            return Optional.empty();
+        }
+        return nodes.stream().filter(n -> nodeId.equals(n.id())).findFirst();
     }
 }
