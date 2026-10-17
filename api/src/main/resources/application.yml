@@ -1,6 +1,37 @@
-# 設定只從環境變數讀（變數清單見 .env.example）；這裡不寫任何實際值或預設值
+# 設定只從環境變數讀（變數清單見 .env.example；v0.1.0 新增的變數見 docs/design/DESIGN-01.md「設定」）；這裡不寫任何實際值或預設值
 spring:
   application:
     name: cdp-api
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    # relay 等 broker confirm 後才標 PUBLISHED（DESIGN-01 做法 #4）
+    publisher-confirm-type: simple
+    listener:
+      simple:
+        acknowledge-mode: auto
+        # 例外預設進 DLQ；要重投的情況由 consumer 丟 ImmediateRequeueAmqpException
+        default-requeue-rejected: false
+  jackson:
+    # 對外 JSON 一律 snake_case（docs/spec/README.md「命名」）
+    property-naming-strategy: SNAKE_CASE
+  mvc:
+    problemdetails:
+      enabled: true
 server:
   port: ${API_PORT}
+cdp:
+  # v0.1.0 單租戶：所有資料寫入此 tenant_id（docs/contracts/journey-engine.md「Auth」）
+  tenant-id: ${CDP_TENANT_ID}
+  engine:
+    poll-interval: ${ENGINE_POLL_INTERVAL}
+    batch-size: ${ENGINE_BATCH_SIZE}
+  relay:
+    poll-interval: ${OUTBOX_RELAY_POLL_INTERVAL}
+    batch-size: ${OUTBOX_RELAY_BATCH_SIZE}

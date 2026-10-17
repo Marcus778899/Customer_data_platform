@@ -8,10 +8,11 @@
 ## 1. 管線階段
 
 節點只回傳 `Effect.SendMessage`（見 `04-node-contract.md`），**不認識任何通道**。
+管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 取到期列、經 publisher confirm 推到 RabbitMQ → 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
 從 Effect 到客戶收到訊息，中間有六個階段：
 
 ```
-① 接收發送意圖  (從 Effect outbox 取出)
+① 接收發送意圖  (consumer 自 RabbitMQ 收到 idempotencyKey，讀 outbox 列)
         ↓
 ② 解析          (模板 / 通道 / 收件人 / 訊息類型)
         ↓
@@ -30,7 +31,7 @@
 
 | 階段 | 可取消 | 說明 |
 |---|---|---|
-| ①→② | ✅ | outbox 標記 `CANCELLED` |
+| ①→② | ✅ | outbox 與 `delivery_task` 標記 `CANCELLED` |
 | ②→③ | ✅ | |
 | ③→④ | ✅ | |
 | ④→⑤ | ✅ | |
@@ -338,7 +339,7 @@ record SendResult(
 
 服務商多半不保證冪等，因此 Adapter 必須自己處理：
 
-1. 送出前查 `delivery` 表，若該 `idempotencyKey` 已有 `providerMessageId` → 直接回傳既有結果
+1. 送出前查 `delivery_task` 表，若該 `idempotencyKey` 已有 `providerMessageId` → 直接回傳既有結果
 2. 送出後**立即**寫入 `providerMessageId`
 3. 服務商支援冪等鍵時（如 SendGrid 的 `X-Message-Id`），一併帶上
 

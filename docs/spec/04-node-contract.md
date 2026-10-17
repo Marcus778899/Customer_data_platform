@@ -123,7 +123,7 @@ record NodeResult(
     String              terminationReason  // EXIT / FAIL 時必填
 ) {}
 
-enum ResultStatus { ADVANCE, WAIT, EXIT, GOAL, FAIL }
+enum ResultStatus { ADVANCE, WAIT, COMPLETE, EXIT, GOAL, FAIL }   // COMPLETE：EndNode → COMPLETED
 ```
 
 ### `decisionReason` 與 `evaluated` 是強制的
@@ -227,8 +227,8 @@ sealed interface Effect {
 
 ```java
 public interface JourneyRuntime {
-    EnrollmentState start(String tenantId, String journeyId, int version,
-                          String profileId, TriggerSnapshot trigger, String dedupKey);
+    EnrollmentState start(String tenantId, String journeyId, int version, String sourceNodeId,
+                          String profileId, TriggerSnapshot trigger, String dedupKey);  // sourceNodeId：命中的 Source 節點
 
     void signal(String tenantId, String enrollmentId, WakeSignal signal);
 
@@ -246,6 +246,7 @@ public interface StateStore {
     Optional<EnrollmentState> findById(String tenantId, String enrollmentId);
     List<EnrollmentState> lockDue(Instant now, int limit);
     List<EnrollmentState> findWaitingForEvent(String tenantId, String profileId, String eventName);
+    Optional<EnrollmentTrace> findOpenTrace(String tenantId, String enrollmentId);  // 等待節點喚醒時沿用其 seq
     void save(EnrollmentState state, EnrollmentTrace trace, List<Effect> effects);  // 單一交易
 }
 ```
