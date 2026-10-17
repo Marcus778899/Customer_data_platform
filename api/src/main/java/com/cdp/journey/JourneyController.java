@@ -25,6 +25,6 @@ public class JourneyController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public JourneyCreatedResponse create(@RequestBody CreateJourneyRequest request) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return service.create(properties.tenantId(), request);
     }
 }

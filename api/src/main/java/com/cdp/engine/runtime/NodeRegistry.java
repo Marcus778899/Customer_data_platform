@@ -1,6 +1,9 @@
 package com.cdp.engine.runtime;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
@@ -10,18 +13,22 @@ import com.cdp.engine.node.JourneyNode;
 @Component
 public class NodeRegistry {
 
-    private final List<JourneyNode> nodes;
+    private final Map<String, JourneyNode> byType;
 
     public NodeRegistry(List<JourneyNode> nodes) {
-        this.nodes = nodes;
+        this.byType = nodes.stream().collect(Collectors.toMap(JourneyNode::type, Function.identity()));
     }
 
     /** 找不到型別時丟 IllegalArgumentException。 */
     public JourneyNode get(String type) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        JourneyNode node = type == null ? null : byType.get(type);
+        if (node == null) {
+            throw new IllegalArgumentException("unknown node type: " + type);
+        }
+        return node;
     }
 
     public boolean supports(String type) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return type != null && byType.containsKey(type);
     }
 }

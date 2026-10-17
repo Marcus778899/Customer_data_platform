@@ -12,6 +12,9 @@ ROOT := $(patsubst %/.git,%,$(shell git rev-parse --path-format=absolute --git-c
 ENV_VARS := $(shell sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' .env.example 2>/dev/null)
 export $(ENV_VARS)
 export PYTHONUTF8 := 1
+# 測試不受 .env 與外部環境影響：移除上列變數，改由 application-test.yml 提供
+# （Spring 環境變數優先於 profile yml，CDP_TENANT_ID 會覆蓋 cdp.tenant-id）
+NO_DOTENV := env $(foreach v,$(ENV_VARS),-u $(v))
 
 # 服務目錄；尚未建立時對應步驟自動略過
 API_DIR := api
@@ -56,10 +59,10 @@ lint:
 # mvnw verify 跑 src/test/java 全部（含 com.cdp.acceptance）；vitest 跑 src/ 與 tests/（含 tests/acceptance）
 test:
 	@if [ -f "$(API_DIR)/pom.xml" ]; then \
-		cd "$(API_DIR)" && $(MVNW) verify; \
+		cd "$(API_DIR)" && $(NO_DOTENV) $(MVNW) verify; \
 	else echo "skip api tests: no $(API_DIR)/pom.xml"; fi
 	@if [ -f "$(WEB_DIR)/package.json" ]; then \
-		npm test -w "$(WEB_DIR)"; \
+		$(NO_DOTENV) npm test -w "$(WEB_DIR)"; \
 	else echo "skip web tests: no $(WEB_DIR)/package.json"; fi
 
 api-run:

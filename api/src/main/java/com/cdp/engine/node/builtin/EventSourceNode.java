@@ -1,5 +1,9 @@
 package com.cdp.engine.node.builtin;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Component;
 
 import com.cdp.engine.node.DataRequirements;
@@ -26,11 +30,29 @@ public final class EventSourceNode implements JourneyNode {
 
     @Override
     public NodeResult execute(NodeContext context) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        String eventName = context.trigger().eventName();
+        return NodeResult.advance(
+                "next",
+                List.of(),
+                "收到事件 " + eventName + "，建立 Enrollment。",
+                Map.of("event_id", context.trigger().eventId()));
     }
 
     @Override
     public ValidationResult validate(NodeConfig config, JourneyDefinition journey) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        List<String> errors = new ArrayList<>();
+        String eventName = config.get("event_name", String.class);
+        if (eventName == null || eventName.isBlank()) {
+            errors.add("EventSourceNode.config.event_name 必填");
+        }
+        if (config.values() != null) {
+            if (config.values().get("event_filter") != null) {
+                errors.add("EventSourceNode.config.event_filter 在 v0.1.0 須為 null");
+            }
+            if (config.values().get("profile_filter") != null) {
+                errors.add("EventSourceNode.config.profile_filter 在 v0.1.0 須為 null");
+            }
+        }
+        return new ValidationResult(List.copyOf(errors));
     }
 }

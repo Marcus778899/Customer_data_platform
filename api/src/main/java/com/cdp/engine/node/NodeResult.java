@@ -21,16 +21,40 @@ public record NodeResult(
             List<Effect> effects,
             String decisionReason,
             Map<String, Object> evaluated) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return new NodeResult(
+                ResultStatus.ADVANCE,
+                outPort,
+                null,
+                null,
+                effects == null ? List.of() : effects,
+                decisionReason,
+                evaluated,
+                null);
     }
 
     public static NodeResult waitFor(
             WakeCondition wakeCondition, String decisionReason, Map<String, Object> evaluated) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return new NodeResult(
+                ResultStatus.WAIT,
+                null,
+                wakeCondition,
+                null,
+                List.of(),
+                decisionReason,
+                evaluated,
+                null);
     }
 
     public static NodeResult complete(
             String terminationReason, String decisionReason, Map<String, Object> evaluated) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return new NodeResult(
+                ResultStatus.COMPLETE,
+                null,
+                null,
+                null,
+                List.of(),
+                decisionReason,
+                evaluated,
+                terminationReason);
     }
 }

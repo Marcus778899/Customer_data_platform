@@ -6,6 +6,6 @@ public final class IdempotencyKeys {
     private IdempotencyKeys() {}
 
     public static String of(String enrollmentId, String nodeId, long visitSeq, int effectIndex) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return enrollmentId + ":" + nodeId + ":" + visitSeq + ":" + effectIndex;
     }
 }

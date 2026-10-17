@@ -1,14 +1,21 @@
 package com.cdp.engine.runtime;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cdp.common.IdGenerator;
+import com.cdp.engine.DuplicateEnrollmentException;
 import com.cdp.engine.JourneyRuntime;
 import com.cdp.engine.StateStore;
 import com.cdp.engine.model.EnrollmentState;
+import com.cdp.engine.model.EnrollmentStatus;
 import com.cdp.engine.model.TriggerSnapshot;
 import com.cdp.engine.model.WakeSignal;
 
@@ -29,7 +36,11 @@ public class EngineJourneyRuntime implements JourneyRuntime {
         this.clock = clock;
     }
 
+    /**
+     * 建立並首次推進，同一交易。dedupKey 撞 uq_enrollment_dedup 時回傳既有實例（事件重新派發因此冪等）。 NESTED：失敗只回滾這一筆，呼叫端可逐筆隔離。
+     */
     @Override
+    @Transactional(propagation = Propagation.NESTED)
     public EnrollmentState start(
             String tenantId,
             String journeyId,
@@ -38,12 +49,42 @@ public class EngineJourneyRuntime implements JourneyRuntime {
             String profileId,
             TriggerSnapshot trigger,
             String dedupKey) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        Instant now = clock.instant();
+        EnrollmentState created =
+                new EnrollmentState(
+                        ids.newId(),
+                        tenantId,
+                        journeyId,
+                        version,
+                        profileId,
+                        EnrollmentStatus.ACTIVE,
+                        sourceNodeId,
+                        null,
+                        trigger,
+                        dedupKey,
+                        Map.of(),
+                        List.of(),
+                        now,
+                        now,
+                        null,
+                        null);
+        try {
+            created = stateStore.create(created);
+        } catch (DuplicateEnrollmentException e) {
+            return stateStore
+                    .findById(tenantId, e.existingEnrollmentId())
+                    .orElseThrow(() -> new IllegalStateException("duplicate enrollment vanished"));
+        }
+        return advancer.advance(created, null);
     }
 
     @Override
+    @Transactional
     public void signal(String tenantId, String enrollmentId, WakeSignal signal) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        stateStore
+                .findById(tenantId, enrollmentId)
+                .filter(s -> s.status() == EnrollmentStatus.WAITING)
+                .ifPresent(s -> advancer.advance(s, signal));
     }
 
     @Override
@@ -58,6 +99,6 @@ public class EngineJourneyRuntime implements JourneyRuntime {
 
     @Override
     public Optional<EnrollmentState> get(String tenantId, String enrollmentId) {
-        throw new UnsupportedOperationException("TODO(BE-01)");
+        return stateStore.findById(tenantId, enrollmentId);
     }
 }
