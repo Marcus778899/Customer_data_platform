@@ -12,12 +12,13 @@
 
 | 表 | 承載的契約 | 語意正本 | Flyway | 狀態 |
 |---|---|---|---|---|
-| `journey_definition` | 旅程定義 | `03` §1, §2, §3 | V2 | Phase 0 |
-| `enrollment_record` | `EnrollmentState` 的實作層 | `02` §9 | V2 | Phase 0 |
-| `node_trace` | `EnrollmentTrace` | `02` §8 | V2 | Phase 0 |
-| `event` | 事件契約（最小版） | `01` §3 | V2 | Phase 0 |
-| `effect_outbox` | Effect 交易外寄箱 | `04` §5（僅描述行為） | — | **未定義**，Phase 1a |
-| `delivery` | 發送紀錄完整版 | `05` §6（僅有狀態機） | — | **未定義**，Phase 1b |
+| `journey_definition` | 旅程定義 | `03` §1, §2, §3 | V1 | Phase 0 |
+| `enrollment_record` | `EnrollmentState` 的實作層 | `02` §9 | V1 | Phase 0 |
+| `node_trace` | `EnrollmentTrace` | `02` §8 | V1 | Phase 0 |
+| `event` | 事件契約（最小版） | `01` §3 | V1（V2 加 `dispatched_at`） | Phase 0 |
+| `effect_outbox` | Effect 交易外寄箱 | `04` §5、本檔 §10 | V2 | v0.1.0 |
+| `delivery_task` | 發送紀錄完整版（任務級狀態，consumer 冪等依據） | `05` §6、本檔 §10 | V2 | v0.1.0（v0.3.0 起擴充 `05` §6 的完整狀態） |
+| `mock_channel_message` | Mock 通道已送出的訊息（驗收計數） | 本檔 §10 | V2 | v0.1.0 |
 | `field_definition` | 資料字典 | `06` §1 | — | **未定義**，Phase 3 |
 | `event_definition` | 事件字典 | `06` §1 | — | **未定義**，Phase 3 |
 
@@ -66,7 +67,7 @@
 
 開了 RLS 卻沒有對應的 `POLICY` 時，Postgres 的預設行為是**全部拒絕**——所有查詢回空集合，且不報錯。`ENABLE` 與 policy 必須同一個 migration 一起上，排在 Phase 1b。
 
-`V1__engine_role.sql` 的 `journey_engine`（`NOLOGIN` + `BYPASSRLS`）已經先建好，等 Phase 1b 開 RLS 時直接可用。
+`journey_engine` role 與 RLS、policy 同一個 migration 於 v0.2.0 上線（`docs/design/INIT-01.md` R2）。
 
 ### 命名
 
@@ -183,13 +184,13 @@ CONSTRAINT ck_enrollment_variables_size
 > `pg_column_size()` 回傳的是**壓縮後的實際儲存大小**，而 `02` §5 對同類上限寫的是「64 KB（**序列化後**）」——量的是 JSON 文字長度。
 > 重複性高的 JSON 可以壓到十分之一，用 `pg_column_size` 會放行一份 300 KB 的 `variables`，只因為它壓縮後看起來很小。
 
-理由是 `V1__engine_role.sql` 註解裡那句：**「讓遺漏成為不可能，而非靠自律」**。
+理由是 README「RLS 的唯一例外」那句：**「讓遺漏成為不可能，而非靠自律」**。
 
 上限若只活在規格裡，第一個忘記截斷的節點就會把它撐破，而且**不會有任何錯誤**——直到某天 `deliveryHistory` 長到讓每次 UPDATE 都重寫一大塊 TOAST，或 `variables` 塞爆訊息渲染。`CHECK` 讓違規在寫入當下就失敗，堆疊追蹤直接指向寫壞的那行程式碼。
 
 > **`CHECK` 只負責攔截，不負責修剪。** 「超過 50 筆丟棄最舊的」仍是應用層的責任——`CHECK` 是應用層漏掉時的安全網，不是替代品。
 
-> `delivery_history` 的完整稽核紀錄在 `delivery` 表（§1，Phase 1b）。JSONB 這份是**給節點決策用的快取**，50 筆上限正是它能安全內嵌的前提。
+> `delivery_history` 的完整稽核紀錄在 `delivery_task` 表（§10）。JSONB 這份是**給節點決策用的快取**，50 筆上限正是它能安全內嵌的前提。
 
 ---
 
@@ -197,7 +198,7 @@ CONSTRAINT ck_enrollment_variables_size
 
 正本：`02` §8（`EnrollmentTrace`）
 
-**append-only。** 存在的理由是回答「為什麼這個客戶沒收到訊息」，不需要 UPDATE。
+**append-only，唯一例外是「補完」一次。** 存在的理由是回答「為什麼這個客戶沒收到訊息」。等待節點進入時寫一列（`exited_at`、`out_port` 為 null），喚醒離開時以同一 `seq` 補上 `exited_at`、`out_port`、`decision_reason`、`evaluated`；`exited_at` 已有值的列不得再改。
 
 | 欄位                | 型別          | 必填  | 說明                   |
 | ----------------- | ----------- | --- | -------------------- |
@@ -250,6 +251,7 @@ CONSTRAINT ck_enrollment_variables_size
 | `identity`    | JSONB       | ✅   | `profile_id` 與 `identifiers` 至少擇一                              |
 | `properties`  | JSONB       |     |                                                                |
 | `context`     | JSONB       | 條件  | `INTERNAL_OPERATION` 必填 `actor_id`                             |
+| `dispatched_at` | TIMESTAMPTZ |   | 扇出完成時間；null = 待派發（V2，§10）                                      |
 
 ### ⚠️ `occurred_at` 與 `received_at` 不可合併
 
@@ -333,7 +335,7 @@ PRIMARY KEY (tenant_id, event_id)
 | 6 | 要不要加外鍵 | **不加** | `node_trace` 每次節點推進都寫，外鍵檢查在熱路徑上；且 `enrollment_record → journey_definition` 的複合外鍵會擋住旅程封存。完整性靠應用層與單一交易 |
 | 7 | `CREATE TABLE IF NOT EXISTS` | **不用** | Flyway 靠 `flyway_schema_history` 保證只跑一次。`IF NOT EXISTS` 會讓「表已存在但結構不同」靜默通過，得到一個與 migration 不符的 schema 卻沒有任何錯誤 |
 | 8 | `event` / `node_trace` 要不要現在做時間分區 | **不做** | Phase 0 無真實流量。`event` 另有分區鍵 vs 去重鍵的衝突未解（§6）；`node_trace` 的查詢永遠是「某條 enrollment 的完整軌跡」，依時間分區會讓跨月旅程的軌跡散落多個分區，比不分區更慢——真要分區該用 `enrollment_id` hash |
-| 9 | `delivery_history` 要不要改成獨立關聯表 | **不改** | `02` §7 已界定：JSONB 這份是節點決策用的**快取**（上限 50 筆），完整稽核紀錄在獨立的 `delivery` 表（§1，Phase 1b）。兩者並存不是二選一。改為 join 會讓節點執行時多一次查詢 |
+| 9 | `delivery_history` 要不要改成獨立關聯表 | **不改** | `02` §7 已界定：JSONB 這份是節點決策用的**快取**（上限 50 筆），完整稽核紀錄在獨立的 `delivery_task` 表（§10）。兩者並存不是二選一。改為 join 會讓節點執行時多一次查詢 |
 | 10 | 規格上的大小上限要不要進 DDL | **要，下 `CHECK`** | `delivery_history` 50 筆、`variables` 32 KB 若只活在規格裡，撐破時**不會有任何錯誤**。見 §4 |
 
 ---
@@ -342,8 +344,9 @@ PRIMARY KEY (tenant_id, event_id)
 
 | 版本 | 檔名 | 內容 |
 |---|---|---|
-| V1 | `V1__engine_role.sql` | `journey_engine` role（`NOLOGIN` + `BYPASSRLS`），RLS 的唯一例外 |
-| V2 | `V2__core_tables.sql` | 本檔 §3~§6 的四張表 |
+| V1 | `V1__core_tables.sql` | 本檔 §3~§6 的四張表（自 `../CDP` 的 V2 原樣搬入） |
+| V2 | `V2__engine_pipeline.sql` | §10：`event.dispatched_at`、`ix_enrollment_profile`、`effect_outbox`、`delivery_task`、`mock_channel_message` |
+| V3 起 | （v0.2.0） | role 三分與 RLS（`docs/design/INIT-01.md` R2） |
 
 ### 鐵則
 
@@ -367,3 +370,19 @@ PRIMARY KEY (tenant_id, event_id)
 - [ ] `variables` 塞超過 32 KB 時被 `CHECK` 擋下
 
 > 建議用 Testcontainers 寫成測試。只看 `mvn flyway:migrate` 跑過證明不了索引有沒有被用到——而索引用不到，正是這張單最容易留下的坑。
+
+---
+
+## 10. v0.1.0 新增（`V2__engine_pipeline.sql`）
+
+DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；這裡只記語意。
+
+| 表／欄位 | 語意 | 鍵與索引 |
+|---|---|---|
+| `event.dispatched_at` | 扇出（比對 EventSource、建立 Enrollment）完成時間；遲到 > 24h 也標上但不建立（`01` §6） | `ix_event_undispatched (received_at) WHERE dispatched_at IS NULL` |
+| `enrollment_record` 查詢索引 | 軌跡頁依客戶列 Enrollment，新到舊 | `ix_enrollment_profile (tenant_id, profile_id, enrolled_at DESC, enrollment_id DESC)` |
+| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`；重試退避改 `available_at`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
+| `delivery_task` | 每個 SendMessage 一列，consumer 冪等依據（已 `SENT` 即丟棄重投）；`status` = `PENDING`／`SENT`／`SKIPPED`／`FAILED`／`CANCELLED`，`SKIPPED` 必帶 `skip_reason`（CHECK）；`visit_seq` = `node_trace.seq` | PK `idempotency_key`；`ix_delivery_task_enrollment (tenant_id, enrollment_id, attempted_at DESC, idempotency_key DESC)` |
+| `mock_channel_message` | Mock 通道「已送出」的訊息，與 `delivery_task` 同一交易寫入；驗收「恰好一則」數這張表 | PK `idempotency_key` |
+
+`enrollment_record.delivery_history` 只由 consumer 以單一 `UPDATE` 追加並修剪到 50 筆；`StateStore.save` 不寫這個欄位，兩者不互相覆蓋。

@@ -1,7 +1,7 @@
 # CDP 開發規格（Phase 0：契約先行）
 
 本目錄是**實作規格**，供開發者與 AI 協作時直接引用。
-上游是骨幹計劃書（`../plan/backbone-plan.md`）。
+上游是骨幹計劃書（不在本 repo：與本 repo 同層的 `CDP/docs/plan/backbone-plan.md`，見 `docs/design/INIT-01.md`）。
 
 **衝突時以本目錄為準。** 計劃書是討論產物，spec 是實作依據。
 
@@ -65,7 +65,7 @@
 **分成兩層：**
 
 - **`EnrollmentState`（契約層）** — 引擎對外的唯一模型。用 `wakeCondition` 表達「在等什麼」，不暴露任何喚醒實作細節
-- **`EnrollmentRecord`（實作層）** — 自建路線的資料表。`next_wake_at` 只存在於此，供 db-scheduler 使用
+- **`EnrollmentRecord`（實作層）** — 自建路線的資料表。`next_wake_at` 只存在於此，供推進迴圈的 `lockDue`（partial index 掃到期列）使用；不用 db-scheduler（`docs/design/INIT-01.md` R1）
 
 規則：**任何 `JourneyRuntime` 介面上的型別，不得引用 `EnrollmentRecord`。**
 
@@ -123,7 +123,7 @@ NodeResult execute(NodeContext context);
 
 推進迴圈的 `StateStore.lockDue(now, limit)` **必須跨租戶掃描**——它的工作就是找出「所有到期的 Enrollment」，沒有 `tenantId` 可帶。RLS 開著時這個查詢回傳空集合，計時器一則都推不動。
 
-因此有一個帶 `BYPASSRLS` 的 `NOLOGIN` role（`db/migration/V1__engine_role.sql`），應用程式仍用同一組憑證連線，由引擎的連線池在取得連線時 `SET ROLE journey_engine` 切換。
+因此有一個帶 `BYPASSRLS` 的 `NOLOGIN` role（v0.2.0 隨 RLS 以新 migration 建立，role 設計依 `docs/design/INIT-01.md` R2），應用程式仍用同一組憑證連線，由引擎的連線池在取得連線時 `SET ROLE journey_engine` 切換。
 
 | 元件 | 用哪個 role |
 |---|---|

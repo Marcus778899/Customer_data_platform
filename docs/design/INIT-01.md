@@ -38,18 +38,18 @@
 | 沿用 | 定義／執行分離與版本綁定、節點純函式 + `requirements()`、Effect 由節點回傳、ArchUnit、Clock 注入、`decisionReason` 強制、outbox + 冪等鍵、三種非同步分類、7.2.1 三條紅線、JDBC 不用 JPA、logic-less 模板、spec 07 的 DDL 決策 | 已落成型別與約束；`../CDP/backend` 的 V2 migration、兩份 JSON Schema、三個場景 fixture 可搬（改 Boot 4／Testcontainers 2 套件名），V1 依 R2 重寫 |
 | 修正 R1 | 計時器兩套：db-scheduler 與 `next_wake_at` + `lockDue … SKIP LOCKED` 重疊 | 只留後者，`Timer` = 在 `StateStore.save` 同一交易寫 `next_wake_at`。「不是輪詢全表」正解是「partial index 掃到期列」 |
 | 修正 R2 | RLS 會靜默失效 | superuser 與表擁有者（Flyway 同帳號）略過 RLS；連線池中非交易內設的 `app.tenant_id` 會跨請求殘留。改：owner／app／engine 三 role（engine 獨立連線池）、`FORCE ROW LEVEL SECURITY`、每交易 `set_config(…, true)`，驗收含「app role 讀不到他租戶」 |
-| 修正 R3 | 以「多一套基礎設施是負擔」否決 Temporal，卻一次引入 RabbitMQ、Redis、db-scheduler、MinIO、Vault | RabbitMQ 依 D-006 於 v0.1.0 引入，只限 C 類（見「RabbitMQ」節）；db-scheduler 拿掉（R1）；延後到用到的那期、由該期設計單列相依：Redis（v0.3.0）、MinIO、Vault/KMS、Kafka、Temporal（換路條件照計劃書 7.3）、OpenTelemetry 全套（先 actuator + 結構化日誌）、React Flow、TanStack Query／Zustand、分析型儲存 |
+| 修正 R3 | 以「多一套基礎設施是負擔」否決 Temporal，卻一次引入 RabbitMQ、Redis、db-scheduler、MinIO、Vault | RabbitMQ 依 D-006 於 v0.1.0 引入，只限 C 類（見「RabbitMQ」節）；db-scheduler 拿掉（R1）；延後到用到的那期、由該期設計單列相依：Redis（v0.3.0）、MinIO、Vault/KMS、Kafka、Temporal（換路條件照計劃書 7.3）、OpenTelemetry 全套（先 actuator + 結構化日誌）、React Flow（v0.2.0，D-018）、TanStack Query／Zustand、分析型儲存 |
 | 修正 R4 | Phase 1a「暫不處理冪等」違反不變量 #1，且 spec 04 `save()` 的交易形狀事後要改 | outbox 與冪等移入 v0.1.0（Mock 發送下成本極低） |
 | 修正 R5 | 1b 的 ConditionNode 要讀 Profile，但 Profile 儲存排在 Phase 3（spec 07 §1） | v0.2.0 明列最小 `ProfileStore`（屬性 JSONB 表 + 寫入 API）與人工維護欄位清單 |
 | 修正 R6 | 計劃書 7.4「事件表分區」與 spec 07 §6「不得分區」矛盾；Boot 3.x 已過 OSS 支援 [S1] | 依 spec，分區與 7 天去重同一次上線（v0.4.0）；Boot 改 4.1.x，Java 見 D-007 |
-| 修正 R7 | 畫布到 Phase 4 才有，前三期無 UI | v0.1.0 加唯讀 Enrollment 軌跡查詢頁（不變量 #6，D-005），旅程先以 JSON API 建立 |
+| 修正 R7 | 畫布到 Phase 4 才有，前三期無 UI | v0.1.0 加唯讀 Enrollment 軌跡查詢頁（不變量 #6，D-005），旅程先以 JSON API 建立；畫布提前到 v0.2.0（D-018） |
 
 ## 分期與版號（每階段 = vX.Y.0，修補 = vX.Y.Z；本輪 = v0.1.0，D-004）
 | 版號 | 計劃書 | 範圍 | 驗收 |
 |---|---|---|---|
 | v0.1.0 | 1a（縮） | 事件攝取 API（單租戶，欄位帶 `tenant_id`）→ Start／EventSource／WaitDelay／SendMessage(Mock)／End；StateStore、計時器（R1）、outbox → relay → RabbitMQ → 冪等 consumer → Mock（R4、D-006）、Clock、節點軌跡；軌跡查詢頁（D-005） | 灌事件 → 可控時鐘快轉 → Mock 訊息 → `COMPLETED`；「狀態已提交、未推送」與「已推送、consumer 未 ack」兩處中斷重啟，Mock 訊息皆恰好一則 |
-| v0.2.0 | 1b | WaitForEvent／Condition／SplitTest／Exit、G1、G3、版本綁定、RLS（R2）、最小 ProfileStore（R5） | 附錄 C 場景一；同 `cart_id` 觸發 5 次只建 1 個 Enrollment |
-| v0.3.0–v0.5.0 | 2／3／4 | 依計劃書第六節，各期開工前出設計單；v0.3.0 接 Redis（kill switch、頻率上限）與真實通道重試 | 同計劃書各期 |
+| v0.2.0 | 1b | WaitForEvent／Condition／SplitTest／Exit、G1、G3、版本綁定、RLS（R2）、最小 ProfileStore（R5）；旅程編輯畫布（React Flow，自 Phase 4 提前，D-018） | 附錄 C 場景一；同 `cart_id` 觸發 5 次只建 1 個 Enrollment；以畫布拖拉建出場景一的旅程並發佈，產出的定義通過 DESIGN-01 契約 §3.1 驗證 |
+| v0.3.0–v0.5.0 | 2／3／4 | 依計劃書第六節（Phase 4 的畫布已移到 v0.2.0），各期開工前出設計單；v0.3.0 接 Redis（kill switch、頻率上限）與真實通道重試 | 同計劃書各期 |
 
 ## 風險
 | 風險 | 對策 |

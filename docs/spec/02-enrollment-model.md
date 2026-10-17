@@ -238,6 +238,7 @@ CREATE UNIQUE INDEX uq_enrollment_dedup
 ```java
 record DeliveryRecord(
     String        nodeId,
+    long          traceSeq,          // 產生它的 EnrollmentTrace.seq（= 冪等鍵 visitSeq），供軌跡對應
     String        templateId,
     String        channelType,       // LINE / EMAIL / SMS / APP_PUSH
     String        channelId,
@@ -261,7 +262,7 @@ record DeliveryRecord(
 
 ### 上限
 
-保留**最近 50 筆**。超過時丟棄最舊的，完整紀錄仍在 `delivery` 表中可查。
+保留**最近 50 筆**。超過時丟棄最舊的，完整紀錄仍在 `delivery_task` 表中可查（`07` §10）。
 > `deliveryHistory` 是給節點做決策用的快取，不是稽核來源。
 
 ---
