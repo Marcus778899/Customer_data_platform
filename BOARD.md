@@ -44,12 +44,13 @@
 | CHORE-01 | architect | done | 0 | PR #6 |
 | BE-01 | backend | done | 0 | PR #13 |
 | FE-01 | frontend | done | 0 | PR #11 |
-| BE-04 | backend | qa | 0 |  |
+| BE-04 | backend | blocked | 0 |  |
 
 ## 卡住／待甲方決定
 
 - 待甲方補 .env（BE-01 新增 13 個變數），補完才能開新派工單
 - 甲方要求：BE-04 合併後全部暫停
+- BE-04 卡在 BE-01 的 ApiExceptionHandler 415 格式錯誤，需開 FIX-01（待 .env 補齊才能開單）
 
 ## 注意事項（踩過的坑）
 
