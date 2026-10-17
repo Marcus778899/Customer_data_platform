@@ -2,25 +2,28 @@
 
 - 設計稿：`docs/ui/enrollment-trace/index.html`（瀏覽器直接打開）
 - 設計 token：`web/src/styles/tokens.css`（設計稿相對路徑引用同一份）
-- 契約：`docs/contracts/`（DESIGN-01 產出，尚未對齊；欄位來源 `docs/spec/02-enrollment-model.md` §2、§7、§8）
+- 契約：`docs/contracts/journey-engine.md` §4、§5（分支 docs/design-01；欄位以此為準，下文 snake_case 即契約欄位）
 - 參考來源：無（D-005：唯讀，不能操作旅程）
 
 ## 畫面
 
 | 畫面 | 用途 | 進入方式 |
 |---|---|---|
-| 查詢＋列表 | 輸入客戶 ID 或 Enrollment ID，列出該客戶的 Enrollment | 首頁 `/` |
+| 查詢＋列表 | 輸入 `q`（客戶 ID 或 Enrollment ID，精確比對），可依 `status` 篩選 | 首頁 `/` |
 | 詳情 | 一筆 Enrollment 的現況、節點軌跡、發送歷史、觸發事件 | 列表點擊；或直接貼 Enrollment ID 查到唯一一筆 |
 
 詳情由上而下：標題與狀態 → 「目前狀況」一句話摘要 → 節點軌跡（舊到新）→ 發送歷史 → 觸發事件快照（預設收合）。
-摘要是 UI 由 `status`／`wakeCondition`／`deliveryHistory` 組出的句子，回答「走到哪、為什麼沒收到」。
+摘要由 UI 以 `status`／`wake_condition`／`delivery_history` 組出，回答「走到哪、為什麼沒收到」；Enrollment 已 COMPLETED 但有 `PENDING` 發送時寫「旅程已走完，但有 N 則訊息仍待送，尚未送出」。
+軌跡第一列是 EventSourceNode；`node_type` 用完整名（WaitDelayNode…）；出口 `next`／`sent`，仍在節點或終點顯示「—」。
+名稱 `journey_name`／`node_name` 為 null 時顯示 `node_type`（旅程為「（未命名旅程）」）並標「未命名」。
+發送歷史顯示 `template_id`、`channel_id`（`channel_type` 一律 MOCK）；訊息類型為 null 顯示「—」。結果：待送、已送出、發送失敗、已取消（`SKIPPED` 為已略過＋`skip_reason`，v0.1.0 不會出現）。
 
 ## 狀態
 
 | 畫面 | 空 | 載入中 | 錯誤 | 成功 |
 |---|---|---|---|---|
-| 查詢＋列表 | 初始：提示輸入；查無：說明 3 個可能原因 | 骨架列，按鈕顯示「查詢中…」 | 紅色提示＋請求代碼＋「重試」 | 表格，筆數＋「載入更多」 |
-| 詳情 | 發送歷史無資料：「尚無發送紀錄」 | 骨架區塊 | 找不到（404）與載入失敗（5xx）分開寫 | 見上，終態另顯示結束時間與原因 |
+| 查詢＋列表 | 初始：提示輸入；查無（200 `items: []`）：說明可能原因 | 骨架列，按鈕顯示「查詢中…」 | 400／5xx：紅色提示＋`request_id`＋「重試」 | 表格，筆數＋「載入更多」（`next_cursor`） |
+| 詳情 | 發送歷史無資料：「尚無發送紀錄」；`profile_snapshot` 為 `{}`：「此版本未記錄客戶屬性快照」 | 骨架區塊 | 404 `ENROLLMENT_NOT_FOUND`（只在詳情）與 5xx 分開寫，皆附 `request_id` | 見上，終態另顯示 `terminated_at` 與 `termination_reason`；發送歷史有「載入更早紀錄」（`delivery_history_next_cursor`） |
 
 ## 互動
 
@@ -29,8 +32,8 @@
 | 送出查詢（Enter／按鈕） | 帶參數查列表，網址同步 `?q=` 方便分享 | 載入中朗讀「載入中」；完成後焦點移到結果標題 |
 | 點列表一列的連結 | 進詳情，網址 `/enrollments/:id` | 焦點移到詳情 h1 |
 | 回到列表 | 回上一頁並保留查詢字串與捲動 | 焦點回到剛點的那一列 |
-| 重試／重新整理 | 重打同一請求 | 顯示「資料更新於 hh:mm:ss」 |
-| 展開「判斷時取得的值」「觸發事件」 | 顯示 `evaluated`、`triggerSnapshot` | 原生 details，鍵盤 Enter／Space |
+| 重試／重新整理 | 重打同一請求 | 顯示「資料更新於」`as_of`（後端時間） |
+| 展開「判斷時取得的值」「觸發事件」 | 顯示 `evaluated`、`trigger_snapshot` | 原生 details，鍵盤 Enter／Space |
 沒有任何寫入操作：不放暫停、重送、編輯按鈕（D-005）。
 
 ## 窄螢幕（< 640px）
@@ -46,14 +49,9 @@
 ## 待甲方決定／需要調查
 
 - 待決定（編號由 manager 指派）：
-  1. 查詢鍵：只支援客戶 ID／Enrollment ID，或還要依旅程、時間範圍、狀態篩選
-  2. 時間顯示時區（預設：瀏覽器本地時區，並可看到 UTC 原值）
-  3. 個資顯示：`triggerSnapshot.profileSnapshot`、`evaluated` 可能含姓名等個資，要遮罩、全顯或僅限特定角色
-  4. 文案語氣與品牌色（目前中性配色、中性書面語）
-  5. 此頁是否需要登入／權限（v0.1.0 不做多租戶 RLS）
-- 需調查（轉 architect）：
-  1. 契約是否有「依 profileId 列 Enrollment」與分頁；spec §8 只有單一 Enrollment 的軌跡
-  2. 節點顯示名稱：spec 只有 `nodeId`／`nodeType`，沒有人可讀名稱，是否由旅程定義帶出
-  3. 軌跡與 `deliveryHistory` 的 `nodeId` 是否可對應，供「略過原因」連回節點
-  4. 可控時鐘（Clock）快轉時，畫面顯示的是模擬時間還是系統時間
-  5. `decisionReason` 是否一律是可直接給客服看的中文
+  1. 時間顯示時區（預設：瀏覽器本地時區，並可看到 UTC 原值）
+  2. 個資顯示：`decision_reason`、`evaluated`、`trigger_snapshot` 可能含個資，遮罩規則（同 DESIGN-01 待決定 2）
+  3. 文案語氣與品牌色（目前中性配色、中性書面語）
+  4. 此頁是否需要登入／權限（同 DESIGN-01 待決定 1）
+  5. 查詢是否還要依旅程、時間範圍篩選（契約目前只有 `q`＋`status`）
+- 需調查：無（上一輪 5 項已由契約回答）。已知落差：契約 `status` 可多選，設計稿用單選下拉，是否多選待甲方確認；`journey_name` 型別表為 string 但可為 null，請 architect 確認。

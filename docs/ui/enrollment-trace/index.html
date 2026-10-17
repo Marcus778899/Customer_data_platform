@@ -92,7 +92,8 @@
       <li><a href="#list-error">列表：錯誤</a></li>
       <li><a href="#detail-loading">詳情：載入中</a></li>
       <li><a href="#detail-waiting">詳情：等待中（進行中）</a></li>
-      <li><a href="#detail-skipped">詳情：已完成但訊息被略過</a></li>
+      <li><a href="#detail-pending">詳情：已完成但訊息仍待送</a></li>
+      <li><a href="#detail-deliveries">詳情：發送狀態一覽與載入更早紀錄</a></li>
       <li><a href="#detail-notfound">詳情：找不到</a></li>
       <li><a href="#detail-error">詳情：載入失敗</a></li>
       <li><a href="#narrow">窄螢幕（375px）預覽</a></li>
@@ -107,11 +108,11 @@
       <form class="search card" role="search" aria-label="查詢 Enrollment">
         <div class="field">
           <label for="q1">客戶 ID 或 Enrollment ID</label>
-          <input id="q1" name="q" placeholder="例：p_8f3a21 或 01JAB3...">
+          <input id="q1" name="q" placeholder="例：01JCXYZPROFILE00000000001（精確比對）">
         </div>
         <div class="field" style="flex-basis:160px">
           <label for="s1">狀態</label>
-          <select id="s1"><option>全部</option><option>等待中</option><option>已完成</option><option>失敗</option></select>
+          <select id="s1"><option>全部</option><option>進行中（ACTIVE）</option><option>等待中（WAITING）</option><option>已完成（COMPLETED）</option><option>失敗（FAILED）</option></select>
         </div>
         <button class="btn" type="submit">查詢</button>
       </form>
@@ -123,7 +124,7 @@
   <section class="state" id="list-loading">
     <h2>列表：載入中</h2>
     <div class="app">
-      <form class="search card" role="search"><div class="field"><label for="q2">客戶 ID 或 Enrollment ID</label><input id="q2" value="p_8f3a21"></div><button class="btn" type="submit" aria-disabled="true">查詢中…</button></form>
+      <form class="search card" role="search"><div class="field"><label for="q2">客戶 ID 或 Enrollment ID</label><input id="q2" value="01JCXYZPROFILE00000000001"></div><button class="btn" type="submit" aria-disabled="true">查詢中…</button></form>
       <div role="status" aria-live="polite" aria-busy="true" class="card" style="margin-top:var(--space-4)">
         <span class="muted">載入中…</span>
         <span class="skel"></span><span class="skel"></span><span class="skel" style="width:70%"></span>
@@ -135,19 +136,19 @@
   <section class="state" id="list-filled">
     <h2>列表：有資料</h2>
     <div class="app">
-      <form class="search card" role="search"><div class="field"><label for="q3">客戶 ID 或 Enrollment ID</label><input id="q3" value="p_8f3a21"></div><div class="field" style="flex-basis:160px"><label for="s3">狀態</label><select id="s3"><option>全部</option></select></div><button class="btn" type="submit">查詢</button></form>
+      <form class="search card" role="search"><div class="field"><label for="q3">客戶 ID 或 Enrollment ID</label><input id="q3" value="01JCXYZPROFILE00000000001"></div><div class="field" style="flex-basis:160px"><label for="s3">狀態</label><select id="s3"><option>全部</option></select></div><button class="btn" type="submit">查詢</button></form>
       <div class="card scroll" style="margin-top:var(--space-4)">
         <table class="stack">
           <caption>共 3 筆，依進入時間新到舊</caption>
           <thead><tr><th scope="col">旅程（版本）</th><th scope="col">狀態</th><th scope="col">目前節點</th><th scope="col">進入時間</th><th scope="col">最後更新</th></tr></thead>
           <tbody>
-            <tr><td data-label="旅程"><a href="#detail-waiting">棄單挽回（v2）</a><br><span class="mono muted">01JAB3K9Q2…</span></td><td data-label="狀態"><span class="badge b-warning">等待中</span></td><td data-label="目前節點">等待 3 天</td><td data-label="進入時間">2026-10-18 10:00</td><td data-label="最後更新">2026-10-18 10:00</td></tr>
-            <tr><td data-label="旅程"><a href="#detail-skipped">棄單挽回（v2）</a><br><span class="mono muted">01JA7Z1M4X…</span></td><td data-label="狀態"><span class="badge b-success">已完成</span></td><td data-label="目前節點">結束</td><td data-label="進入時間">2026-10-10 09:12</td><td data-label="最後更新">2026-10-13 23:10</td></tr>
-            <tr><td data-label="旅程"><a href="#detail-error">新客歡迎（v1）</a><br><span class="mono muted">01J9Y0C8RT…</span></td><td data-label="狀態"><span class="badge b-danger">失敗</span></td><td data-label="目前節點">發送訊息</td><td data-label="進入時間">2026-10-01 14:30</td><td data-label="最後更新">2026-10-01 14:35</td></tr>
+            <tr><td data-label="旅程"><a href="#detail-waiting">棄單挽回（v2）</a><br><span class="mono muted">01JCXYZENROLL000000000001</span></td><td data-label="狀態"><span class="badge b-warning">等待中</span></td><td data-label="目前節點">等 3 天<br><span class="mono muted">WaitDelayNode</span></td><td data-label="進入時間">2026-10-18 10:00</td><td data-label="最後更新">2026-10-18 10:00</td></tr>
+            <tr><td data-label="旅程"><a href="#detail-pending">棄單挽回（v2）</a><br><span class="mono muted">01JCXYZENROLL000000000002</span></td><td data-label="狀態"><span class="badge b-success">已完成</span></td><td data-label="目前節點">EndNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-10 09:12</td><td data-label="最後更新">2026-10-13 09:13</td></tr>
+            <tr><td data-label="旅程"><a href="#detail-error">（未命名旅程）v1</a><br><span class="mono muted">01JCXYZENROLL000000000003</span></td><td data-label="狀態"><span class="badge b-danger">失敗</span></td><td data-label="目前節點">SendMessageNode<br><span class="muted">（未命名節點，以型別顯示）</span></td><td data-label="進入時間">2026-10-01 14:30</td><td data-label="最後更新">2026-10-01 14:35</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="muted"><a href="#list-filled">載入更多</a>（顯示 3 / 3 時不出現）</p>
+      <p class="muted"><a href="#list-filled">載入更多</a>（<code>next_cursor</code> 為 null 時不出現）</p>
     </div>
   </section>
 
@@ -155,10 +156,10 @@
   <section class="state" id="list-empty">
     <h2>列表：查無資料</h2>
     <div class="app">
-      <form class="search card" role="search"><div class="field"><label for="q4">客戶 ID 或 Enrollment ID</label><input id="q4" value="p_unknown"></div><button class="btn" type="submit">查詢</button></form>
+      <form class="search card" role="search"><div class="field"><label for="q4">客戶 ID 或 Enrollment ID</label><input id="q4" value="01JUNKNOWN0000000000000000"></div><button class="btn" type="submit">查詢</button></form>
       <div class="msg card" style="margin-top:var(--space-4)" role="status">
-        <p><strong>找不到「p_unknown」的任何旅程紀錄</strong></p>
-        <p class="muted">可能原因：ID 輸入有誤；這位客戶尚未觸發任何旅程；或事件被冪等規則視為重複而未建立新紀錄。</p>
+        <p><strong>找不到「01JUNKNOWN0000000000000000」的任何旅程紀錄</strong></p>
+        <p class="muted">可能原因：ID 輸入有誤；這位客戶尚未觸發任何旅程；或該事件發生已超過 24 小時，系統收下但不建立旅程紀錄。</p>
       </div>
     </div>
   </section>
@@ -167,10 +168,10 @@
   <section class="state" id="list-error">
     <h2>列表：錯誤</h2>
     <div class="app">
-      <form class="search card" role="search"><div class="field"><label for="q5">客戶 ID 或 Enrollment ID</label><input id="q5" value="p_8f3a21"></div><button class="btn" type="submit">查詢</button></form>
+      <form class="search card" role="search"><div class="field"><label for="q5">客戶 ID 或 Enrollment ID</label><input id="q5" value="01JCXYZPROFILE00000000001"></div><button class="btn" type="submit">查詢</button></form>
       <div class="msg error" role="alert" style="margin-top:var(--space-4)">
         <p><strong>查詢失敗，沒有取得資料</strong></p>
-        <p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報代碼 <span class="mono">req-7c1d92</span>。</p>
+        <p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000001</span>。</p>
         <button class="btn secondary" type="button">重試</button>
       </div>
     </div>
@@ -192,23 +193,24 @@
       <p><a href="#list-filled">&larr; 回到列表</a></p>
       <header>
         <h1>棄單挽回（v2） <span class="badge b-warning">等待中</span></h1>
-        <p class="muted mono">01JAB3K9Q2…（完整 ID）　客戶 p_8f3a21</p>
-        <p class="muted"><button class="btn secondary" type="button">重新整理</button>　資料更新於 2026-10-18 10:02:15</p>
+        <p class="muted mono">01JCXYZENROLL000000000001　客戶 01JCXYZPROFILE00000000001</p>
+        <p class="muted"><button class="btn secondary" type="button">重新整理</button>　資料更新於 2026-10-18 10:00:05（<code>as_of</code>）</p>
       </header>
-      <p class="summary" role="status"><strong>目前狀況：</strong>停在「等待 3 天」，預計 2026-10-21 10:00 繼續。</p>
+      <p class="summary" role="status"><strong>目前狀況：</strong>停在「等 3 天」，預計 2026-10-21 10:00 繼續（實際喚醒最多晚一個輪詢間隔）。</p>
 
       <h3>節點軌跡</h3>
       <ol class="trace" aria-label="節點軌跡，由舊到新">
         <li>
-          <div class="head"><strong>1. 開始</strong><span class="muted mono">Start · n_start</span></div>
-          <div class="muted">2026-10-18 10:00:00 → 10:00:00（0 秒）　出口：<span class="mono">default</span></div>
-          <p class="reason">原因：收到事件 cart_abandoned，建立 Enrollment。</p>
+          <div class="head"><strong>1. 加入購物車</strong><span class="muted mono">EventSourceNode · src_1</span></div>
+          <div class="muted">2026-10-18 10:00:00 → 10:00:00　出口：<span class="mono">next</span></div>
+          <p class="reason">原因：收到事件 cart_item_added，建立 Enrollment。</p>
+          <details><summary>判斷時取得的值（1）</summary><dl class="kv"><dt>event_id</dt><dd class="mono">01JCXYZ8K3M4N5P6Q7R8S9T0AB</dd></dl></details>
         </li>
         <li class="current" aria-current="step">
-          <div class="head"><strong>2. 等待 3 天</strong><span class="badge b-warning">目前在此</span><span class="muted mono">WaitDelay · n_wait</span></div>
-          <div class="muted">2026-10-18 10:00:00 → 尚未離開</div>
-          <p class="reason">原因：等待 72 小時，預計 2026-10-21 10:00 醒來。</p>
-          <details><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>delay_hours</dt><dd class="mono">72</dd><dt>wake_at</dt><dd class="mono">2026-10-21T10:00:00+08:00</dd></dl></details>
+          <div class="head"><strong>2. 等 3 天</strong><span class="badge b-warning">目前在此</span><span class="muted mono">WaitDelayNode · wait_1</span></div>
+          <div class="muted">2026-10-18 10:00:00 → 尚未離開　出口：—</div>
+          <p class="reason">原因：等待 P3D，預計 2026-10-21T02:00:00Z 喚醒。</p>
+          <details><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>duration</dt><dd class="mono">P3D</dd><dt>wake_at</dt><dd class="mono">2026-10-21T02:00:00Z</dd></dl></details>
         </li>
       </ol>
 
@@ -217,43 +219,65 @@
 
       <h3>觸發事件</h3>
       <details class="card"><summary>展開觸發當下的事件快照</summary>
-        <dl class="kv"><dt>事件</dt><dd>cart_abandoned（2026-10-18 09:59:41）</dd><dt>來源</dt><dd>web</dd><dt>屬性</dt><dd class="mono">cart_id=c_5521, items=[保濕精華液, 洗面乳]</dd><dt>客戶屬性快照</dt><dd class="mono">name=王**, tier=銀卡</dd></dl>
+        <dl class="kv"><dt>事件</dt><dd>cart_item_added（2026-10-18 09:59:41）</dd><dt>來源類型</dt><dd class="mono">CUSTOMER_BEHAVIOR</dd><dt>事件屬性</dt><dd class="mono">cart_id=CART-99201, cart_total=1580</dd><dt>客戶屬性快照</dt><dd class="muted">此版本未記錄客戶屬性快照。</dd></dl>
       </details>
     </div>
   </section>
 
-  <!-- ===== 詳情：已完成但訊息被略過 ===== -->
-  <section class="state" id="detail-skipped">
-    <h2>詳情：已完成，訊息被略過（回答「為什麼沒收到」）</h2>
+  <!-- ===== 詳情：已完成但訊息仍待送 ===== -->
+  <section class="state" id="detail-pending">
+    <h2>詳情：Enrollment 已完成，訊息仍待送（回答「為什麼沒收到」）</h2>
     <div class="app">
       <p><a href="#list-filled">&larr; 回到列表</a></p>
       <header>
         <h1>棄單挽回（v2） <span class="badge b-success">已完成</span></h1>
-        <p class="muted mono">01JA7Z1M4X…　客戶 p_8f3a21</p>
-        <p class="muted">進入 2026-10-10 09:12　結束 2026-10-13 23:10（原因：走到終點）</p>
+        <p class="muted mono">01JCXYZENROLL000000000002　客戶 01JCXYZPROFILE00000000001</p>
+        <p class="muted">進入 2026-10-10 09:12　結束 2026-10-13 09:13（原因：已走到終點）　資料更新於 2026-10-13 09:20</p>
       </header>
-      <p class="summary" role="status"><strong>這位客戶沒有收到訊息：</strong>「LINE 優惠通知」因靜音時段（22:00–08:00）被略過。</p>
+      <p class="summary" role="status"><strong>這位客戶還沒收到訊息：</strong>旅程已走完，但有 1 則訊息仍在待送（PENDING），已排入、尚未送出。</p>
 
       <h3>節點軌跡</h3>
       <ol class="trace" aria-label="節點軌跡，由舊到新">
-        <li><div class="head"><strong>1. 開始</strong><span class="muted mono">Start · n_start</span></div><div class="muted">2026-10-10 09:12:00 → 09:12:00　出口：<span class="mono">default</span></div><p class="reason">原因：收到事件 cart_abandoned，建立 Enrollment。</p></li>
-        <li><div class="head"><strong>2. 等待 3 天</strong><span class="muted mono">WaitDelay · n_wait</span></div><div class="muted">2026-10-10 09:12:00 → 2026-10-13 23:10:00（3 天 13 小時 58 分）　出口：<span class="mono">default</span></div><p class="reason">原因：等待 72 小時後喚醒；實際晚於預計時間 13 小時 58 分。</p><details><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>planned_wake_at</dt><dd class="mono">2026-10-13T09:12:00+08:00</dd><dt>woke_at</dt><dd class="mono">2026-10-13T23:10:00+08:00</dd></dl></details></li>
-        <li><div class="head"><strong>3. 發送訊息</strong><span class="badge b-neutral">已略過</span><span class="muted mono">SendMessage · n_send</span></div><div class="muted">2026-10-13 23:10:00 → 23:10:01　出口：<span class="mono">skipped</span></div><p class="reason">原因：目前當地時間 23:10 在靜音時段 22:00–08:00 內，行銷訊息不發送。</p><details open><summary>判斷時取得的值（3）</summary><dl class="kv"><dt>message_type</dt><dd class="mono">MARKETING</dd><dt>local_time</dt><dd class="mono">23:10</dd><dt>quiet_hours</dt><dd class="mono">22:00-08:00</dd></dl></details></li>
-        <li><div class="head"><strong>4. 結束</strong><span class="muted mono">End · n_end</span></div><div class="muted">2026-10-13 23:10:01</div><p class="reason">原因：走到終點。</p></li>
+        <li><div class="head"><strong>1. 加入購物車</strong><span class="muted mono">EventSourceNode · src_1</span></div><div class="muted">2026-10-10 09:12:00 → 09:12:00　出口：<span class="mono">next</span></div><p class="reason">原因：收到事件 cart_item_added，建立 Enrollment。</p></li>
+        <li><div class="head"><strong>2. WaitDelayNode</strong><span class="muted">（未命名）</span><span class="muted mono">wait_1</span></div><div class="muted">2026-10-10 09:12:00 → 2026-10-13 09:12:00　出口：<span class="mono">next</span></div><p class="reason">原因：等待 P3D，於 2026-10-13T01:12:00Z 喚醒。</p><details><summary>判斷時取得的值（2）</summary><dl class="kv"><dt>duration</dt><dd class="mono">P3D</dd><dt>wake_at</dt><dd class="mono">2026-10-13T01:12:00Z</dd></dl></details></li>
+        <li><div class="head"><strong>3. 發送優惠通知</strong><span class="badge b-info">待送</span><span class="muted mono">SendMessageNode · send_1</span></div><div class="muted">2026-10-13 09:12:00 → 09:12:01　出口：<span class="mono">sent</span></div><p class="reason">原因：已將模板 tpl_cart_reminder 排入通道 ch_mock_1 發送。</p></li>
+        <li><div class="head"><strong>4. EndNode</strong><span class="muted">（未命名）</span><span class="muted mono">end_1</span></div><div class="muted">2026-10-13 09:13:00　出口：—</div><p class="reason">原因：已走到終點，Enrollment 完成。</p></li>
       </ol>
 
       <h3>發送歷史</h3>
       <div class="card scroll">
         <table class="stack">
-          <caption class="muted">最近 50 筆；完整紀錄請至發送紀錄查詢</caption>
-          <thead><tr><th scope="col">時間</th><th scope="col">節點</th><th scope="col">通道</th><th scope="col">類型</th><th scope="col">結果</th><th scope="col">原因</th></tr></thead>
-          <tbody><tr><td data-label="時間">2026-10-13 23:10</td><td data-label="節點">發送訊息</td><td data-label="通道">LINE</td><td data-label="類型">行銷</td><td data-label="結果"><span class="badge b-neutral">已略過</span></td><td data-label="原因">靜音時段</td></tr></tbody>
+          <caption class="muted">最新 50 筆，新到舊</caption>
+          <thead><tr><th scope="col">時間</th><th scope="col">節點</th><th scope="col">模板 ID</th><th scope="col">通道 ID（類型）</th><th scope="col">訊息類型</th><th scope="col">結果</th></tr></thead>
+          <tbody><tr><td data-label="時間">2026-10-13 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_cart_reminder</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-info">待送</span></td></tr></tbody>
         </table>
       </div>
     </div>
   </section>
 
-  <!-- ===== 詳情：找不到 ===== -->
+  <!-- ===== 詳情：發送狀態一覽 ===== -->
+  <section class="state" id="detail-deliveries">
+    <h2>詳情：發送狀態一覽（示意，涵蓋各狀態與「載入更早紀錄」）</h2>
+    <div class="app">
+      <h3>發送歷史</h3>
+      <div class="card scroll">
+        <table class="stack">
+          <caption class="muted">最新 50 筆，新到舊</caption>
+          <thead><tr><th scope="col">時間</th><th scope="col">節點</th><th scope="col">模板 ID</th><th scope="col">通道 ID（類型）</th><th scope="col">訊息類型</th><th scope="col">結果</th></tr></thead>
+          <tbody>
+            <tr><td data-label="時間">2026-10-13 09:12</td><td data-label="節點">SendMessageNode（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-info">待送</span></td></tr>
+            <tr><td data-label="時間">2026-10-12 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-success">已送出</span><br><span class="mono muted">delivery_id: msg_0042</span></td></tr>
+            <tr><td data-label="時間">2026-10-11 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-danger">發送失敗</span></td></tr>
+            <tr><td data-label="時間">2026-10-10 09:12</td><td data-label="節點">發送優惠通知（第 3 步）</td><td data-label="模板 ID" class="mono">tpl_a</td><td data-label="通道" class="mono">ch_mock_1（MOCK）</td><td data-label="訊息類型">—</td><td data-label="結果"><span class="badge b-neutral">已取消</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><button class="btn secondary" type="button">載入更早紀錄</button>　<span class="muted">（<code>delivery_history_next_cursor</code> 有值時顯示；載入中按鈕顯示「載入中…」，失敗顯示可重試的錯誤與請求代碼）</span></p>
+    </div>
+  </section>
+
+  
+<!-- ===== 詳情：找不到 ===== -->
   <section class="state" id="detail-notfound">
     <h2>詳情：找不到</h2>
     <div class="app">
@@ -267,7 +291,7 @@
     <h2>詳情：載入失敗</h2>
     <div class="app">
       <p><a href="#list-filled">&larr; 回到列表</a></p>
-      <div class="msg error" role="alert"><p><strong>無法載入軌跡</strong></p><p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報代碼 <span class="mono">req-3e90ab</span>。</p><button class="btn secondary" type="button">重試</button></div>
+      <div class="msg error" role="alert"><p><strong>無法載入軌跡</strong></p><p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000002</span>。</p><button class="btn secondary" type="button">重試</button></div>
     </div>
   </section>
 
@@ -276,7 +300,7 @@
     <h2>窄螢幕 375px：列表與詳情</h2>
     <div style="display:flex;gap:var(--space-5);flex-wrap:wrap">
       <iframe class="narrow" title="窄螢幕列表" src="index.html#list-filled"></iframe>
-      <iframe class="narrow" title="窄螢幕詳情" src="index.html#detail-skipped"></iframe>
+      <iframe class="narrow" title="窄螢幕詳情" src="index.html#detail-pending"></iframe>
     </div>
   </section>
 </body>
