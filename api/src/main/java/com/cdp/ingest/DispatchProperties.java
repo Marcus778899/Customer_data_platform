@@ -16,9 +16,9 @@ public record DispatchProperties(int maxAttempts, Duration backoffInitial, Durat
         if (maxAttempts < 1) {
             throw new IllegalArgumentException("cdp.engine.dispatch.max-attempts must be at least 1");
         }
-        if (backoffInitial == null || backoffInitial.isZero() || backoffInitial.isNegative()) {
+        if (backoffInitial == null || backoffInitial.isNegative()) {
             throw new IllegalArgumentException(
-                    "cdp.engine.dispatch.backoff-initial must be a positive duration");
+                    "cdp.engine.dispatch.backoff-initial must be set and not negative");
         }
         if (backoffMax == null || backoffMax.compareTo(backoffInitial) < 0) {
             throw new IllegalArgumentException(
