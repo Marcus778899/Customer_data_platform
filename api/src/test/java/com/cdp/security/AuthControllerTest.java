@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.web.server.autoconfigure.ServerProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -13,8 +14,16 @@ import com.cdp.common.web.ErrorCode;
 
 class AuthControllerTest {
 
-    private final AuthController controller =
-            new AuthController(new AuthProperties("i", "a", "agent", "secret"));
+    private final AuthController controller = new AuthController(
+            new AuthProperties("i", "a", "agent", "secret"), serverProperties());
+
+    private static ServerProperties serverProperties() {
+        ServerProperties sp = new ServerProperties();
+        sp.getServlet().getSession().getCookie().setName("CDP_SESSION");
+        sp.getServlet().getSession().getCookie().setPath("/api");
+        return sp;
+    }
+
 
     @Test
     void login_success_creates_fresh_session_with_context() {

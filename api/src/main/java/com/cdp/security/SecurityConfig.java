@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .requestCache(c -> c.disable())
                 .addFilterAfter(new ApiKeyAuthenticationFilter(properties), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/events", "/api/v1/events/batch")
                         .hasRole(ingest)
@@ -41,8 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/enrollments", "/api/v1/enrollments/**")
                         .hasAnyRole(admin, support)
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                        // 其餘：GET 需認證；其他方法限 ADMIN（session 只能 GET）
-                        .requestMatchers(HttpMethod.GET).authenticated()
+                        // 預設拒絕：契約未列的路徑只有 ADMIN 放行（落到 MVC 回 404）；INGEST／SUPPORT 403、未認證 401
                         .anyRequest().hasRole(admin))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) ->
