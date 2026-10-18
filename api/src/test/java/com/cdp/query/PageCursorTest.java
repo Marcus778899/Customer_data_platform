@@ -27,4 +27,13 @@ class PageCursorTest {
                             e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
         }
     }
+
+    @Test
+    void decodedNulIsValidationFailed() {
+        String nul = new PageCursor(Instant.parse("2026-01-01T00:00:00Z"), "a" + (char) 0 + "b").encode();
+        assertThatThrownBy(() -> PageCursor.decode(nul))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+    }
 }

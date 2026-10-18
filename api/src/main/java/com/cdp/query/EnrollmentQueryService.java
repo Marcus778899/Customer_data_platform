@@ -37,6 +37,10 @@ public class EnrollmentQueryService {
         if (q == null || q.isBlank()) {
             throw invalid("q", "必填");
         }
+        rejectNul("q", q);
+        if (statuses != null && statuses.contains(null)) {
+            throw invalid("status", "格式錯誤");
+        }
         int size = limit(limit, DEFAULT_LIST_LIMIT);
         PageCursor after = cursor == null ? null : PageCursor.decode(cursor);
         List<EnrollmentSummary> rows = store.list(tenantId, q, statuses, after, size + 1);
@@ -87,6 +91,12 @@ public class EnrollmentQueryService {
         return store.detail(tenantId, enrollmentId)
                 .orElseThrow(
                         () -> new ApiException(ErrorCode.ENROLLMENT_NOT_FOUND, "找不到這筆 Enrollment。"));
+    }
+
+    private static void rejectNul(String field, String value) {
+        if (value != null && value.indexOf((char) 0) >= 0) {
+            throw invalid(field, "不可含 NUL 字元");
+        }
     }
 
     private static int limit(Integer limit, int defaultValue) {
