@@ -81,8 +81,11 @@ class DispatchPropertiesStartupAcceptanceTest {
     }
 
     @Test
-    void backoffInitialZero_failsStartup() {
-        assertStartFails(List.of("PT0S"), P + "backoff-initial=PT0S");
+    void backoffInitialZero_isAllowed() {
+        // 追加 1：0 代表下一輪輪詢即重試，允許；只拒絕負值
+        try (ConfigurableApplicationContext ctx = app().run(args(P + "backoff-initial=PT0S"))) {
+            assertThat(ctx.isRunning()).isTrue();
+        }
     }
 
     @Test
