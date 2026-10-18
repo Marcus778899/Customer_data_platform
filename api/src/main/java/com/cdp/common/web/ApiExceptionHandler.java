@@ -7,14 +7,15 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,7 +27,6 @@ import tools.jackson.core.JacksonException;
  * 所有錯誤轉成契約 §5 格式（含 code、request_id；400 另含 errors）。Spring 內建的 4xx（缺參數、型別錯、JSON
  * 無法解析、無此路由）轉 VALIDATION_FAILED／NOT_FOUND；DB 連不上轉 SERVICE_UNAVAILABLE；其餘 INTERNAL_ERROR，不外洩訊息。
  */
-@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -38,7 +38,11 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) throws Exception {
+        // Security 例外交回 filter chain（ExceptionTranslationFilter）轉 401／403，不在此轉 500
+        if (ex instanceof AccessDeniedException || ex instanceof AuthenticationException) {
+            throw ex;
+        }
         if (ex instanceof HttpMessageNotReadableException notReadable) {
             String field = "body";
             if (notReadable.getCause() instanceof JacksonException je && !je.getPath().isEmpty()) {
@@ -75,7 +79,15 @@ public class ApiExceptionHandler {
                         status,
                         ErrorCode.UNSUPPORTED_MEDIA_TYPE.name(),
                         "不支援的 Content-Type。",
-                        List.of());
+                        List.of(),
+                        copyHeader(er, HttpHeaders.ACCEPT));
+            }
+            if (status.value() == 405) {
+                return problem(status, ErrorCode.METHOD_NOT_ALLOWED.name(), "不支援這個 HTTP 方法。", List.of(),
+                        copyHeader(er, HttpHeaders.ALLOW));
+            }
+            if (status.value() == 406) {
+                return problem(status, ErrorCode.NOT_ACCEPTABLE.name(), "Accept 必須接受 application/json。", List.of());
             }
             return problem(
                     status,
@@ -109,6 +121,20 @@ public class ApiExceptionHandler {
     /** 契約 §5：application/problem+json，type 固定 about:blank。 */
     private static ResponseEntity<Map<String, Object>> problem(
             HttpStatusCode status, String code, String detail, List<FieldError> errors) {
+        return problem(status, code, detail, errors, new HttpHeaders());
+    }
+
+    private static HttpHeaders copyHeader(ErrorResponse er, String name) {
+        HttpHeaders out = new HttpHeaders();
+        List<String> values = er.getHeaders().get(name);
+        if (values != null) {
+            out.put(name, values);
+        }
+        return out;
+    }
+
+    private static ResponseEntity<Map<String, Object>> problem(
+            HttpStatusCode status, String code, String detail, List<FieldError> errors, HttpHeaders headers) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("type", "about:blank");
         HttpStatus known = HttpStatus.resolve(status.value());
@@ -121,6 +147,7 @@ public class ApiExceptionHandler {
             body.put("errors", errors);
         }
         return ResponseEntity.status(status)
+                .headers(headers)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(body);
     }

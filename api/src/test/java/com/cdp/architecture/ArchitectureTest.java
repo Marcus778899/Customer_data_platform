@@ -155,6 +155,25 @@ class ArchitectureTest {
                     .haveFullyQualifiedName("org.springframework.amqp.core.AmqpTemplate")
                     .because("背景任務一律先寫 outbox，由 relay 推送（INIT-01 紅線 2）");
 
+    /** 錯誤處理唯一出口：只能有一個 @RestControllerAdvice。 */
+    @ArchTest
+    static final ArchRule singleRestControllerAdvice =
+            classes()
+                    .that()
+                    .areAnnotatedWith("org.springframework.web.bind.annotation.RestControllerAdvice")
+                    .should()
+                    .haveFullyQualifiedName("com.cdp.common.web.ApiExceptionHandler")
+                    .because("錯誤格式只由 ApiExceptionHandler 負責，不靠 @Order");
+
+    /** 禁用 ResponseStatusException，一律丟 ApiException。 */
+    @ArchTest
+    static final ArchRule noResponseStatusException =
+            noClasses()
+                    .should()
+                    .dependOnClassesThat()
+                    .haveFullyQualifiedName("org.springframework.web.server.ResponseStatusException")
+                    .because("錯誤一律丟 ApiException（契約 §5）");
+
     private static ArchCondition<JavaClass> haveNoFields() {
         return new ArchCondition<>("have no fields") {
             @Override
