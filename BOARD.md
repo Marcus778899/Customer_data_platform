@@ -69,7 +69,6 @@
 - 後續：FIX-02 review（hikari data-source-properties、advice 規則用 meta-annotation、javadoc、406/404 單元測試；v0.2.0 filter 例外格式）
 - 後續：FIX-03 合併後 architect 出 V4 收緊 event CHECK 為雙向（CHORE-02 review）
 - 後續：契約 §1.2 /auth/me 補 403（FIX-04）
-- 請甲方在 .env 補 ENGINE_DISPATCH_MAX_ATTEMPTS／BACKOFF_INITIAL／BACKOFF_MAX（D-027 值見 .env.example），補完才能 make api-run
 - 後續：FIX-03a review（文件三處、APPEND_TRACE 明確 API、outcome enum、DispatchProperties 驗證、解析失敗測試）併入 V4 單
 
 ## 注意事項（踩過的坑）
