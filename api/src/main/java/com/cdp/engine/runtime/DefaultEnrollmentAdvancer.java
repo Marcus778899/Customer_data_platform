@@ -37,6 +37,9 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
     /** 單次連續推進的節點上限（04 §6）。 */
     static final int MAX_STEPS = 50;
 
+    /** 找不到 open trace 時的 seq 哨兵：由 StateStore.save 接在既有軌跡之後（max(seq)+1）。 */
+    public static final long APPEND_TRACE = 0;
+
     private static final Logger log = LoggerFactory.getLogger(DefaultEnrollmentAdvancer.class);
 
     private final StateStore stateStore;
@@ -58,35 +61,53 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
     @Override
     @Transactional(propagation = Propagation.NESTED)
     public EnrollmentState advance(EnrollmentState state, WakeSignal wakeSignal) {
-        JourneyDefinition journey =
-                journeys.find(state.tenantId(), state.journeyId(), state.journeyVersion())
-                        .orElseThrow(
-                                () ->
-                                        new IllegalStateException(
-                                                "journey definition missing: "
-                                                        + state.journeyId()
-                                                        + " v"
-                                                        + state.journeyVersion()));
         Instant now = clock.instant();
         EnrollmentState current = state;
         WakeSignal signal = wakeSignal;
-        long seq;
-        Instant enteredAt;
+        long seq = 1;
+        Instant enteredAt = now;
+        EnrollmentTrace open = null;
         if (signal != null) {
             // 等待節點被喚醒：沿用尚未離開的那列軌跡（07 §5 補完一次）
-            EnrollmentTrace open =
-                    stateStore
-                            .findOpenTrace(state.tenantId(), state.enrollmentId())
-                            .orElseThrow(
-                                    () ->
-                                            new IllegalStateException(
-                                                    "no open trace for waiting enrollment "
-                                                            + state.enrollmentId()));
-            seq = open.seq();
-            enteredAt = open.enteredAt();
-        } else {
-            seq = 1;
-            enteredAt = now;
+            open = stateStore.findOpenTrace(state.tenantId(), state.enrollmentId()).orElse(null);
+            if (open != null) {
+                seq = open.seq();
+                enteredAt = open.enteredAt();
+            } else {
+                seq = APPEND_TRACE;
+            }
+        }
+        JourneyDefinition journey =
+                journeys.find(state.tenantId(), state.journeyId(), state.journeyVersion())
+                        .orElse(null);
+        if (journey == null) {
+            log.error(
+                    "journey definition missing enrollment_id={} journey_id={} v{}",
+                    state.enrollmentId(),
+                    state.journeyId(),
+                    state.journeyVersion());
+            return terminate(
+                    current,
+                    EnrollmentStatus.FAILED,
+                    "旅程定義 " + state.journeyId() + " v" + state.journeyVersion() + " 已不存在，Enrollment 已中止。",
+                    seq,
+                    current.currentNodeId(),
+                    open == null ? "Unknown" : open.nodeType(),
+                    enteredAt,
+                    now);
+        }
+        if (signal != null && open == null) {
+            log.error("no open trace for waiting enrollment_id={}", state.enrollmentId());
+            JourneyNodeDefinition at = journey.node(current.currentNodeId()).orElse(null);
+            return terminate(
+                    current,
+                    EnrollmentStatus.FAILED,
+                    "找不到等待節點 " + current.currentNodeId() + " 的軌跡，Enrollment 已中止。",
+                    seq,
+                    current.currentNodeId(),
+                    at == null ? "Unknown" : at.type(),
+                    enteredAt,
+                    now);
         }
 
         for (int step = 0; step < MAX_STEPS; step++) {

@@ -16,6 +16,7 @@ import com.cdp.ingest.EventIdentity;
 import com.cdp.ingest.EventStore;
 import com.cdp.ingest.NormalizedEvent;
 import com.cdp.ingest.SourceType;
+import com.cdp.ingest.UndispatchedEvent;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -58,26 +59,68 @@ public class JdbcEventStore implements EventStore {
     }
 
     @Override
-    public List<NormalizedEvent> lockUndispatched(int limit) {
+    public List<UndispatchedEvent> lockUndispatched(int limit, Instant now) {
         return jdbc.sql(
                         "select event_id, tenant_id, source_type, source_id, name, occurred_at,"
                                 + " received_at, identity, properties, context from event"
-                                + " where dispatched_at is null order by received_at, event_id"
+                                + " where dispatched_at is null"
+                                + " and (next_dispatch_at is null or next_dispatch_at <= :now)"
+                                + " order by received_at, event_id"
                                 + " limit :limit for update skip locked")
+                .param("now", ts(now))
                 .param("limit", limit)
-                .query((rs, n) -> map(rs))
+                .query(this::mapSafely)
                 .list();
     }
 
     @Override
-    public void markDispatched(String tenantId, String eventId, Instant dispatchedAt) {
+    public void markDispatched(
+            String tenantId, String eventId, Instant dispatchedAt, String outcome) {
         jdbc.sql(
-                        "update event set dispatched_at = :at"
+                        "update event set dispatched_at = :at, dispatch_outcome = :outcome"
                                 + " where tenant_id = :tenant and event_id = :id")
                 .param("at", ts(dispatchedAt))
+                .param("outcome", outcome)
                 .param("tenant", tenantId)
                 .param("id", eventId)
                 .update();
+    }
+
+    @Override
+    public int recordFailure(String tenantId, String eventId, String error) {
+        String trimmed = error == null ? null : error.substring(0, Math.min(error.length(), 1000));
+        return jdbc.sql(
+                        "update event set dispatch_attempts = dispatch_attempts + 1,"
+                                + " last_dispatch_error = :error"
+                                + " where tenant_id = :tenant and event_id = :id"
+                                + " returning dispatch_attempts")
+                .param("error", trimmed)
+                .param("tenant", tenantId)
+                .param("id", eventId)
+                .query(Integer.class)
+                .single();
+    }
+
+    @Override
+    public void scheduleRetry(String tenantId, String eventId, Instant nextDispatchAt) {
+        jdbc.sql(
+                        "update event set next_dispatch_at = :at"
+                                + " where tenant_id = :tenant and event_id = :id")
+                .param("at", ts(nextDispatchAt))
+                .param("tenant", tenantId)
+                .param("id", eventId)
+                .update();
+    }
+
+    private UndispatchedEvent mapSafely(ResultSet rs, int n) throws SQLException {
+        String tenant = rs.getString("tenant_id");
+        String id = rs.getString("event_id");
+        try {
+            return new UndispatchedEvent(tenant, id, map(rs), null);
+        } catch (RuntimeException e) {
+            return new UndispatchedEvent(
+                    tenant, id, null, e.getClass().getSimpleName() + ": unparsable event row");
+        }
     }
 
     private NormalizedEvent map(ResultSet rs) throws SQLException {

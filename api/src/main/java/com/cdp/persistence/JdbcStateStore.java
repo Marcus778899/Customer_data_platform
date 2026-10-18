@@ -216,6 +216,17 @@ public class JdbcStateStore implements StateStore {
             timer.cancel(s.enrollmentId());
         }
 
+        // seq <= 0（APPEND_TRACE）：喚醒時找不到 open trace，接在既有軌跡之後
+        long seq =
+                trace.seq() > 0
+                        ? trace.seq()
+                        : jdbc.sql(
+                                        "select coalesce(max(seq), 0) + 1 from node_trace"
+                                                + " where enrollment_id = :id")
+                                .param("id", trace.enrollmentId())
+                                .query(Long.class)
+                                .single();
+
         // 軌跡：等待列進入時寫一列，喚醒離開時以同 seq 補完一次；已離開的列不得再改（07 §5）
         jdbc.sql(
                         "insert into node_trace (enrollment_id, seq, tenant_id, node_id, node_type,"
@@ -228,7 +239,7 @@ public class JdbcStateStore implements StateStore {
                                 + " evaluated = excluded.evaluated"
                                 + " where node_trace.exited_at is null")
                 .param("id", trace.enrollmentId())
-                .param("seq", trace.seq())
+                .param("seq", seq)
                 .param("tenant", s.tenantId())
                 .param("node", trace.nodeId())
                 .param("type", trace.nodeType())
@@ -251,9 +262,9 @@ public class JdbcStateStore implements StateStore {
                                 s.journeyId(),
                                 s.journeyVersion(),
                                 trace.nodeId(),
-                                trace.seq(),
+                                seq,
                                 i,
-                                effect.getClass().getSimpleName(),
+                                effectType(effect),
                                 json.convertValue(effect, MAP),
                                 OutboxStatus.PENDING,
                                 s.updatedAt(),
@@ -263,6 +274,14 @@ public class JdbcStateStore implements StateStore {
             }
             outbox.insertAll(entries);
         }
+    }
+
+    /** effect_type 明確對照（spec 07 §10）：改類別名不會悄悄改變已寫入的值。 */
+    static String effectType(Effect effect) {
+        if (effect instanceof Effect.SendMessage) {
+            return "SendMessage";
+        }
+        throw new IllegalArgumentException("unmapped effect type " + effect.getClass().getName());
     }
 
     private EnrollmentState map(ResultSet rs) throws SQLException {

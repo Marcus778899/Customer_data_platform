@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -15,6 +16,7 @@ import com.cdp.common.web.FieldError;
 @Component
 public class EventValidator {
 
+    private static final String NUL = String.valueOf((char) 0);
     private static final Pattern ULID = Pattern.compile("[0-9A-HJKMNP-TV-Z]{26}");
     private static final Pattern NAME = Pattern.compile("[a-z][a-z0-9_]*");
     private static final Duration MAX_FUTURE_SKEW = Duration.ofMinutes(5);
@@ -51,7 +53,62 @@ public class EventValidator {
 
         validateIdentity(event.identity(), errors);
         validateContext(event, errors);
+        validateNoNul(event, errors);
         return errors;
+    }
+
+    /** jsonb／text 不收 U+0000：所有字串（含 properties 的鍵與巢狀值）逐一檢查，errors 指出欄位路徑。 */
+    private static void validateNoNul(EventRequest event, List<FieldError> errors) {
+        checkNul("source_id", event.sourceId(), errors);
+        EventIdentity identity = event.identity();
+        if (identity != null) {
+            checkNul("identity.profile_id", identity.profileId(), errors);
+            if (identity.identifiers() != null) {
+                for (int i = 0; i < identity.identifiers().size(); i++) {
+                    Identifier id = identity.identifiers().get(i);
+                    if (id != null) {
+                        String base = "identity.identifiers[" + i + "]";
+                        checkNul(base + ".type", id.type(), errors);
+                        checkNul(base + ".value", id.value(), errors);
+                    }
+                }
+            }
+        }
+        EventContext c = event.context();
+        if (c != null) {
+            checkNul("context.actor_id", c.actorId(), errors);
+            checkNul("context.actor_role", c.actorRole(), errors);
+            checkNul("context.trust_level", c.trustLevel(), errors);
+            checkNul("context.ip", c.ip(), errors);
+            checkNul("context.user_agent", c.userAgent(), errors);
+            checkNul("context.request_id", c.requestId(), errors);
+        }
+        checkNulDeep("properties", event.properties(), errors);
+    }
+
+    private static void checkNulDeep(String path, Object value, List<FieldError> errors) {
+        if (value instanceof String s) {
+            checkNul(path, s, errors);
+        } else if (value instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                String child = path + "." + key.replace(NUL, "<NUL>");
+                if (key.contains(NUL)) {
+                    errors.add(new FieldError(child, "鍵不可包含 U+0000"));
+                }
+                checkNulDeep(child, entry.getValue(), errors);
+            }
+        } else if (value instanceof List<?> list) {
+            for (int i = 0; i < list.size(); i++) {
+                checkNulDeep(path + "[" + i + "]", list.get(i), errors);
+            }
+        }
+    }
+
+    private static void checkNul(String field, String value, List<FieldError> errors) {
+        if (value != null && value.contains(NUL)) {
+            errors.add(new FieldError(field, "不可包含 U+0000"));
+        }
     }
 
     private static void validateIdentity(EventIdentity identity, List<FieldError> errors) {

@@ -23,6 +23,10 @@ cdp:
   engine:
     poll-interval: PT0.2S
     batch-size: 100
+    dispatch:
+      max-attempts: 5
+      backoff-initial: PT0S
+      backoff-max: PT0S
   relay:
     poll-interval: PT0.2S
     batch-size: 100
