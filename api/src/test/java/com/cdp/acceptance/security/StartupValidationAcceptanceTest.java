@@ -16,7 +16,7 @@ import com.cdp.CdpApplication;
 /**
  * FIX-04 驗收：金鑰或客服密碼為空、或兩把金鑰相同 → 啟動失敗，訊息不含機密值。
  * 以完整應用程式啟動（Testcontainers 提供 DB 與 MQ），確保失敗原因來自設定驗證而非基礎設施。
- * 假設：訊息（含 cause 鏈）會點出是哪個設定有問題，故要求出現 cdp.security／環境變數名／金鑰、密碼字樣之一。
+ * cause 鏈須含 IllegalStateException，且訊息點出 cdp.security. 開頭的屬性名。
  */
 class StartupValidationAcceptanceTest {
 
@@ -48,12 +48,20 @@ class StartupValidationAcceptanceTest {
                             .run(args))
                     .satisfies(t -> {
                         StringBuilder all = new StringBuilder();
+                        boolean found = false;
                         for (Throwable c = t; c != null; c = c.getCause()) {
-                            all.append(c).append('\n').append(c.getMessage()).append('\n');
+                            all.append(c).append("\n").append(c.getMessage()).append("\n");
+                            if (c instanceof IllegalStateException
+                                    && c.getMessage() != null
+                                    && c.getMessage().contains("cdp.security.")) {
+                                found = true;
+                            }
                         }
                         String text = all.toString();
                         assertThat(text).doesNotContain(SECRET_A, SECRET_B, SECRET_PW, SAME);
-                        assertThat(text).matches("(?is).*(cdp\\.security|CDP_[A-Z_]+|api-?key|support|金鑰|密碼).*");
+                        assertThat(found)
+                                .as("cause 鏈需含 IllegalStateException 且訊息含 cdp.security. 屬性名：%s", text)
+                                .isTrue();
                     });
         } finally {
             if (started[0] != null) started[0].close();
