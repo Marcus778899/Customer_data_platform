@@ -49,12 +49,15 @@
 | FE-01 | frontend | done | 0 | PR #11 |
 | BE-04 | backend | done | 0 | PR #14 |
 | FIX-01 | backend | done | 0 | PR #16 |
-| BE-03 | backend | qa | 0 |  |
+| BE-03 | backend | done | 1 | PR #20 |
 | DESIGN-02 | architect | done | 0 | PR #19 |
+| BE-02 | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
 - 後續修正單 FIX-02／03／04 見 DESIGN-01「後續實作項」（D-025）
+- 後續：DESIGN-01 做法 #4 補 DB 例外分類表（併入 FIX-02）
+- 後續：BE-03 review 六項（exists 查詢、q 欄位路徑、UNION ALL、readOnly 交易、masked_paths 跳脫、定義缺失記錄）
 
 ## 注意事項（踩過的坑）
 
