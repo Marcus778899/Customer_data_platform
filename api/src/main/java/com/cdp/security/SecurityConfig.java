@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/enrollments", "/api/v1/enrollments/*",
                                 "/api/v1/enrollments/*/deliveries")
                         .hasAnyRole(admin, support)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").hasRole(support)
                         // 預設拒絕：契約未列的路徑只有 ADMIN 放行（落到 MVC 回 404）；INGEST／SUPPORT 403、未認證 401
                         .anyRequest().hasRole(admin))
                 .exceptionHandling(e -> e
