@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 
@@ -18,6 +20,12 @@ import com.cdp.common.web.ErrorCode;
  */
 @Configuration
 public class SecurityConfig {
+
+    /** 宣告空的 UserDetailsService，避免 Spring Boot 自動產生預設帳號與密碼（認證只走 Bearer 與 session）。 */
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return new InMemoryUserDetailsManager();
+    }
 
     @Bean
     public SecurityFilterChain apiFilterChain(HttpSecurity http, AuthProperties properties)
@@ -33,16 +41,16 @@ public class SecurityConfig {
                 .requestCache(c -> c.disable())
                 .addFilterAfter(new ApiKeyAuthenticationFilter(properties), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/events", "/api/v1/events/batch")
                         .hasRole(ingest)
                         .requestMatchers(HttpMethod.POST, "/api/v1/journeys").hasRole(admin)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/enrollments", "/api/v1/enrollments/**")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/enrollments", "/api/v1/enrollments/*",
+                                "/api/v1/enrollments/*/deliveries")
                         .hasAnyRole(admin, support)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                        // 其餘：GET 需認證；其他方法限 ADMIN（session 只能 GET）
-                        .requestMatchers(HttpMethod.GET).authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").hasRole(support)
+                        // 預設拒絕：契約未列的路徑只有 ADMIN 放行（落到 MVC 回 404）；INGEST／SUPPORT 403、未認證 401
                         .anyRequest().hasRole(admin))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) ->

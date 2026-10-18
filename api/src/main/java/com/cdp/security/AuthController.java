@@ -6,6 +6,8 @@ import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
+import org.springframework.boot.web.server.Cookie;
+import org.springframework.boot.web.server.autoconfigure.ServerProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
@@ -31,12 +33,12 @@ import com.cdp.common.web.FieldError;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    static final String COOKIE_NAME = "CDP_SESSION";
-
     private final AuthProperties properties;
+    private final Cookie cookieConfig;
 
-    public AuthController(AuthProperties properties) {
+    public AuthController(AuthProperties properties, ServerProperties serverProperties) {
         this.properties = properties;
+        this.cookieConfig = serverProperties.getServlet().getSession().getCookie();
     }
 
     @PostMapping(path = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -76,8 +78,8 @@ public class AuthController {
         if (session != null) {
             session.invalidate();
         }
-        ResponseCookie cleared = ResponseCookie.from(COOKIE_NAME, "")
-                .path("/api")
+        ResponseCookie cleared = ResponseCookie.from(cookieConfig.getName() != null ? cookieConfig.getName() : "JSESSIONID", "")
+                .path(cookieConfig.getPath() != null ? cookieConfig.getPath() : "/")
                 .maxAge(0)
                 .httpOnly(true)
                 .secure(true)

@@ -151,7 +151,7 @@ class FrameworkErrorFormatAcceptanceTest {
 
     @Test
     void wrongHttpMethod_405MethodNotAllowedWithAllowHeader() throws Exception {
-        ResultActions r = mvc.perform(authed(get("/api/v1/events")));
+        ResultActions r = mvc.perform(authed(get("/api/v1/events"), ADMIN_KEY));
         baseShape(r, 405)
                 .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"))
                 .andExpect(header().string("Allow", org.hamcrest.Matchers.containsString("POST")))
