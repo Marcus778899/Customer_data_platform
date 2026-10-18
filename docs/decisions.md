@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-039 版本快照要不要進 git
+- 背景：`.gitignore` 忽略整個 `tasks/`（派工單只存本機與 GitHub issue），所以 `tasks/job_history/v0.1.0.md` 已產生但 docs.py 提交不進去
+- 選項：A. 開 chore 在 `.gitignore` 加例外，讓 `tasks/job_history/` 進 git（換電腦或 clone 都看得到） ／ B. 維持只存本機
+- 建議：A，快照是歷史紀錄，留在 repo 才不會遺失
+- 提出：manager
+
 ## 已決定
 
 ### D-036 外部 review 的修正併入 v0.2.0 設計
