@@ -1,0 +1,16 @@
+# 預設依平台；下列檔案一律 LF（Git Bash / CI 的 sh 與 make 遇到 CRLF 會壞）
+* text=auto
+Makefile text eol=lf
+*.sh text eol=lf
+api/mvnw text eol=lf
+gradlew text eol=lf
+*.java text eol=lf
+*.yml text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+# Windows 專用腳本保留 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.jar binary

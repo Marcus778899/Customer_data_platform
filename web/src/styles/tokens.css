@@ -1,0 +1,53 @@
+/* 設計 token：由 designer 負責（見 docs/design/INIT-01.md 檔案分工）。
+   中性配色，品牌色尚未定案（見 docs/ui/enrollment-trace.md 待決定）。
+   對比：文字／底色組合皆 >= WCAG AA 4.5:1，焦點環 >= 3:1。 */
+:root {
+  /* 色彩：基礎 */
+  --color-bg: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-border: #d0d7de;
+  --color-border-strong: #6e7781; /* 輸入框邊框，對白底 >= 3:1 */
+  --color-text: #1f2328;
+  --color-text-muted: #57606a;
+  --color-primary: #0b5cad;
+  --color-primary-text: #ffffff;
+  --color-focus: #0969da;
+
+  /* 色彩：狀態（fg 配 bg 使用；狀態一律同時有文字，不只靠顏色） */
+  --color-info-fg: #0550ae;
+  --color-info-bg: #ddf4ff;
+  --color-success-fg: #116329;
+  --color-success-bg: #dafbe1;
+  --color-warning-fg: #7d4e00;
+  --color-warning-bg: #fff8c5;
+  --color-danger-fg: #a40e26;
+  --color-danger-bg: #ffebe9;
+  --color-neutral-fg: #424a53;
+  --color-neutral-bg: #eaeef2;
+
+  /* 字型與字級 */
+  --font-body: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --line-height: 1.6;
+
+  /* 間距（4px 基準） */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* 圓角與其他 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+  --focus-ring: 0 0 0 3px var(--color-focus);
+  --content-max-width: 960px;
+  --breakpoint-narrow: 640px; /* 供文件參照；CSS media query 不能用變數，需直接寫 640px */
+}

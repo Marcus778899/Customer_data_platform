@@ -1,0 +1,47 @@
+# 測試 profile：整合與驗收測試一律 @ActiveProfiles("test")，不依賴 .env（CI 沒有 .env）。
+# 資料庫與 RabbitMQ 連線由 Testcontainers @ServiceConnection 提供；映像版本與 docker-compose.yml 一致。
+spring:
+  datasource:
+    url: jdbc:postgresql://unused-overridden-by-service-connection/test
+    username: test
+    password: test
+  rabbitmq:
+    host: unused-overridden-by-service-connection
+    port: 5672
+    username: test
+    password: test
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+server:
+  port: 0
+  servlet:
+    session:
+      timeout: PT30M
+      cookie:
+        # 測試走 http，Secure cookie 不會被測試用戶端送回
+        secure: false
+cdp:
+  tenant-id: 01JTESTTENANT0000000000001
+  engine:
+    poll-interval: PT0.2S
+    batch-size: 100
+    dispatch:
+      max-attempts: 5
+      backoff-initial: PT0S
+      backoff-max: PT0S
+  relay:
+    poll-interval: PT0.2S
+    batch-size: 100
+    retry-delay: PT30S
+  delivery:
+    requeue-delay: PT0.2S
+  # 測試專用假憑證（非機密）；驗收測試以此呼叫各角色
+  security:
+    ingest-api-key: test-ingest-key
+    admin-api-key: test-admin-key
+    support-username: test-support
+    support-password: test-support-password
+  trace:
+    plain-keys: cart_id,cart_total

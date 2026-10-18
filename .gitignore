@@ -3,6 +3,9 @@
 tasks/
 reports/
 .hooklog/
-.venv/
-node_modules/
+.venv
+node_modules
 __pycache__/
+api/target/
+web/dist/
+.claude/agent-memory/
