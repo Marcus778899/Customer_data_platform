@@ -48,9 +48,9 @@
 
 ## 卡住／待甲方決定
 
-- 待甲方補 .env（BE-01 新增 13 個變數），補完才能開新派工單
 - 甲方要求：BE-04 合併後全部暫停
 - BE-04 卡在 BE-01 的 ApiExceptionHandler 415 格式錯誤，需開 FIX-01（待 .env 補齊才能開單）
+- 後續修正：CDP_TRACE_PLAIN_KEYS 空值＝全遮，但 check_env 把空值當未填；暫填不存在的鍵（例 none），之後由 architect 調整
 
 ## 注意事項（踩過的坑）
 
