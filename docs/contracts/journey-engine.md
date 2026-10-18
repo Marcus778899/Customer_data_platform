@@ -32,7 +32,7 @@
 |---|---|---|---|---|
 | POST | `/api/v1/auth/login` | `Content-Type: application/json`；`{ "username", "password" }` 皆必填 | `204`，`Set-Cookie: CDP_SESSION=…; Path=/api; HttpOnly; Secure; SameSite=Strict`；每次登入換新 session id | `400` `VALIDATION_FAILED`、`401` `INVALID_CREDENTIALS`（不區分帳號或密碼錯）、`415` `UNSUPPORTED_MEDIA_TYPE` |
 | POST | `/api/v1/auth/logout` | — | `204`，清除 cookie；沒有 session 也回 `204` | — |
-| GET | `/api/v1/auth/me` | — | `200` `{ "username": string }` | `401` `UNAUTHENTICATED` |
+| GET | `/api/v1/auth/me` | — | `200` `{ "username": string }` | `401` `UNAUTHENTICATED`；`403` `FORBIDDEN`（Bearer 金鑰呼叫；只開給 `SUPPORT`） |
 
 - session 閒置逾時 = 環境變數 `CDP_SESSION_IDLE_TIMEOUT`；後端重啟後 session 全部失效
 - 前端：任何 API 回 `401` `UNAUTHENTICATED` → 導向登入，登入後回原頁；cookie 為 HttpOnly，前端讀不到，用 `/me` 判斷是否已登入

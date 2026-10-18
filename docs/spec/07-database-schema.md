@@ -347,11 +347,12 @@ PRIMARY KEY (tenant_id, event_id)
 | V1 | `V1__core_tables.sql` | 本檔 §3~§6 的四張表（自 `../CDP` 的 V2 原樣搬入） |
 | V2 | `V2__engine_pipeline.sql` | §10：`event.dispatched_at`、`ix_enrollment_profile`、`effect_outbox`、`delivery_task`、`mock_channel_message` |
 | V3 | `V3__event_dispatch_retry.sql` | §11：`event` 派發重試欄位、`ix_event_dispatch_queue`（取代 `ix_event_undispatched`） |
-| V4 起 | （v0.2.0） | role 三分與 RLS（`docs/design/INIT-01.md` R2） |
+| V4 | `V4__event_dispatch_outcome_strict.sql` | §11：回填 `dispatch_outcome`，CHECK 改雙向 |
+| V5 起 | （v0.2.0） | role 三分與 RLS（`docs/design/INIT-01.md` R2） |
 
 ### 鐵則
 
-**已套用的 migration 永不修改。** 改動 → 新增 V3、V4。
+**已套用的 migration 永不修改。** 改動 → 新增下一版。
 
 這與 `03` §1 的旅程版本化規則是同一個道理：已經有人依賴的東西不能就地改，只能往後接。現在漏掉的欄位，日後都要靠新 migration 加欄位 + 回填。
 
@@ -359,9 +360,9 @@ PRIMARY KEY (tenant_id, event_id)
 
 ## 9. 驗收條件
 
-`02` §10 的清單中，V1～V3 能覆蓋的部分：
+`02` §10 的清單中，V1～V4 能覆蓋的部分：
 
-- [ ] `mvn flyway:migrate` 在乾淨資料庫上從 V1 跑到 V3 無錯
+- [ ] `mvn flyway:migrate` 在乾淨資料庫上從 V1 跑到 V4 無錯
 - [ ] 同一 `(tenant_id, journey_id, profile_id, dedup_key)` 併發插入 5 次，4 次撞 `uq_enrollment_dedup`（**由 DB 約束保證，不是先查再插**）
 - [ ] 同一 `journey_id` 可同時存在 v1 與 v2 兩列
 - [ ] `EXPLAIN` 確認 `lockDue` 的查詢走 `ix_enrollment_wake`，不是 Seq Scan
@@ -390,7 +391,7 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 
 ### `effect_outbox.effect_type` 與 `payload`
 
-寫入端：`JdbcStateStore.save`（`effect_type` = `Effect` 子型別的簡單類別名；`payload` = 以應用程式 `JsonMapper`（`snake_case`）序列化該 record）。改 record 名稱或元件名 = 既有列不相容，須新 migration 回填。
+寫入端：`JdbcStateStore.save`（`effect_type` = 明確對照（`JdbcStateStore.effectType`），未對照的子型別丟例外；`payload` = 以應用程式 `JsonMapper`（`snake_case`）序列化該 record）。改 record 名稱不影響 `effect_type`；改元件名或對照值 = 既有列不相容，須新 migration 回填。
 
 | `effect_type` | 來源 | `payload` 鍵 | routing key → queue | 消費者 |
 |---|---|---|---|---|
@@ -403,16 +404,16 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 
 ---
 
-## 11. 事件派發重試（`V3__event_dispatch_retry.sql`，D-024）
+## 11. 事件派發重試（`V3__event_dispatch_retry.sql`、`V4__event_dispatch_outcome_strict.sql`，D-024）
 
-DDL 正本為 `api/src/main/resources/db/migration/V3__event_dispatch_retry.sql`；實作單 FIX-03（`docs/design/DESIGN-01.md`「FIX-03」）。
+DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作單 FIX-03（`docs/design/DESIGN-01.md`「FIX-03」）。
 
 | 欄位／索引 | 語意 |
 |---|---|
 | `dispatch_attempts` INT NOT NULL DEFAULT 0 | 派發失敗次數（一輪中任一綁定失敗算一次）；`>= 0`（CHECK） |
 | `next_dispatch_at` TIMESTAMPTZ | 下次可派發時間；`NULL` = 未失敗過、立即可派發 |
 | `last_dispatch_error` TEXT | 最近一次失敗摘要 `<例外類別簡名>: <訊息>`，截斷到 1000 字（CHECK）；不寫事件屬性值、不經 API 輸出 |
-| `dispatch_outcome` TEXT | `DISPATCHED`（綁定全部成功或無綁定）／`LATE`（遲到 > 24h）／`EXHAUSTED`（重試用完）；未派發為 `NULL`；非 `NULL` 時 `dispatched_at` 必有值（CHECK）；V3 依 `received_at - occurred_at` 回填既有列 |
+| `dispatch_outcome` TEXT | `DISPATCHED`（綁定全部成功或無綁定）／`LATE`（遲到 > 24h）／`EXHAUSTED`（重試用完）；未派發為 `NULL`；`(dispatch_outcome IS NULL) = (dispatched_at IS NULL)`（V4 起雙向 CHECK；V3 只擋單向）；V3、V4 依 `received_at - occurred_at` 回填既有列 |
 | `ix_event_dispatch_queue (received_at, event_id) WHERE dispatched_at IS NULL` | 派發佇列；`ORDER BY received_at, event_id` 直接走索引 |
 
 派發規則（`EventDispatcher`；時間一律取注入的 `Clock`）：
@@ -422,7 +423,8 @@ DDL 正本為 `api/src/main/resources/db/migration/V3__event_dispatch_retry.sql`
 3. 任一綁定失敗 → `dispatch_attempts + 1`、寫 `last_dispatch_error`；達上限 → `dispatched_at = now`、`EXHAUSTED`、ERROR 日誌；未達 → `next_dispatch_at = now + min(初始退避 × 2^(attempts−1), 退避上限)`
 4. 已成功的綁定（NESTED 已提交）保留；重試時靠 `dedup_key = event_id` 不重建，只補失敗的綁定；`EXHAUSTED` 後失敗的綁定不建立 Enrollment
 5. 整批交易失敗（DB 不可用）→ 無列更新、不計次
+6. 單列無法解析（`lockUndispatched` 回 `parseError`）→ 記失敗一次並直接 `EXHAUSTED`，不重試、不影響同批其他列
 
 設定變數（值在 `.env`）：`ENGINE_DISPATCH_MAX_ATTEMPTS`（上限次數）、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`（ISO Duration）。
 
-過渡：V3 合併到 FIX-03 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03 起每次標派發必寫。
+過渡：V3 合併到 FIX-03a 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03a 起每次標派發必寫。V4 先以 V3 的規則回填這段期間的列，再把 CHECK 收緊為雙向；之後兩欄須在同一 `UPDATE` 同時設值或同時清空，只改其中一欄的 `UPDATE` 會被擋。
