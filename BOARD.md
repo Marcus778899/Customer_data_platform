@@ -62,12 +62,12 @@
 | FIX-03b | backend | done | 0 | PR #42 |
 | CHORE-03 | architect | done | 1 | PR #35 |
 | FIX-05 | backend | done | 0 | PR #46 |
-| CHORE-04 | architect | qa | 0 |  |
+| CHORE-04 | architect | done | 0 | PR #47 |
 
 ## 卡住／待甲方決定
 
-- v0.2.0 以後的優化項目：backlog issue #36～#41
-- v0.1.0 剩餘：FIX-05（DispatchProperties 驗證＋解析失敗測試）、FIX-03b 後的文件單
+- v0.2.0 以後的優化項目：backlog issue #36～#41、#44、#48
+- v0.1.0 收尾：uat 進行中
 
 ## 注意事項（踩過的坑）
 
