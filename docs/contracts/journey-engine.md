@@ -54,6 +54,7 @@
 - Request：spec 03 §2 頂層結構去掉 `tenant_id`、`version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
 - 規則：`entry_node` 指向唯一的 `StartNode`；`StartNode.outputs.next` 指向 `EventSourceNode`（可為陣列）；每個 `outputs` 目標都存在；無迴圈；每條路徑終於 `EndNode`；`EventSourceNode.config.event_name` 必填、`event_filter`／`profile_filter` 須為 `null` 或省略；`WaitDelayNode.config.duration` 為正的 Duration；`SendMessageNode.config` 需 `template_id`、`channel_id`，`outputs` 需 `sent`（`skipped` 可省略）；`node.name` 可省略
 - 成功 `201`：`{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；同 `journey_id` 再送 = 新版本，進行中的 Enrollment 不受影響
+- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）
 
 ### §3.2 事件攝取 `POST /api/v1/events`、`POST /api/v1/events/batch`
 
@@ -131,29 +132,46 @@
 
 | 範圍 | 明文的鍵 |
 |---|---|
-| `variables`、`trigger_snapshot.properties`、`trigger_snapshot.profile_snapshot` | 環境變數 `CDP_TRACE_PLAIN_KEYS`（逗號分隔）列出的鍵；未列 = 遮罩 |
+| `variables`、`trigger_snapshot.properties`、`trigger_snapshot.profile_snapshot` | 環境變數 `CDP_TRACE_PLAIN_KEYS` 列出的鍵；未列 = 遮罩（D-021） |
 | `trace[].evaluated` | 上列鍵＋引擎鍵 `event_id` `event_name` `duration` `wake_at` `template_id` `channel_id` `idempotency_key` |
 | 其他欄位（`trigger_snapshot` 的 `event_id` `event_name` `occurred_at` `source_type`、`profile_id`、各 ID 與時間） | 全部明文 |
 
+- `CDP_TRACE_PLAIN_KEYS` 解析：以逗號切開、去前後空白，捨棄空字串與 `-`；值為 `-`（或空）= 沒有明文鍵、全部遮罩
 - 逐層比對：物件的鍵在明文清單 → 整棵子樹明文；否則往下走；陣列元素沿用所屬鍵的判定。只遮「值」，鍵名一律保留
 - 遮罩後的值一律是字串：符合 `^[^@\s]+@[^@\s]+$` 的字串 → 首字＋`***@`＋網域（`a***@example.com`）；其他字串、數字、布林 → `"***"`；`null` 保持 `null`
 - `masked_paths`：每個被遮罩的值一條，點號＋`[索引]`（0 起算）路徑，例 `trigger_snapshot.properties.email`、`trace[1].evaluated.phone`、`variables.items[0].name`；前端以此判斷該值是遮罩、不靠比對 `***`
 
 ## §5 錯誤格式
 
-`Content-Type: application/problem+json`（RFC 9457），HTTP status 區分 `400`／`401`／`403`／`404`／`415`／`5xx`，`code` 區分細項：
+`Content-Type: application/problem+json`（RFC 9457，不受請求 `Accept` 影響）；HTTP status 區分大類，`code` 區分細項。
 
 | 欄位 | 型別 | 規則 |
 |---|---|---|
 | `type` | string | 固定 `about:blank` |
 | `title` | string | HTTP 狀態短語 |
 | `status` | int | 同 HTTP status |
-| `code` | string | `VALIDATION_FAILED` `BATCH_TOO_LARGE` `UNAUTHENTICATED` `INVALID_CREDENTIALS` `FORBIDDEN` `UNSUPPORTED_MEDIA_TYPE` `ENROLLMENT_NOT_FOUND` `JOURNEY_NOT_FOUND` `NOT_FOUND` `INTERNAL_ERROR` `SERVICE_UNAVAILABLE` |
+| `code` | string | 下表其一 |
 | `detail` | string | 人可讀說明；5xx 不含內部訊息 |
 | `request_id` | string | 同回應標頭 `X-Request-Id`，供回報 |
 | `errors` | `{ field, message }[]` | 僅 `400`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
 
-`401` = 重新登入或換正確金鑰；`403` = 此角色不可用；`404` = 這筆資料不存在（不必重試）；`500` `INTERNAL_ERROR`、`503` `SERVICE_UNAVAILABLE`（資料庫連不上）= 可重試。
+| HTTP | `code` | 何時 | 前端處理 |
+|---|---|---|---|
+| `400` | `VALIDATION_FAILED` | 欄位驗證失敗、JSON 無法解析、參數缺漏或型別錯 | 依 `errors` 標示欄位 |
+| `400` | `BATCH_TOO_LARGE` | §3.2 批次超過 500 筆 | — |
+| `401` | `UNAUTHENTICATED`／`INVALID_CREDENTIALS` | §1.1／§1.2 | 導向登入／顯示帳密錯誤 |
+| `403` | `FORBIDDEN` | §1.1 | 此角色不可用 |
+| `404` | `ENROLLMENT_NOT_FOUND`／`JOURNEY_NOT_FOUND` | §4／§3.1 | 這筆資料不存在，不必重試 |
+| `404` | `NOT_FOUND` | 無此路由 | — |
+| `405` | `METHOD_NOT_ALLOWED` | 路由存在、方法不符；回應帶 `Allow` 標頭 | — |
+| `406` | `NOT_ACCEPTABLE` | `Accept` 不接受 `application/json` | — |
+| `413` | `PAYLOAD_TOO_LARGE` | 保留：請求大小上限未定案前不會出現 | — |
+| `415` | `UNSUPPORTED_MEDIA_TYPE` | `Content-Type` 不是 `application/json`；回應帶 `Accept` 標頭 | — |
+| 其他 `4xx` | `VALIDATION_FAILED` | 未列的框架 4xx，沿用原 status（`400` 以外不帶 `errors`） | — |
+| `500` | `INTERNAL_ERROR` | 未預期錯誤 | 可重試 |
+| `503` | `SERVICE_UNAVAILABLE` | 資料庫連不上 | 可重試 |
+
+- 過渡：`405`／`406` 的專用 code 與 `405` `Allow`、`415` `Accept` 標頭在 FIX-02 實作；之前 `405`／`406` 回 `VALIDATION_FAILED`、兩種標頭皆無（status 已正確）。前端與 §6 範例不依賴這兩個 code
 
 ## §6 範例
 
