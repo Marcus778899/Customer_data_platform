@@ -51,13 +51,15 @@
 | FIX-01 | backend | done | 0 | PR #16 |
 | BE-03 | backend | done | 1 | PR #20 |
 | DESIGN-02 | architect | done | 0 | PR #19 |
-| BE-02 | backend | in-progress | 0 |  |
+| BE-02 | backend | done | 0 | PR #24 |
+| INT-01 | frontend | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
 - 後續修正單 FIX-02／03／04 見 DESIGN-01「後續實作項」（D-025）
 - 後續：DESIGN-01 做法 #4 補 DB 例外分類表（併入 FIX-02）
 - 後續：BE-03 review 六項（exists 查詢、q 欄位路徑、UNION ALL、readOnly 交易、masked_paths 跳脫、定義缺失記錄）
+- 後續：BE-02 review（移除 missingQueuesFatal、relay 退避與 mandatory、DB 重排退避等）併入 FIX-03
 
 ## 注意事項（踩過的坑）
 
