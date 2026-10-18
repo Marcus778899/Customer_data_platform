@@ -55,6 +55,8 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
+| DESIGN-03 | architect | in-progress | 0 |  |
+| UI-03 | designer | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
