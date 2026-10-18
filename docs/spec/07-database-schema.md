@@ -347,11 +347,12 @@ PRIMARY KEY (tenant_id, event_id)
 | V1 | `V1__core_tables.sql` | 本檔 §3~§6 的四張表（自 `../CDP` 的 V2 原樣搬入） |
 | V2 | `V2__engine_pipeline.sql` | §10：`event.dispatched_at`、`ix_enrollment_profile`、`effect_outbox`、`delivery_task`、`mock_channel_message` |
 | V3 | `V3__event_dispatch_retry.sql` | §11：`event` 派發重試欄位、`ix_event_dispatch_queue`（取代 `ix_event_undispatched`） |
-| V4 起 | （v0.2.0） | role 三分與 RLS（`docs/design/INIT-01.md` R2） |
+| V4 | `V4__event_dispatch_outcome_strict.sql` | §11：回填 `dispatch_outcome`，CHECK 改雙向 |
+| V5 起 | （v0.2.0） | role 三分與 RLS（`docs/design/INIT-01.md` R2） |
 
 ### 鐵則
 
-**已套用的 migration 永不修改。** 改動 → 新增 V3、V4。
+**已套用的 migration 永不修改。** 改動 → 新增下一版。
 
 這與 `03` §1 的旅程版本化規則是同一個道理：已經有人依賴的東西不能就地改，只能往後接。現在漏掉的欄位，日後都要靠新 migration 加欄位 + 回填。
 
@@ -359,9 +360,9 @@ PRIMARY KEY (tenant_id, event_id)
 
 ## 9. 驗收條件
 
-`02` §10 的清單中，V1～V3 能覆蓋的部分：
+`02` §10 的清單中，V1～V4 能覆蓋的部分：
 
-- [ ] `mvn flyway:migrate` 在乾淨資料庫上從 V1 跑到 V3 無錯
+- [ ] `mvn flyway:migrate` 在乾淨資料庫上從 V1 跑到 V4 無錯
 - [ ] 同一 `(tenant_id, journey_id, profile_id, dedup_key)` 併發插入 5 次，4 次撞 `uq_enrollment_dedup`（**由 DB 約束保證，不是先查再插**）
 - [ ] 同一 `journey_id` 可同時存在 v1 與 v2 兩列
 - [ ] `EXPLAIN` 確認 `lockDue` 的查詢走 `ix_enrollment_wake`，不是 Seq Scan
@@ -426,4 +427,4 @@ DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作單 FIX
 
 設定變數（值在 `.env`）：`ENGINE_DISPATCH_MAX_ATTEMPTS`（上限次數）、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`（ISO Duration）。
 
-過渡：V3 合併到 FIX-03a 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03a 起每次標派發必寫。V4 先以 V3 的規則回填這段期間的列，再把 CHECK 收緊為雙向；之後只寫 `dispatched_at` 或只寫 `dispatch_outcome` 的 `UPDATE` 都會被擋。
+過渡：V3 合併到 FIX-03a 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03a 起每次標派發必寫。V4 先以 V3 的規則回填這段期間的列，再把 CHECK 收緊為雙向；之後兩欄須在同一 `UPDATE` 同時設值或同時清空，只改其中一欄的 `UPDATE` 會被擋。

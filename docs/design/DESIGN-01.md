@@ -6,7 +6,7 @@
 | # | 決策 | 理由 |
 |---|---|---|
 | 1 | 套件：`engine`（抽象、`model`、`node`、`node.builtin`、`runtime`）、`journey`、`ingest`、`delivery`（`relay`、`channel`）、`persistence`（全部 JDBC）、`query`、`common`；規則在 `ArchitectureTest`（spec 04 §9 六條＋只有 `delivery.relay` 可依賴 `RabbitTemplate`＋全系統禁 `Instant.now()`） | 用型別與 ArchUnit 守換路與紅線 2 |
-| 2 | Migration：V1 = `../CDP` 的 V2 原樣搬入；V2 = `dispatched_at`、查詢索引、outbox、`delivery_task`、`mock_channel_message`；V3 = `event` 派發重試欄位（spec 07 §11，D-024）；V4 = 回填＋`dispatch_outcome` 雙向 CHECK（同 §11「過渡」）；已套用的 migration 不改（含註解，checksum），反向步驟寫在最新檔頭；role 與 RLS 留 v0.2.0（R2） | 已實測 PG 18 上 V1→V4 成功、`lockDue` 走 `ix_enrollment_wake` |
+| 2 | Migration：V1 = `../CDP` 的 V2 原樣搬入；V2 = `dispatched_at`、查詢索引、outbox、`delivery_task`、`mock_channel_message`；V3 = `event` 派發重試欄位（spec 07 §11，D-024）；V4 = 回填＋`dispatch_outcome` 雙向 CHECK（同 §11「過渡」）；已套用的 migration 不改（含註解，checksum），反向步驟每支 migration 各寫在自己檔頭（V3 例外，寫在 V4）；role 與 RLS 留 v0.2.0（R2） | 已實測 PG 18 上 V1→V4 成功、`lockDue` 走 `ix_enrollment_wake` |
 | 3 | 事件扇出用 `event.dispatched_at` 輪詢（同交易 lock → start → 標記），攝取 API 不同步建立 Enrollment；失敗退避重試見 spec 07 §11 | A 類維持 Postgres；crash 不漏不重 |
 | 4 | relay：body = `idempotency_key`，publisher confirm（simple；FIX-03 起 correlated＋mandatory）後 `markPublished`；consumer：`insertIfAbsentAndLock` → 已 SENT 即 ack → KillSwitch（`journey.status`）→ Mock 送出＋`delivery_task`＋`delivery_history` 追加同一交易；例外分流見下表 | 紅線 1～3；兩處中斷皆恰好一則 |
 | 5 | 測試接縫：可調 `Clock` 以 `@Primary` bean 覆蓋 `ClockConfig`；`AdvanceLoop`／`EventDispatcher`／`OutboxRelay` 的 `runOnce()` 可直接呼叫；`FaultInjector` 三個 `FaultPoint` 模擬中斷；`@ActiveProfiles("test")` 讀 `application-test.yml`，連線由 Testcontainers `@ServiceConnection` 提供 | 驗收「快轉」與「中斷重啟」可重現，不依賴 `.env` |
