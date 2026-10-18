@@ -13,19 +13,19 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-026 一個事件命中多個旅程、只有部分失敗時怎麼處理
-- 背景：D-024 定「重試用完就放棄」；一個事件可能同時讓客戶進入多個旅程
-- 選項：A. 已成功進入的旅程保留，只有失敗的那幾個在重試用完後不建立 ／ B. 只要有一個失敗，整個事件都不建立（要回滾已建立的，與現有交易設計衝突）
-- 建議：A，各旅程互不拖累，也符合現有設計
-- 提出：architect（CHORE-02）
-
-### D-027 重試相關設定的建議值
-- 背景：FIX-03 新增 5 個設定變數（`ENGINE_DISPATCH_MAX_ATTEMPTS`、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`、`OUTBOX_RELAY_RETRY_DELAY`、`DELIVERY_REQUEUE_DELAY`），值由甲方填在 .env
-- 選項：A. 用團隊建議值當 .env.example 預設（5 次、PT10S、PT10M、PT30S、PT5S），甲方照抄即可 ／ B. 甲方另定
-- 建議：A
-- 提出：architect（CHORE-02）
-
 ## 已決定
+
+### D-026 多旅程部分失敗：成功的保留
+- 決定：A. 一個事件命中多個旅程時，已成功進入的保留；只有失敗的綁定在重試用完後不建立（D-024 的解讀）
+- 理由：各旅程互不拖累，符合現有交易設計
+- 影響：spec 07 §11 規則 4、FIX-03a
+- 日期：2026-10-18
+
+### D-027 重試設定採團隊建議值
+- 決定：A. `.env.example` 預設為 `ENGINE_DISPATCH_MAX_ATTEMPTS`=5、`ENGINE_DISPATCH_BACKOFF_INITIAL`=PT10S、`ENGINE_DISPATCH_BACKOFF_MAX`=PT10M、`OUTBOX_RELAY_RETRY_DELAY`=PT30S、`DELIVERY_REQUEUE_DELAY`=PT5S；甲方照抄到 .env
+- 理由：甲方同意建議
+- 影響：FIX-03a、FIX-03b、.env.example
+- 日期：2026-10-18
 
 ### D-023 v0.1.0 不限制請求大小
 - 決定：A. v0.1.0 不設上限；列為以後的優化項目（契約 §5 保留 413）

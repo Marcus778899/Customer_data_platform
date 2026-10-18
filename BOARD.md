@@ -36,6 +36,8 @@
 | 2026-10-18 | D-023 | v0.1.0 不限請求大小，列為以後優化 |
 | 2026-10-18 | D-024 | 事件派發重試 N 次後放棄並記錄 |
 | 2026-10-18 | D-025 | FIX-02～04 都在 v0.1.0 做 |
+| 2026-10-18 | D-026 | 多旅程部分失敗：成功的保留 |
+| 2026-10-18 | D-027 | 重試設定採團隊建議值 |
 
 ## 任務狀態
 
@@ -55,7 +57,7 @@
 | INT-01 | frontend | done | 0 | PR #23；qa 端到端見 PR 留言 |
 | FIX-02 | backend | done | 0 | PR #27 |
 | CHORE-02 | architect | done | 0 | PR #28 |
-| FIX-04 | backend | in-progress | 0 |  |
+| FIX-04 | backend | qa | 1 |  |
 
 ## 卡住／待甲方決定
 
@@ -63,7 +65,6 @@
 - 後續：BE-03 review 六項（exists 查詢、q 欄位路徑、UNION ALL、readOnly 交易、masked_paths 跳脫、定義缺失記錄）
 - 後續：BE-02 review（移除 missingQueuesFatal、relay 退避與 mandatory、DB 重排退避等）併入 FIX-03
 - 後續：INT-01 review（403 文案補 UI 規格、403 單元測試、ErrorBox 註解）
-- 待甲方決定 D-026、D-027（CHORE-02）
 - 後續：FIX-02 review（hikari data-source-properties、advice 規則用 meta-annotation、javadoc、406/404 單元測試；v0.2.0 filter 例外格式）
 - 後續：FIX-03 合併後 architect 出 V4 收緊 event CHECK 為雙向（CHORE-02 review）
 
