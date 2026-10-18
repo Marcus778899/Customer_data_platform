@@ -16,13 +16,19 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
 
@@ -37,13 +43,14 @@ import com.cdp.acceptance.engine.EngineTestSupport;
         })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(EngineTestSupport.class)
+@Import({EngineTestSupport.class, FrameworkErrorFormatAcceptanceTest.ThrowingControllerConfig.class})
 class FrameworkErrorFormatAcceptanceTest {
 
     private static final List<String> CONTRACT_CODES = List.of(
             "VALIDATION_FAILED", "BATCH_TOO_LARGE", "UNAUTHENTICATED", "INVALID_CREDENTIALS",
             "FORBIDDEN", "UNSUPPORTED_MEDIA_TYPE", "ENROLLMENT_NOT_FOUND", "JOURNEY_NOT_FOUND",
-            "NOT_FOUND", "INTERNAL_ERROR", "SERVICE_UNAVAILABLE");
+            "NOT_FOUND", "METHOD_NOT_ALLOWED", "NOT_ACCEPTABLE", "PAYLOAD_TOO_LARGE",
+            "INTERNAL_ERROR", "SERVICE_UNAVAILABLE");
 
     @Autowired MockMvc mvc;
 
@@ -142,11 +149,78 @@ class FrameworkErrorFormatAcceptanceTest {
         noLeak(r);
     }
 
-    /** 契約 §5 未定義 405 的 code；只要求格式完整、status 405、code 在契約清單內、不外洩。 */
     @Test
-    void wrongHttpMethod_405InSection5Format() throws Exception {
+    void wrongHttpMethod_405MethodNotAllowedWithAllowHeader() throws Exception {
         ResultActions r = mvc.perform(authed(get("/api/v1/events")));
-        baseShape(r, 405);
+        baseShape(r, 405)
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"))
+                .andExpect(header().string("Allow", org.hamcrest.Matchers.containsString("POST")))
+                .andExpect(jsonPath("$.errors").doesNotExist());
         noLeak(r);
+    }
+
+    @Test
+    void unacceptable_406NotAcceptableStillProblemJson() throws Exception {
+        ResultActions r = mvc.perform(authed(get("/api/v1/enrollments").param("q", "x"), ADMIN_KEY)
+                .accept(MediaType.APPLICATION_XML));
+        baseShape(r, 406)
+                .andExpect(jsonPath("$.code").value("NOT_ACCEPTABLE"))
+                .andExpect(jsonPath("$.errors").doesNotExist());
+        noLeak(r);
+    }
+
+    @Test
+    void unsupportedContentType_415HasAcceptHeaderAndNoErrors() throws Exception {
+        ResultActions r = mvc.perform(authed(post("/api/v1/events"))
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("hello"));
+        baseShape(r, 415)
+                .andExpect(header().string("Accept", org.hamcrest.Matchers.containsString("application/json")))
+                .andExpect(jsonPath("$.errors").doesNotExist());
+    }
+
+    @Test
+    void unknownRoute_404HasNoErrors() throws Exception {
+        mvc.perform(authed(get("/api/v1/no-such-route"), ADMIN_KEY))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errors").doesNotExist());
+    }
+
+    @Test
+    void accessDeniedThrownInController_403ForbiddenNot500() throws Exception {
+        ResultActions r = mvc.perform(authed(get("/api/v1/test-only/access-denied"), ADMIN_KEY));
+        baseShape(r, 403).andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.errors").doesNotExist());
+        noLeak(r);
+    }
+
+    @Test
+    void authenticationExceptionThrownInController_401Not500() throws Exception {
+        ResultActions r = mvc.perform(authed(get("/api/v1/test-only/auth-failure"), ADMIN_KEY));
+        baseShape(r, 401).andExpect(jsonPath("$.code").value("UNAUTHENTICATED"))
+                .andExpect(jsonPath("$.errors").doesNotExist());
+        noLeak(r);
+    }
+
+    /** 只在測試存在的 controller，用來觸發 Security 例外。 */
+    @TestConfiguration
+    static class ThrowingControllerConfig {
+        @Bean
+        ThrowingController throwingController() {
+            return new ThrowingController();
+        }
+    }
+
+    @RestController
+    static class ThrowingController {
+        @GetMapping("/api/v1/test-only/access-denied")
+        String denied() {
+            throw new AccessDeniedException("nope");
+        }
+
+        @GetMapping("/api/v1/test-only/auth-failure")
+        String authFailure() {
+            throw new BadCredentialsException("nope");
+        }
     }
 }
