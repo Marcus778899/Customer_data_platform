@@ -1,4 +1,4 @@
-"""文件提交：布告欄、README、決策紀錄、UAT 報告、研究摘要不走 PR，由 manager 直接 commit 到 develop。
+"""文件提交：布告欄、README、決策紀錄、UAT 報告、研究摘要、布告欄快照（tasks/job_history/）不走 PR，由 manager 直接 commit 到 develop。
 
 用法：
     docs.py commit "<訊息>"     # 只提交 DOC_PATHS 內的修改；其他修改不提交也不擋，只列出來
@@ -10,7 +10,7 @@ import argparse
 
 from _common import BASE_BRANCH, FlowError, fail, has_remote, require_on_base, run
 
-DOC_PATHS = ("BOARD.md", "README.md", "docs/decisions.md", "docs/uat/", "docs/research/")
+DOC_PATHS = ("BOARD.md", "README.md", "docs/decisions.md", "docs/uat/", "docs/research/", "tasks/job_history/")
 
 
 def changed_paths() -> list[str]:
