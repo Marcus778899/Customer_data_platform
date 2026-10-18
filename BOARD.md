@@ -63,7 +63,7 @@
 | CHORE-03 | architect | done | 1 | PR #35 |
 | FIX-05 | backend | done | 0 | PR #46 |
 | CHORE-04 | architect | done | 0 | PR #47 |
-| FIX-06 | frontend | in-progress | 0 |  |
+| FIX-06 | frontend | done | 0 | PR #58 |
 
 ## 卡住／待甲方決定
 
