@@ -26,7 +26,7 @@ interface Options {
 }
 
 async function request<T>(method: string, path: string, opts: Options = {}): Promise<T> {
-  const init: RequestInit = { method }
+  const init: RequestInit = { method, credentials: 'same-origin' }
   if (opts.body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' }
     init.body = JSON.stringify(opts.body)

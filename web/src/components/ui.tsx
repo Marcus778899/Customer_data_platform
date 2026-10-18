@@ -51,6 +51,20 @@ export function RequestId({ error }: { error: ApiError }) {
 
 /** 5xx／連線失敗的共用錯誤框（role=alert）；onRetry 有給才顯示「重試」 */
 export function ErrorBox({ title, error, onRetry }: { title: string; error: ApiError; onRetry?: () => void }) {
+  if (error.status === 403) {
+    // 沒有權限：重試無意義，不提供按鈕
+    return (
+      <div className="msg error" role="alert">
+        <p>
+          <strong>{title}</strong>
+        </p>
+        <p>
+          你的帳號沒有權限執行這項操作。
+          <RequestId error={error} />
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="msg error" role="alert">
       <p>
