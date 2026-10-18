@@ -21,6 +21,9 @@ public record PageCursor(Instant at, String id) {
     public static PageCursor decode(String cursor) {
         try {
             String raw = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
+            if (raw.indexOf((char) 0) >= 0) {
+                throw new IllegalArgumentException("cursor");
+            }
             int bar = raw.indexOf('|');
             if (bar <= 0 || bar == raw.length() - 1) {
                 throw new IllegalArgumentException("cursor");
