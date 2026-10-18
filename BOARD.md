@@ -65,11 +65,15 @@
 | FIX-05 | backend | done | 0 | PR #46 |
 | CHORE-04 | architect | done | 0 | PR #47 |
 | FIX-06 | frontend | done | 0 | PR #58 |
+| FIX-07 | backend | done | 1 | PR #65 |
+| FIX-08 | frontend | done | 0 | PR #63 |
+| UI-02 | designer | done | 0 | PR #64 |
 
 ## 卡住／待甲方決定
 
 - v0.2.0 以後的優化項目：backlog issue #36～#41、#44、#48
 - v0.1.0 UAT minor 留 backlog：#51～#54、#56（D-028）
+- 待甲方：勾選 docs/uat/v0.1.0.md 甲方驗收清單並寫 PASS，之後 release v0.1.0
 
 ## 注意事項（踩過的坑）
 
