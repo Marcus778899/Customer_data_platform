@@ -59,18 +59,13 @@
 | CHORE-02 | architect | done | 0 | PR #28 |
 | FIX-04 | backend | done | 2 | PR #30 |
 | FIX-03a | backend | done | 0 | PR #32 |
-| FIX-03b | backend | in-progress | 0 |  |
+| FIX-03b | backend | qa | 0 |  |
+| CHORE-03 | architect | done | 1 | PR #35 |
 
 ## 卡住／待甲方決定
 
-- 後續修正單 FIX-02／03／04 見 DESIGN-01「後續實作項」（D-025）
-- 後續：BE-03 review 六項（exists 查詢、q 欄位路徑、UNION ALL、readOnly 交易、masked_paths 跳脫、定義缺失記錄）
-- 後續：BE-02 review（移除 missingQueuesFatal、relay 退避與 mandatory、DB 重排退避等）併入 FIX-03
-- 後續：INT-01 review（403 文案補 UI 規格、403 單元測試、ErrorBox 註解）
-- 後續：FIX-02 review（hikari data-source-properties、advice 規則用 meta-annotation、javadoc、406/404 單元測試；v0.2.0 filter 例外格式）
-- 後續：FIX-03 合併後 architect 出 V4 收緊 event CHECK 為雙向（CHORE-02 review）
-- 後續：契約 §1.2 /auth/me 補 403（FIX-04）
-- 後續：FIX-03a review（文件三處、APPEND_TRACE 明確 API、outcome enum、DispatchProperties 驗證、解析失敗測試）併入 V4 單
+- v0.2.0 以後的優化項目：backlog issue #36～#41
+- v0.1.0 剩餘：FIX-05（DispatchProperties 驗證＋解析失敗測試）、FIX-03b 後的文件單
 
 ## 注意事項（踩過的坑）
 
