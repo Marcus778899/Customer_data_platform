@@ -4,8 +4,8 @@
 
 ## 目標與範圍
 
-- 本輪：v0.1.0：事件→Enrollment→等待→喚醒→Mock 發送（outbox→RabbitMQ）→結束，冪等、可控時鐘、節點軌跡；唯讀軌跡查詢頁（D-004、D-005）
-- 不做：分支節點、多租戶 RLS、真實通道、受眾、Redis、旅程畫布（v0.2.0 以後）
+- 本輪：v0.2.0：分支節點（WaitForEvent/Condition/SplitTest/Exit）、G1、G3、版本綁定、RLS、最小 ProfileStore；產品外框（導覽＋分頁、受眾佔位）、旅程列表與畫布、客戶搜尋→客戶頁→圖形軌跡、租戶使用者登入；relay／迴圈改寫與壓測（D-018、D-033～D-038）
+- 不做：受眾實作（v0.4.0）、真實通道、Redis、CDC；範圍過大時由設計提出拆版
 
 ## 已定案決策（細節見 docs/decisions.md；要改先問甲方）
 
@@ -40,40 +40,25 @@
 | 2026-10-18 | D-027 | 重試設定採團隊建議值 |
 | 2026-10-18 | D-028 | F-2、F-3 納入 v0.1.0；F-8 維持一筆列表 |
 | 2026-10-18 | D-031 | v0.1.0 加 make demo-seed 示範資料（D-029、D-030 見 decisions.md） |
+| 2026-10-18 | D-029 | make 只支援 Git Bash／Linux |
+| 2026-10-18 | D-030 | 軌跡頁維持精確查詢，導覽列與瀏覽清單 v0.2.0 |
+| 2026-10-18 | D-032 | v0.1.0 照現狀發版，UX 回饋進 v0.2.0 |
+| 2026-10-18 | D-033 | v0.2.0 納入外框分頁、圖形軌跡、客戶搜尋、租戶登入 |
+| 2026-10-18 | D-034 | 受眾分頁 v0.2.0 先佔位，v0.4.0 實作 |
+| 2026-10-18 | D-035 | 發版後 board.py 快照到 tasks/job_history 再移除 done |
+| 2026-10-18 | D-036 | 外部 review 修正（relay、執行緒、小交易）併入 v0.2.0（#72） |
+| 2026-10-18 | D-037 | 不引入 CDC，維持輪詢 |
+| 2026-10-18 | D-038 | v0.2.0 不設流量目標，先壓測 |
 
 ## 任務狀態
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
-| INIT-01 | architect | done | 0 | PR #2 |
-| DESIGN-01 | architect | done | 0 | PR #7 |
-| UI-01 | designer | done | 1 | PR #8 |
-| CHORE-01 | architect | done | 0 | PR #6 |
-| BE-01 | backend | done | 0 | PR #13 |
-| FE-01 | frontend | done | 0 | PR #11 |
-| BE-04 | backend | done | 0 | PR #14 |
-| FIX-01 | backend | done | 0 | PR #16 |
-| BE-03 | backend | done | 1 | PR #20 |
-| DESIGN-02 | architect | done | 0 | PR #19 |
-| BE-02 | backend | done | 0 | PR #24 |
-| INT-01 | frontend | done | 0 | PR #23；qa 端到端見 PR 留言 |
-| FIX-02 | backend | done | 0 | PR #27 |
-| CHORE-02 | architect | done | 0 | PR #28 |
-| FIX-04 | backend | done | 2 | PR #30 |
-| FIX-03a | backend | done | 0 | PR #32 |
-| FIX-03b | backend | done | 0 | PR #42 |
-| CHORE-03 | architect | done | 1 | PR #35 |
-| FIX-05 | backend | done | 0 | PR #46 |
-| CHORE-04 | architect | done | 0 | PR #47 |
-| FIX-06 | frontend | done | 0 | PR #58 |
-| FIX-07 | backend | done | 1 | PR #65 |
-| FIX-08 | frontend | done | 0 | PR #63 |
-| UI-02 | designer | done | 0 | PR #64 |
-| CHORE-05 | backend | done | 0 | PR #68 |
+| CHORE-06 | backend | done | 0 | PR #71 |
 
 ## 卡住／待甲方決定
 
-- v0.1.0 已發版；待甲方確認 v0.2.0 範圍與 D-035（布告欄已滿 80 行）
+- v0.2.0 設計中；設計完成後請甲方確認拆版
 
 ## 注意事項（踩過的坑）
 
