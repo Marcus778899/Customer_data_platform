@@ -3,7 +3,7 @@ spring:
   application:
     name: cdp-api
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?logServerErrorDetail=false
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
   rabbitmq:
@@ -23,7 +23,7 @@ spring:
     property-naming-strategy: SNAKE_CASE
   mvc:
     problemdetails:
-      enabled: true
+      enabled: false
 server:
   port: ${API_PORT}
   servlet:
