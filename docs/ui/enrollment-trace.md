@@ -3,7 +3,7 @@
 - 設計稿：`docs/ui/enrollment-trace/index.html`（瀏覽器直接打開）
 - 設計 token：`web/src/styles/tokens.css`（設計稿相對路徑引用同一份）
 - 契約：`docs/contracts/journey-engine.md` §1.2、§4、§5（分支 docs/design-01；欄位以此為準，下文 snake_case 即契約欄位）
-- 參考來源：無（D-005：唯讀，不能操作旅程）
+- 參考來源：無（D-005：唯讀，不能操作旅程）。v0.2.0 外框、客戶搜尋、圖形軌跡見 `journey-platform.md`，沿用本頁的遮罩與時區規則
 
 ## 畫面
 
