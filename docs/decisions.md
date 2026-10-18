@@ -16,8 +16,8 @@
 ## 已決定
 
 ### D-035 布告欄加「封存已完成任務」指令
-- 決定：A. 開 chore 讓 board.py 能把 done 的任務列從布告欄移除（紀錄仍在 tasks/、reports/ 與 GitHub）；每個版本發版後封存一次。決策表維持完整
-- 理由：不必手改 BOARD.md，行數上限照舊
+- 決定：A（甲方修正做法）. 每個版本發版後，board.py 把當下整份 BOARD.md 快照存到 `tasks/job_history/<版本>.md`，再把 done 的任務列從布告欄移除；docs.py 可提交 `tasks/job_history/`。決策表維持完整
+- 理由：不必手改 BOARD.md；甲方可依版本追蹤每張單對應的 PR
 - 影響：CHORE-06、scripts/board.py
 - 日期：2026-10-19
 
