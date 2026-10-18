@@ -1,11 +1,14 @@
 package com.cdp.acceptance.query;
 
+import static com.cdp.acceptance.engine.EngineTestSupport.ulid;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
@@ -39,6 +43,7 @@ class NulParameterAcceptanceTest {
 
     @LocalServerPort int port;
     @Autowired JsonMapper json;
+    @Autowired JdbcTemplate jdbc;
 
     private HttpResponse<String> get(String path) throws Exception {
         HttpRequest r =
@@ -87,6 +92,42 @@ class NulParameterAcceptanceTest {
             r = get("/api/v1/enrollments/" + NO_SUCH + "/deliveries?cursor=" + c);
             assertThat(r.statusCode()).as(r.body()).isLessThan(500);
         }
+    }
+
+    /** base64url 解碼為「2026-01-01T00:00:00Z|a」+ NUL +「b」；合法 base64，NUL 只在解碼後出現。 */
+    private static final String CURSOR_DECODED_NUL = "MjAyNi0wMS0wMVQwMDowMDowMFp8YQBi";
+
+    private String seedEnrollment() {
+        String jid = ulid();
+        String tenant = "01JTESTTENANT0000000000001";
+        Timestamp now = Timestamp.from(Instant.parse("2026-10-18T02:00:00Z"));
+        jdbc.update(
+                "insert into journey_definition(journey_id, tenant_id, version, name, status, settings,"
+                        + " entry_node, nodes, created_at, published_at)"
+                        + " values (?,?,1,'nul-j','ACTIVE','{}'::jsonb,'start_1','[]'::jsonb,?,?)",
+                jid, tenant, now, now);
+        String eid = ulid();
+        jdbc.update(
+                "insert into enrollment_record(enrollment_id, tenant_id, journey_id, journey_version,"
+                        + " profile_id, status, current_node_id, trigger_snapshot, variables,"
+                        + " enrolled_at, updated_at)"
+                        + " values (?,?,?,1,'nul-profile','WAITING','wait_1','{}'::jsonb,'{}'::jsonb,?,?)",
+                eid, tenant, jid, now, now);
+        return eid;
+    }
+
+    @Test
+    void cursor_decodedContainsNul_list_returns400OnField_cursor() throws Exception {
+        assertValidationFailed(
+                get("/api/v1/enrollments?q=x&cursor=" + CURSOR_DECODED_NUL), "cursor");
+    }
+
+    @Test
+    void cursor_decodedContainsNul_deliveries_returns400OnField_cursor() throws Exception {
+        String eid = seedEnrollment();
+        assertValidationFailed(
+                get("/api/v1/enrollments/" + eid + "/deliveries?cursor=" + CURSOR_DECODED_NUL),
+                "cursor");
     }
 
     @Test
