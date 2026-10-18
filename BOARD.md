@@ -46,6 +46,7 @@
 | FE-01 | frontend | done | 0 | PR #11 |
 | BE-04 | backend | done | 0 | PR #14 |
 | FIX-01 | backend | done | 0 | PR #16 |
+| BE-03 | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
