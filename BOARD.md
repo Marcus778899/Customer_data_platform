@@ -54,7 +54,8 @@
 | BE-02 | backend | done | 0 | PR #24 |
 | INT-01 | frontend | done | 0 | PR #23；qa 端到端見 PR 留言 |
 | FIX-02 | backend | done | 0 | PR #27 |
-| CHORE-02 | architect | qa | 0 |  |
+| CHORE-02 | architect | done | 0 | PR #28 |
+| FIX-04 | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -64,6 +65,7 @@
 - 後續：INT-01 review（403 文案補 UI 規格、403 單元測試、ErrorBox 註解）
 - 待甲方決定 D-026、D-027（CHORE-02）
 - 後續：FIX-02 review（hikari data-source-properties、advice 規則用 meta-annotation、javadoc、406/404 單元測試；v0.2.0 filter 例外格式）
+- 後續：FIX-03 合併後 architect 出 V4 收緊 event CHECK 為雙向（CHORE-02 review）
 
 ## 注意事項（踩過的坑）
 
