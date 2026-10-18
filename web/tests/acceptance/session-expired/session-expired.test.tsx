@@ -69,6 +69,25 @@ const start = (path: string) => {
   window.history.pushState({}, '', path)
   return render(<StrictMode><App /></StrictMode>)
 }
+/** 模擬重新載入：卸載整個 App 後在目前網址重新 render，瀏覽器儲存保持不變 */
+const reload = () => {
+  cleanup()
+  document.body.innerHTML = ''
+  return render(<StrictMode><App /></StrictMode>)
+}
+function clearCookies() {
+  for (const c of document.cookie.split(';')) {
+    const name = c.split('=')[0].trim()
+    if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+  }
+}
+const storageDump = () => {
+  const out: string[] = []
+  for (const st of [window.localStorage, window.sessionStorage]) {
+    for (let i = 0; i < st.length; i++) out.push(st.getItem(st.key(i) as string) ?? '')
+  }
+  return out
+}
 const text = () => document.body.textContent ?? ''
 
 /** 已登入進站並查詢，之後 session 失效，再按查詢 → 401 導回登入頁 */
@@ -86,6 +105,9 @@ async function expireSession(state: State) {
 
 beforeEach(() => {
   vi.unstubAllGlobals()
+  window.localStorage.clear()
+  window.sessionStorage.clear()
+  clearCookies()
 })
 afterEach(() => {
   cleanup()
@@ -239,5 +261,169 @@ describe('逾時提示與登入錯誤訊息互斥', () => {
     await waitFor(() => expect(text()).toContain('REQ-INTERNAL_ERROR'))
     expect(text()).not.toContain(EXPIRED)
     expect(text()).not.toContain(BAD_CRED)
+  })
+})
+
+describe('重新載入後的逾時提示（追加 1）', () => {
+  const USER = 'support01'
+  const PW = 'S3cretPw!x'
+  const COOKIE = 'SESSIONCOOKIEVALUE98765'
+
+  it('已登入（/me 200）後重新載入，/me 401 → 顯示逾時提示；登入後回原頁含 ?q=', async () => {
+    const state = { me: true, list: true, loginOk: true }
+    install(state)
+    const user = userEvent.setup()
+    start(`/?q=${PID}`)
+    await screen.findByRole('table')
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(window.location.pathname).toBe('/login')
+    expect(text()).toContain(EXPIRED)
+    expect(text()).not.toContain(BAD_CRED)
+    await user.type(screen.getByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('密碼'), PW)
+    await user.click(screen.getByRole('button', { name: '登入' }))
+    await screen.findByRole('table')
+    expect(window.location.pathname).toBe('/')
+    expect(window.location.search).toContain(`q=${PID}`)
+    expect(text()).not.toContain(EXPIRED)
+  })
+
+  it('由登入表單登入後重新載入，/me 401 → 顯示逾時提示', async () => {
+    const state = { me: false, list: false, loginOk: true }
+    install(state)
+    const user = userEvent.setup()
+    start('/login')
+    await user.type(await screen.findByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('密碼'), PW)
+    await user.click(screen.getByRole('button', { name: '登入' }))
+    await screen.findByText(USER)
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).toContain(EXPIRED)
+  })
+
+  it('詳情頁重新載入遇 /me 401 → 顯示逾時提示，登入後回該詳情頁', async () => {
+    const state = { me: true, list: true, loginOk: true }
+    install(state, { [`GET /api/v1/enrollments/${EID}`]: () => json(detail()) })
+    const user = userEvent.setup()
+    start(`/enrollments/${EID}`)
+    await waitFor(() => expect(text()).toContain('棄單挽回'))
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).toContain(EXPIRED)
+    await user.type(screen.getByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('密碼'), PW)
+    await user.click(screen.getByRole('button', { name: '登入' }))
+    await waitFor(() => expect(window.location.pathname).toBe(`/enrollments/${EID}`))
+    expect(text()).not.toContain(EXPIRED)
+  })
+
+  it('從未登入過，重新載入 /me 401 → 不顯示逾時提示', async () => {
+    install({ me: false, list: false, loginOk: true })
+    start(`/?q=${PID}`)
+    await screen.findByLabelText('帳號')
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).not.toContain(EXPIRED)
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).not.toContain(EXPIRED)
+  })
+
+  it('登出後重新載入 → 不顯示逾時提示', async () => {
+    const state = { me: true, list: true, loginOk: true }
+    install(state, {
+      'POST /api/v1/auth/logout': () => {
+        state.me = false
+        state.list = false
+        return empty()
+      },
+    })
+    const user = userEvent.setup()
+    start('/')
+    await screen.findByText(USER)
+    await user.click(screen.getByRole('button', { name: '登出' }))
+    await screen.findByLabelText('帳號')
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).not.toContain(EXPIRED)
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).not.toContain(EXPIRED)
+  })
+
+  it('逾時提示只出現一次：提示後再次重新載入（未登入）不重複顯示', async () => {
+    const state = { me: true, list: true, loginOk: true }
+    install(state)
+    start('/')
+    await screen.findByText(USER)
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).toContain(EXPIRED)
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).not.toContain(EXPIRED)
+    window.history.pushState({}, '', '/login')
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).not.toContain(EXPIRED)
+  })
+
+  it('逾時後登入成功，再度登入並失效重新載入仍會提示（每次失效各提示一次）', async () => {
+    const state = { me: true, list: true, loginOk: true }
+    install(state)
+    const user = userEvent.setup()
+    start(`/?q=${PID}`)
+    await screen.findByRole('table')
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).toContain(EXPIRED)
+    await user.type(screen.getByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('密碼'), PW)
+    await user.click(screen.getByRole('button', { name: '登入' }))
+    await screen.findByRole('table')
+    expect(text()).not.toContain(EXPIRED)
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).toContain(EXPIRED)
+  })
+
+  it('瀏覽器儲存不含帳號、密碼或 cookie 值（登入後與逾時後各掃描一次）', async () => {
+    document.cookie = `sid=${COOKIE}; path=/`
+    const state = { me: false, list: false, loginOk: true }
+    install(state)
+    const user = userEvent.setup()
+    start('/login')
+    await user.type(await screen.findByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('密碼'), PW)
+    await user.click(screen.getByRole('button', { name: '登入' }))
+    await screen.findByText(USER)
+    const check = () => {
+      for (const v of storageDump()) {
+        expect(v).not.toContain(USER)
+        expect(v).not.toContain(PW)
+        expect(v).not.toContain(COOKIE)
+      }
+    }
+    check()
+    state.me = false
+    state.list = false
+    reload()
+    await screen.findByLabelText('帳號')
+    expect(text()).toContain(EXPIRED)
+    check()
   })
 })
