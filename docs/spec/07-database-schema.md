@@ -386,3 +386,16 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 | `mock_channel_message` | Mock 通道「已送出」的訊息，與 `delivery_task` 同一交易寫入；驗收「恰好一則」數這張表 | PK `idempotency_key` |
 
 `enrollment_record.delivery_history` 只由 consumer 以單一 `UPDATE` 追加並修剪到 50 筆；`StateStore.save` 不寫這個欄位，兩者不互相覆蓋。
+
+### `effect_outbox.effect_type` 與 `payload`
+
+寫入端：`JdbcStateStore.save`（`effect_type` = `Effect` 子型別的簡單類別名；`payload` = 以應用程式 `JsonMapper`（`snake_case`）序列化該 record）。改 record 名稱或元件名 = 既有列不相容，須新 migration 回填。
+
+| `effect_type` | 來源 | `payload` 鍵 | routing key → queue | 消費者 |
+|---|---|---|---|---|
+| `SendMessage` | `Effect.SendMessage`（`04` §5） | `idempotency_key` string（= 列 PK）、`template_id` string、`channel_id` string、`variables` object（v0.1.0 一律 `{}`） | `send-message` → `cdp.effects.send-message`（`RabbitTopology`） | `DeliveryConsumer` → `ChannelEffectExecutor` |
+
+- v0.1.0 只會出現 `SendMessage`；`04` §5 其他 Effect 在用到的那期加一列本表。relay 遇未列的 `effect_type`：不發佈、留 `PENDING`、記錯誤日誌
+- MQ 訊息 body 只有 `idempotency_key`（DESIGN-01 做法 #4）；consumer 以 `OutboxStore.find` 讀回整列。`payload` 缺鍵或型別不符 = 無法解析 → DLQ
+- 路由與歸屬資訊從**欄位**讀，不從 `payload` 讀：`delivery_task` 的 `tenant_id` `enrollment_id` `journey_id` `journey_version` `node_id` `visit_seq` 取同名欄位；`template_id` `channel_id` 取 `payload`；`channel_type` = `MOCK`、`message_type` = `NULL`（v0.1.0）
+- `delivery_history` 追加的 `DeliveryRecord.traceSeq` = `visit_seq`；`attempted_at` 取注入的 `Clock`
