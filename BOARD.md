@@ -69,6 +69,7 @@
 | FIX-07 | backend | done | 1 | PR #65 |
 | FIX-08 | frontend | done | 0 | PR #63 |
 | UI-02 | designer | done | 0 | PR #64 |
+| CHORE-05 | backend | done | 0 | PR #68 |
 
 ## 卡住／待甲方決定
 

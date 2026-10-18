@@ -10,8 +10,9 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 
 1. 設定：`python3 scripts/check_env.py`，依提示在 `.env` 填入缺少的值
 2. 安裝：`make setup`（需 Temurin 17、Node 24）；外部服務 `make infra-up`（需 Docker Desktop，起 PostgreSQL 與 RabbitMQ）
-3. 啟動：後端 `make api-run`、前端 `make web-dev`
-4. 檢查：`make check`
+3. 啟動：後端 `make api-run`、前端 `make web-dev`（各開一個終端機）
+4. 示範資料：後端啟動後 `make demo-seed`，會印出可在軌跡頁查詢的客戶 ID（D-031）
+5. 檢查：`make check`
 
 ## 功能
 
