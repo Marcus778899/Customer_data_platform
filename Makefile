@@ -22,7 +22,7 @@ WEB_DIR := web
 MVNW := ./mvnw -B
 COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 
-.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down
+.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down demo-seed
 
 help:
 	@echo "make setup      install deps (Maven repo in ~/.m2, node_modules at checkout root)"
@@ -32,6 +32,7 @@ help:
 	@echo "make infra-down stop local services (data kept)"
 	@echo "make api-run    run backend on API_PORT"
 	@echo "make web-dev    run frontend dev server on WEB_PORT"
+	@echo "make demo-seed  create demo journeys + customers on the running backend (needs make api-run)"
 
 # 前端相依由根目錄 package.json 的 npm workspaces 安裝到 checkout 根目錄的 node_modules
 setup:
@@ -76,3 +77,7 @@ infra-up:
 
 infra-down:
 	$(COMPOSE) down
+
+# demo data via public API only; backend must be running (make api-run)
+demo-seed:
+	python3 tools/demo-seed/seed.py
