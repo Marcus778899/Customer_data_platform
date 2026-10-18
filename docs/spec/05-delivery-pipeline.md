@@ -8,7 +8,7 @@
 ## 1. 管線階段
 
 節點只回傳 `Effect.SendMessage`（見 `04-node-contract.md`），**不認識任何通道**。
-管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 取到期列、經 publisher confirm 推到 RabbitMQ → 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
+管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 取到期列、經 correlated publisher confirm＋`mandatory` 推到 RabbitMQ（nack／returned／逾時即延後該列 `available_at` 重試，見 `docs/design/DESIGN-01.md` 做法 #4）→ 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
 從 Effect 到客戶收到訊息，中間有六個階段：
 
 ```

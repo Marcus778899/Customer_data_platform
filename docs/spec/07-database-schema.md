@@ -383,7 +383,7 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 |---|---|---|
 | `event.dispatched_at` | 扇出（比對 EventSource、建立 Enrollment）結束時間；遲到 > 24h、重試用完（§11）也標上但不建立（`01` §6） | V3 起改 `ix_event_dispatch_queue`（§11） |
 | `enrollment_record` 查詢索引 | 軌跡頁依客戶列 Enrollment，新到舊 | `ix_enrollment_profile (tenant_id, profile_id, enrolled_at DESC, enrollment_id DESC)` |
-| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`；重試退避改 `available_at`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
+| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`；confirm 才標 `PUBLISHED`；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
 | `delivery_task` | 每個 SendMessage 一列，consumer 冪等依據（已 `SENT` 即丟棄重投）；`status` = `PENDING`／`SENT`／`SKIPPED`／`FAILED`／`CANCELLED`，`SKIPPED` 必帶 `skip_reason`（CHECK）；`visit_seq` = `node_trace.seq` | PK `idempotency_key`；`ix_delivery_task_enrollment (tenant_id, enrollment_id, attempted_at DESC, idempotency_key DESC)` |
 | `mock_channel_message` | Mock 通道「已送出」的訊息，與 `delivery_task` 同一交易寫入；驗收「恰好一則」數這張表 | PK `idempotency_key` |
 
@@ -397,16 +397,16 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 |---|---|---|---|---|
 | `SendMessage` | `Effect.SendMessage`（`04` §5） | `idempotency_key` string（= 列 PK）、`template_id` string、`channel_id` string、`variables` object（v0.1.0 一律 `{}`） | `send-message` → `cdp.effects.send-message`（`RabbitTopology`） | `DeliveryConsumer` → `ChannelEffectExecutor` |
 
-- v0.1.0 只會出現 `SendMessage`；`04` §5 其他 Effect 在用到的那期加一列本表。relay 遇未列的 `effect_type`：不發佈、留 `PENDING`、記錯誤日誌
+- v0.1.0 只會出現 `SendMessage`；`04` §5 其他 Effect 在用到的那期加一列本表。relay 遇未列的 `effect_type`：不發佈、記錯誤日誌、留 `PENDING` 並延後 `available_at`（同上表），不阻塞同批其他列
 - MQ 訊息 body 只有 `idempotency_key`（DESIGN-01 做法 #4）；consumer 以 `OutboxStore.find` 讀回整列。`payload` 缺鍵或型別不符 = 無法解析 → DLQ
-- 路由與歸屬資訊從**欄位**讀，不從 `payload` 讀：`delivery_task` 的 `tenant_id` `enrollment_id` `journey_id` `journey_version` `node_id` `visit_seq` 取同名欄位；`template_id` `channel_id` 取 `payload`；`channel_type` = `MOCK`、`message_type` = `NULL`（v0.1.0）
+- 路由與歸屬資訊從**欄位**讀，不從 `payload` 讀：`delivery_task` 的 `tenant_id` `enrollment_id` `journey_id` `journey_version` `node_id` `visit_seq` 取同名欄位；`template_id` `channel_id` 取 `payload`；`channel_type` = `ChannelAdapter.channelType()`（v0.1.0 只有 `MockChannelAdapter` = `MOCK`）、`message_type` = `NULL`（v0.1.0）
 - `delivery_history` 追加的 `DeliveryRecord.traceSeq` = `visit_seq`；`attempted_at` 取注入的 `Clock`
 
 ---
 
 ## 11. 事件派發重試（`V3__event_dispatch_retry.sql`、`V4__event_dispatch_outcome_strict.sql`，D-024）
 
-DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作單 FIX-03（`docs/design/DESIGN-01.md`「FIX-03」）。
+DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作：FIX-03a（PR #32）。
 
 | 欄位／索引 | 語意 |
 |---|---|
@@ -427,4 +427,4 @@ DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作單 FIX
 
 設定變數（值在 `.env`）：`ENGINE_DISPATCH_MAX_ATTEMPTS`（上限次數）、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`（ISO Duration）。
 
-過渡：V3 合併到 FIX-03a 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03a 起每次標派發必寫。V4 先以 V3 的規則回填這段期間的列，再把 CHECK 收緊為雙向；之後兩欄須在同一 `UPDATE` 同時設值或同時清空，只改其中一欄的 `UPDATE` 會被擋。
+過渡：V3 合併到 FIX-03a 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03a 合併後每次標派發必寫。V4 先以 V3 的規則回填這段期間的列，再把 CHECK 收緊為雙向；之後兩欄須在同一 `UPDATE` 同時設值或同時清空，只改其中一欄的 `UPDATE` 會被擋。
