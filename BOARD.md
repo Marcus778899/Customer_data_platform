@@ -52,7 +52,6 @@
 - 後續修正：CDP_TRACE_PLAIN_KEYS 空值＝全遮，但 check_env 把空值當未填；暫填不存在的鍵（例 none），之後由 architect 調整
 - 後續修正：契約 §5 未定義 405 的 code，交 architect 補
 - 後續修正：ApiExceptionHandler 泛用處理會把 controller 內的 AccessDeniedException 轉 500，加 method security 前要處理
-- 甲方要求暫停：BE-04 已合併，待甲方說「繼續」再開 BE-03
 - 後續修正（BE-04 review）：GET 預設拒絕白名單、record toString 遮蔽機密、補閒置逾時測試、cookie 設定單一來源、啟動時驗證金鑰
 
 ## 注意事項（踩過的坑）
