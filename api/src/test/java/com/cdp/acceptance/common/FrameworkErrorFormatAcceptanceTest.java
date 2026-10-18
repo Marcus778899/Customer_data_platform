@@ -47,9 +47,17 @@ class FrameworkErrorFormatAcceptanceTest {
 
     @Autowired MockMvc mvc;
 
-    /** 同時帶 Bearer（BE-04 後）與 mock user（BE-04 前沿用 Boot 預設安全設定），同 BE-01 驗收做法。 */
+    // application-test.yml 的測試金鑰（cdp.security.*）
+    private static final String INGEST_KEY = "test-ingest-key";
+    private static final String ADMIN_KEY = "test-admin-key";
+
+    /** 同時帶 Bearer（BE-04 後）與 mock user（BE-04 前沿用 Boot 預設安全設定），同 JourneyEngine 驗收做法。 */
     private MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder b) {
-        return b.header("Authorization", "Bearer qa-key")
+        return authed(b, INGEST_KEY);
+    }
+
+    private MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder b, String key) {
+        return b.header("Authorization", "Bearer " + key)
                 .with(user("qa").roles("ADMIN", "INGEST"))
                 .with(csrf());
     }
@@ -129,7 +137,7 @@ class FrameworkErrorFormatAcceptanceTest {
 
     @Test
     void unknownRoute_404NotFound() throws Exception {
-        ResultActions r = mvc.perform(authed(get("/api/v1/no-such-route")));
+        ResultActions r = mvc.perform(authed(get("/api/v1/no-such-route"), ADMIN_KEY));
         baseShape(r, 404).andExpect(jsonPath("$.code").value("NOT_FOUND"));
         noLeak(r);
     }
