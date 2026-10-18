@@ -59,8 +59,9 @@
 | CHORE-02 | architect | done | 0 | PR #28 |
 | FIX-04 | backend | done | 2 | PR #30 |
 | FIX-03a | backend | done | 0 | PR #32 |
-| FIX-03b | backend | qa | 0 |  |
+| FIX-03b | backend | done | 0 | PR #42 |
 | CHORE-03 | architect | done | 1 | PR #35 |
+| FIX-05 | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
