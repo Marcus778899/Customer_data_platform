@@ -12,7 +12,10 @@ spring:
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
     # relay 等 broker confirm 後才標 PUBLISHED（DESIGN-01 做法 #4）
-    publisher-confirm-type: simple
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
     listener:
       simple:
         acknowledge-mode: auto
@@ -49,6 +52,9 @@ cdp:
   relay:
     poll-interval: ${OUTBOX_RELAY_POLL_INTERVAL}
     batch-size: ${OUTBOX_RELAY_BATCH_SIZE}
+    retry-delay: ${OUTBOX_RELAY_RETRY_DELAY}
+  delivery:
+    requeue-delay: ${DELIVERY_REQUEUE_DELAY}
   security:
     # 契約 §1.1、§1.2；機密只在 .env
     ingest-api-key: ${CDP_INGEST_API_KEY}

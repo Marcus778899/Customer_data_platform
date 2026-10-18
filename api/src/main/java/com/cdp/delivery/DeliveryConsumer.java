@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.cdp.common.fault.FaultInjector;
 import com.cdp.common.fault.FaultPoint;
+import com.cdp.delivery.channel.ChannelAdapter;
 import com.cdp.engine.EffectExecutor;
 import com.cdp.engine.node.Effect;
 
@@ -39,6 +40,8 @@ public class DeliveryConsumer {
     private final TransactionTemplate tx;
     private final FaultInjector faults;
     private final Clock clock;
+    private final ChannelAdapter channel;
+    private final DeliveryProperties properties;
 
     public DeliveryConsumer(
             OutboxStore outbox,
@@ -47,7 +50,9 @@ public class DeliveryConsumer {
             EffectExecutor executor,
             TransactionTemplate tx,
             FaultInjector faults,
-            Clock clock) {
+            Clock clock,
+            ChannelAdapter channel,
+            DeliveryProperties properties) {
         this.outbox = outbox;
         this.tasks = tasks;
         this.killSwitch = killSwitch;
@@ -55,6 +60,8 @@ public class DeliveryConsumer {
         this.tx = tx;
         this.faults = faults;
         this.clock = clock;
+        this.channel = channel;
+        this.properties = properties;
     }
 
     @RabbitListener(
@@ -68,12 +75,22 @@ public class DeliveryConsumer {
                 | DataAccessResourceFailureException
                 | CannotCreateTransactionException e) {
             log.warn("transient DB failure for {}; requeue: {}", idempotencyKey, e.toString());
+            pauseBeforeRequeue();
             throw new ImmediateRequeueAmqpException("transient DB failure", e);
         } catch (DataAccessException e) {
             log.error("non-transient DB failure for {}; dead-letter", idempotencyKey, e);
             throw new AmqpRejectAndDontRequeueException("non-transient DB failure", e);
         }
         faults.at(FaultPoint.CONSUMER_AFTER_COMMIT, idempotencyKey);
+    }
+
+    /** 重排前先等，避免 DB 斷線期間空轉重投；佔用 listener 執行緒即為節流。 */
+    private void pauseBeforeRequeue() {
+        try {
+            Thread.sleep(properties.requeueDelay().toMillis());
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void handle(String key) {
@@ -98,7 +115,7 @@ public class DeliveryConsumer {
                                 entry.visitSeq(),
                                 effect.templateId(),
                                 effect.channelId(),
-                                "MOCK",
+                                channel.channelType(),
                                 null,
                                 DeliveryTaskStatus.PENDING,
                                 null,

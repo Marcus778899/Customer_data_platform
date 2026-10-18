@@ -5,8 +5,6 @@ import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
-import org.springframework.amqp.rabbit.config.ContainerCustomizer;
-import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,15 +17,6 @@ public class RabbitTopology {
     public static final String SEND_MESSAGE_QUEUE = "cdp.effects.send-message";
     public static final String DEAD_LETTER_EXCHANGE = "cdp.effects.dlx";
     public static final String SEND_MESSAGE_DLQ = "cdp.effects.send-message.dlq";
-
-    /**
-     * queue 暫時不存在時不讓整個 context 啟動失敗（例如 Spring 測試框架重啟快取的 context）；
-     * 正式環境 {@link #effectTopology()} 會宣告 queue，行為不變。
-     */
-    @Bean
-    public ContainerCustomizer<SimpleMessageListenerContainer> listenerContainerCustomizer() {
-        return container -> container.setMissingQueuesFatal(false);
-    }
 
     @Bean
     public Declarables effectTopology() {

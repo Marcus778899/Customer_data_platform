@@ -10,6 +10,10 @@ spring:
     port: 5672
     username: test
     password: test
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
 server:
   port: 0
   servlet:
@@ -30,6 +34,9 @@ cdp:
   relay:
     poll-interval: PT0.2S
     batch-size: 100
+    retry-delay: PT30S
+  delivery:
+    requeue-delay: PT0.2S
   # 測試專用假憑證（非機密）；驗收測試以此呼叫各角色
   security:
     ingest-api-key: test-ingest-key
