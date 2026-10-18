@@ -42,6 +42,10 @@ cdp:
   engine:
     poll-interval: ${ENGINE_POLL_INTERVAL}
     batch-size: ${ENGINE_BATCH_SIZE}
+    dispatch:
+      max-attempts: ${ENGINE_DISPATCH_MAX_ATTEMPTS}
+      backoff-initial: ${ENGINE_DISPATCH_BACKOFF_INITIAL}
+      backoff-max: ${ENGINE_DISPATCH_BACKOFF_MAX}
   relay:
     poll-interval: ${OUTBOX_RELAY_POLL_INTERVAL}
     batch-size: ${OUTBOX_RELAY_BATCH_SIZE}
