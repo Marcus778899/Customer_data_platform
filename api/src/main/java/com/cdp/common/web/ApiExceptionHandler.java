@@ -7,6 +7,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -24,6 +26,7 @@ import tools.jackson.core.JacksonException;
  * 所有錯誤轉成契約 §5 格式（含 code、request_id；400 另含 errors）。Spring 內建的 4xx（缺參數、型別錯、JSON
  * 無法解析、無此路由）轉 VALIDATION_FAILED／NOT_FOUND；DB 連不上轉 SERVICE_UNAVAILABLE；其餘 INTERNAL_ERROR，不外洩訊息。
  */
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
