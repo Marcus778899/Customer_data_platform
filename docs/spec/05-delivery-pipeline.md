@@ -8,7 +8,7 @@
 ## 1. 管線階段
 
 節點只回傳 `Effect.SendMessage`（見 `04-node-contract.md`），**不認識任何通道**。
-管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 取到期列、經 correlated publisher confirm＋`mandatory` 推到 RabbitMQ（nack／returned／逾時即延後該列 `available_at` 重試，見 `docs/design/DESIGN-01.md` 做法 #4）→ 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
+管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 以 `available_at` 當 lease 搶到期列、交易外整批經 correlated publisher confirm＋`mandatory` 推到 RabbitMQ、條件式回寫（nack／returned／逾時即延後該列 `available_at` 重試；v0.2.0 起見 `07` §12「relay」，v0.1.0 見 `docs/design/DESIGN-01.md` 做法 #4）→ 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
 從 Effect 到客戶收到訊息，中間有六個階段：
 
 ```
@@ -263,6 +263,10 @@ void killJourney(String tenantId, String journeyId, String reason) {
 - 已經發過哪些訊息（`deliveryHistory`）
 - 有幾則訊息被取消（`SkipReason = KILL_SWITCH`）
 - 誰在什麼時候按下停止、理由是什麼
+
+### 落地（v0.2.0 第二版，`docs/design/DESIGN-03.md`）
+
+只做旅程層（`docs/contracts/journeys.md` §3.5）；判定來源只有 Postgres 的 `journey.status`（Redis 於之後的版本接上）。步驟 1 與 3 同一交易（設 `ABORTED`、outbox `PENDING` → `CANCELLED`）；步驟 4、5 由引擎池的背景清理分批做（每批一個小交易，每筆寫一列軌跡）；步驟 2 本版無 Redis 可設。consumer 在發送前檢查 `journey.status` 與 outbox 列狀態，任一為停止／取消即 `CANCELLED`。
 
 ### 恢復
 

@@ -123,16 +123,17 @@ NodeResult execute(NodeContext context);
 
 推進迴圈的 `StateStore.lockDue(now, limit)` **必須跨租戶掃描**——它的工作就是找出「所有到期的 Enrollment」，沒有 `tenantId` 可帶。RLS 開著時這個查詢回傳空集合，計時器一則都推不動。
 
-因此有一個帶 `BYPASSRLS` 的 `NOLOGIN` role（v0.2.0 隨 RLS 以新 migration 建立，role 設計依 `docs/design/INIT-01.md` R2），應用程式仍用同一組憑證連線，由引擎的連線池在取得連線時 `SET ROLE journey_engine` 切換。
+因此有一個帶 `BYPASSRLS` 的 `NOLOGIN` role（v0.2.0 以 `V5__tenancy_rls.sql` 建立，role 設計依 `docs/design/INIT-01.md` R2、`docs/design/DESIGN-03.md`）。應用程式用同一個登入帳號（環境變數 `CDP_DB_APP_USER`：`NOINHERIT`、非 superuser、非表擁有者）開兩個連線池，各自在**連線初始化**時 `SET ROLE`：
 
-| 元件 | 用哪個 role |
+| 元件 | 連線池 → role |
 |---|---|
-| 旅程推進迴圈、outbox relay | `journey_engine`（BYPASSRLS） |
-| API 層、報表、客服查詢、其他一切 | 預設 role（受 RLS 保護） |
+| 旅程推進迴圈、事件派發、outbox relay、發送 consumer、旅程停止的背景清理 | 引擎池 → `journey_engine`（BYPASSRLS） |
+| API 層、客服查詢、客戶搜尋、其他一切 | 應用池 → `cdp_app`（受 RLS 保護；每個交易開頭 `set_config('app.tenant_id', …, true)`，未設定 = 讀不到任何列） |
+| Flyway migration | 表擁有者帳號（`POSTGRES_USER`），應用程式執行期不用 |
 
 > 🚫 **這個 role 的連線池不得被任何其他元件共用。** 共用一次，RLS 就形同虛設——
 > 而 RLS 存在的目的正是計劃書第五節那句「讓遺漏成為不可能，而非靠自律」。
-> Phase 1a 建立引擎連線池時，`SET ROLE` 要寫在連線初始化，不是每次查詢前才想起來。
+> 建立引擎連線池時，`SET ROLE` 要寫在連線初始化，不是每次查詢前才想起來；誰可以拿引擎池由 `ArchitectureTest` 限制（DESIGN-03）。
 
 ### 命名
 
