@@ -383,7 +383,7 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 |---|---|---|
 | `event.dispatched_at` | 扇出（比對 EventSource、建立 Enrollment）結束時間；遲到 > 24h、重試用完（§11）也標上但不建立（`01` §6） | V3 起改 `ix_event_dispatch_queue`（§11） |
 | `enrollment_record` 查詢索引 | 軌跡頁依客戶列 Enrollment，新到舊 | `ix_enrollment_profile (tenant_id, profile_id, enrolled_at DESC, enrollment_id DESC)` |
-| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`；confirm 才標 `PUBLISHED`；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
+| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`；confirm 才標 `PUBLISHED`；`publish_count` 只在標 `PUBLISHED`（`markPublished`）時遞增，reschedule 不動；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
 | `delivery_task` | 每個 SendMessage 一列，consumer 冪等依據（已 `SENT` 即丟棄重投）；`status` = `PENDING`／`SENT`／`SKIPPED`／`FAILED`／`CANCELLED`，`SKIPPED` 必帶 `skip_reason`（CHECK）；`visit_seq` = `node_trace.seq` | PK `idempotency_key`；`ix_delivery_task_enrollment (tenant_id, enrollment_id, attempted_at DESC, idempotency_key DESC)` |
 | `mock_channel_message` | Mock 通道「已送出」的訊息，與 `delivery_task` 同一交易寫入；驗收「恰好一則」數這張表 | PK `idempotency_key` |
 
