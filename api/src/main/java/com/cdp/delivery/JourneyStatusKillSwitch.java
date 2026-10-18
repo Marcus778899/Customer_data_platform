@@ -3,6 +3,7 @@ package com.cdp.delivery;
 import org.springframework.stereotype.Component;
 
 import com.cdp.journey.JourneyDefinitionStore;
+import com.cdp.journey.JourneyStatus;
 
 /** 綁定版本的 status 不是 ACTIVE 即視為停止。 */
 @Component
@@ -16,6 +17,8 @@ public class JourneyStatusKillSwitch implements KillSwitch {
 
     @Override
     public boolean isStopped(String tenantId, String journeyId, int journeyVersion) {
-        throw new UnsupportedOperationException("TODO(BE-02)");
+        return journeys.find(tenantId, journeyId, journeyVersion)
+                .map(d -> d.status() != JourneyStatus.ACTIVE)
+                .orElse(true);
     }
 }
