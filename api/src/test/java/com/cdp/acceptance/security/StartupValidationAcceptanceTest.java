@@ -3,8 +3,9 @@ package com.cdp.acceptance.security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -25,20 +26,26 @@ class StartupValidationAcceptanceTest {
     private static final String SAME = "same-SECRET-key";
 
     private void assertStartFails(String... overrides) {
-        List<String> props = new ArrayList<>(List.of(
-                "spring.rabbitmq.listener.simple.auto-startup=false",
-                "cdp.security.ingest-api-key=" + SECRET_A,
-                "cdp.security.admin-api-key=" + SECRET_B,
-                "cdp.security.support-username=agent",
-                "cdp.security.support-password=" + SECRET_PW));
-        props.addAll(List.of(overrides)); // 後者覆蓋前者
+        // 重複的命令列選項會被合併成逗號串，故以 Map 去重，後者覆蓋前者
+        Map<String, String> merged = new LinkedHashMap<>();
+        for (String a : List.of(
+                "--spring.rabbitmq.listener.simple.auto-startup=false",
+                "--cdp.security.ingest-api-key=" + SECRET_A,
+                "--cdp.security.admin-api-key=" + SECRET_B,
+                "--cdp.security.support-username=agent",
+                "--cdp.security.support-password=" + SECRET_PW)) {
+            merged.put(a.substring(0, a.indexOf('=')), a);
+        }
+        for (String a : overrides) {
+            merged.put(a.substring(0, a.indexOf('=')), a);
+        }
+        String[] args = merged.values().toArray(String[]::new);
         ConfigurableApplicationContext[] started = new ConfigurableApplicationContext[1];
         try {
             assertThatThrownBy(() -> started[0] = new SpringApplicationBuilder(
                                     CdpApplication.class, SecurityTestSupport.class)
                             .profiles("test")
-                            .properties(props.toArray(String[]::new))
-                            .run())
+                            .run(args))
                     .satisfies(t -> {
                         StringBuilder all = new StringBuilder();
                         for (Throwable c = t; c != null; c = c.getCause()) {
@@ -55,26 +62,26 @@ class StartupValidationAcceptanceTest {
 
     @Test
     void emptyIngestKey_failsStartup() {
-        assertStartFails("cdp.security.ingest-api-key=");
+        assertStartFails("--cdp.security.ingest-api-key=");
     }
 
     @Test
     void blankAdminKey_failsStartup() {
-        assertStartFails("cdp.security.admin-api-key=   ");
+        assertStartFails("--cdp.security.admin-api-key=   ");
     }
 
     @Test
     void emptySupportPassword_failsStartup() {
-        assertStartFails("cdp.security.support-password=");
+        assertStartFails("--cdp.security.support-password=");
     }
 
     @Test
     void emptySupportUsername_failsStartup() {
-        assertStartFails("cdp.security.support-username=");
+        assertStartFails("--cdp.security.support-username=");
     }
 
     @Test
     void identicalKeys_failStartup() {
-        assertStartFails("cdp.security.ingest-api-key=" + SAME, "cdp.security.admin-api-key=" + SAME);
+        assertStartFails("--cdp.security.ingest-api-key=" + SAME, "--cdp.security.admin-api-key=" + SAME);
     }
 }
