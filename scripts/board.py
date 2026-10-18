@@ -3,6 +3,7 @@
 用法：
     board.py scope "<本輪目標>" "<不做>"
     board.py task set <task_id> <status> [--owner <agent>] [--evidence "<驗收證據>"]
+    board.py task archive                           # 移除「任務狀態」表中所有 done 的列
     board.py decision add <D-編號> "<一行摘要>"     # 細節寫在 docs/decisions.md
     board.py blocker add|clear "<卡點>"
     board.py check
@@ -11,16 +12,19 @@ status：todo / in-progress / qa / qa-fail / review / blocked / done（done = PR
 - done 必須附 --evidence
 - qa-fail 會讓「嘗試」+1；達 MAX_ATTEMPTS 時 exit 3，提醒 manager 停下來上報甲方
 
+環境變數 BOARD_FILE 可指定 BOARD.md 路徑（測試用，預設為專案根目錄的 BOARD.md）
+
 exit code：0 成功；1 參數或格式錯誤；3 重試達上限
 """
 
 import argparse
+import os
 import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-BOARD_PATH = Path(__file__).resolve().parent.parent / "BOARD.md"
+BOARD_PATH = Path(os.environ.get("BOARD_FILE") or Path(__file__).resolve().parent.parent / "BOARD.md")
 MAX_LINES = 80
 MAX_ATTEMPTS = 3
 STATUSES = ("todo", "in-progress", "qa", "qa-fail", "review", "blocked", "done")
@@ -119,6 +123,19 @@ def set_task(task_id: str, status: str, owner: str | None, evidence: str | None)
     return attempts
 
 
+def archive_done() -> list[str]:
+    """移除「任務狀態」表中所有 done 的列，回傳被移除的任務 ID。"""
+    lines = _read()
+    rows = _table_rows(lines, "tasks")
+    done = [i for i in rows[2:] if _split_row(lines[i])[2] == "done"]
+    ids = [_split_row(lines[i])[0] for i in done]
+    for i in reversed(done):
+        del lines[i]
+    if done:
+        _commit(lines)
+    return ids
+
+
 def set_scope(goal: str, exclude: str) -> None:
     lines = _read()
     start, end = _section_range(lines, "scope")
@@ -196,6 +213,8 @@ def main() -> None:
     task_set.add_argument("--owner")
     task_set.add_argument("--evidence")
 
+    task.add_parser("archive")
+
     scope = sub.add_parser("scope")
     scope.add_argument("goal")
     scope.add_argument("exclude")
@@ -214,7 +233,10 @@ def main() -> None:
     args = parser.parse_args()
     exit_code = 0
     try:
-        if args.area == "task":
+        if args.area == "task" and args.action == "archive":
+            ids = archive_done()
+            print(f"已移除 {len(ids)} 張 done 任務：{', '.join(ids)}" if ids else "沒有 done 的任務可封存")
+        elif args.area == "task":
             attempts = set_task(args.task_id, args.status, args.owner, args.evidence)
             if attempts >= MAX_ATTEMPTS and args.status == "qa-fail":
                 print(f"{args.task_id} qa FAIL 已 {attempts} 次：停止重派，標 blocked 並上報甲方", file=sys.stderr)
