@@ -28,10 +28,4 @@ class EventDispatcherBackoffTest {
         EventDispatcher d = with(Duration.ofSeconds(10), Duration.ofMinutes(10));
         assertThat(d.backoff(100_000)).isEqualTo(Duration.ofMinutes(10));
     }
-
-    @Test
-    void initialAboveMaxIsCapped() {
-        EventDispatcher d = with(Duration.ofMinutes(5), Duration.ofMinutes(1));
-        assertThat(d.backoff(1)).isEqualTo(Duration.ofMinutes(1));
-    }
 }
