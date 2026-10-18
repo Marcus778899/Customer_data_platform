@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage'
 import { DetailPage } from './pages/DetailPage'
 import { SearchPage } from './pages/SearchPage'
 import { navigate, safeNext, useLocation } from './router'
+import { consumeLoggedIn, markLoggedIn } from './sessionFlag'
 
 type AuthState =
   | { status: 'checking' }
@@ -20,7 +21,10 @@ export function App() {
 
   // 任何 API 回 401 → 回登入（契約 §1.2）
   useEffect(() => {
-    setUnauthorizedHandler(() => setAuth({ status: 'out', expired: true }))
+    setUnauthorizedHandler(() => {
+      consumeLoggedIn()
+      setAuth({ status: 'out', expired: true })
+    })
     return () => setUnauthorizedHandler(null)
   }, [])
 
@@ -28,10 +32,14 @@ export function App() {
   useEffect(() => {
     let cancelled = false
     getMe().then(
-      (me) => !cancelled && setAuth({ status: 'in', username: me.username }),
+      (me) => {
+        if (cancelled) return
+        markLoggedIn()
+        setAuth({ status: 'in', username: me.username })
+      },
       (e: unknown) => {
         if (cancelled) return
-        if (e instanceof ApiError && e.status === 401) setAuth({ status: 'out', expired: false })
+        if (e instanceof ApiError && e.status === 401) setAuth({ status: 'out', expired: consumeLoggedIn() })
         else setAuth({ status: 'error', error: e instanceof ApiError ? e : new ApiError(0, null, null) })
       },
     )
@@ -55,6 +63,7 @@ export function App() {
     } catch {
       // 登出失敗也回登入頁；session 仍有效時下次進站會再被導回
     }
+    consumeLoggedIn()
     setAuth({ status: 'out', expired: false })
     navigate('/login', { replace: true })
   }, [])
@@ -90,7 +99,10 @@ export function App() {
     return (
       <LoginPage
         expired={auth.expired}
-        onLoggedIn={(username) => setAuth({ status: 'in', username })}
+        onLoggedIn={(username) => {
+          markLoggedIn()
+          setAuth({ status: 'in', username })
+        }}
       />
     )
   }
