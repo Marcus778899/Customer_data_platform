@@ -500,7 +500,8 @@ class DeliveryPipelineAcceptanceTest {
         Scheduled s = scheduleSend();
         jdbc.execute(
                 "create or replace function acc_fail() returns trigger as $$ begin"
-                        + " raise exception 'injected'; end $$ language plpgsql");
+                        + " raise exception 'injected' using errcode = '40001'; end $$"
+                        + " language plpgsql");
         jdbc.execute(
                 "create trigger acc_fail_trg before insert on delivery_task"
                         + " for each row when (NEW.idempotency_key = '"
@@ -525,5 +526,33 @@ class DeliveryPipelineAcceptanceTest {
         assertThat(historyLength(s.enrollmentId())).isEqualTo(1);
         pollDlq();
         assertThat(deadLettered).doesNotContain(s.key());
+    }
+
+    @Test
+    void nonTransientDbError_goesToDlq_notRequeuedForever() throws Exception {
+        Scheduled s = scheduleSend();
+        // 預設 errcode（P0001）：非暫時性錯誤，重試也不會好
+        jdbc.execute(
+                "create or replace function acc_fail_perm() returns trigger as $$ begin"
+                        + " raise exception 'injected'; end $$ language plpgsql");
+        jdbc.execute(
+                "create trigger acc_fail_perm_trg before insert on delivery_task"
+                        + " for each row when (NEW.idempotency_key = '"
+                        + s.key()
+                        + "') execute function acc_fail_perm()");
+        try {
+            relay.runOnce();
+            await().atMost(WAIT)
+                    .untilAsserted(
+                            () -> {
+                                pollDlq();
+                                assertThat(deadLettered).contains(s.key());
+                            });
+            assertThat(mockCount(s.key())).isZero();
+            assertThat(taskStatus(s.key())).isNotEqualTo("SENT");
+            await().atMost(WAIT).until(() -> queueDepth() == 0);
+        } finally {
+            jdbc.execute("drop trigger if exists acc_fail_perm_trg on delivery_task");
+        }
     }
 }
