@@ -49,13 +49,12 @@
 | FE-01 | frontend | done | 0 | PR #11 |
 | BE-04 | backend | done | 0 | PR #14 |
 | FIX-01 | backend | done | 0 | PR #16 |
-| BE-03 | backend | in-progress | 0 |  |
-| DESIGN-02 | architect | qa | 0 |  |
+| BE-03 | backend | qa | 0 |  |
+| DESIGN-02 | architect | done | 0 | PR #19 |
 
 ## 卡住／待甲方決定
 
-- 後續修正：ApiExceptionHandler 泛用處理會把 controller 內的 AccessDeniedException 轉 500，加 method security 前要處理
-- 後續修正（BE-04 review）：GET 預設拒絕白名單、record toString 遮蔽機密、補閒置逾時測試、cookie 設定單一來源、啟動時驗證金鑰
+- 後續修正單 FIX-02／03／04 見 DESIGN-01「後續實作項」（D-025）
 
 ## 注意事項（踩過的坑）
 
