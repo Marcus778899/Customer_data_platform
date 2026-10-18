@@ -165,7 +165,13 @@ abstract class IngestAcceptanceBase {
     }
 
     protected static Instant instantOf(Object ts) {
-        return ts == null ? null : ((OffsetDateTime) ts).toInstant();
+        if (ts == null) {
+            return null;
+        }
+        if (ts instanceof java.sql.Timestamp t) {
+            return t.toInstant();
+        }
+        return ((OffsetDateTime) ts).toInstant();
     }
 
     protected int enrollmentCount(String profileId, String journeyId) {
