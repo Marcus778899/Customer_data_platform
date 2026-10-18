@@ -30,12 +30,12 @@ public class EnrollmentQueryController {
             @RequestParam(required = false) Set<EnrollmentStatus> status,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        throw new UnsupportedOperationException("TODO(BE-03)");
+        return service.list(properties.tenantId(), q, status, cursor, limit);
     }
 
     @GetMapping("/{enrollmentId}")
     public EnrollmentDetail detail(@PathVariable String enrollmentId) {
-        throw new UnsupportedOperationException("TODO(BE-03)");
+        return service.detail(properties.tenantId(), enrollmentId);
     }
 
     @GetMapping("/{enrollmentId}/deliveries")
@@ -43,6 +43,6 @@ public class EnrollmentQueryController {
             @PathVariable String enrollmentId,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        throw new UnsupportedOperationException("TODO(BE-03)");
+        return service.deliveries(properties.tenantId(), enrollmentId, cursor, limit);
     }
 }
