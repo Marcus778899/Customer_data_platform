@@ -1,4 +1,4 @@
-"""文件提交：布告欄、README、決策紀錄、UAT 報告、研究摘要、布告欄快照（tasks/job_history/）不走 PR，由 manager 直接 commit 到 develop。
+"""文件提交：布告欄、README、決策紀錄、UAT 報告、研究摘要、版本歸檔（tasks/<版本>/）不走 PR，由 manager 直接 commit 到 develop。
 
 用法：
     docs.py commit "<訊息>"     # 只提交 DOC_PATHS 內的修改；其他修改不提交也不擋，只列出來
@@ -7,10 +7,12 @@
 """
 
 import argparse
+import re
 
 from _common import BASE_BRANCH, FlowError, fail, has_remote, require_on_base, run
 
-DOC_PATHS = ("BOARD.md", "README.md", "docs/decisions.md", "docs/uat/", "docs/research/", "tasks/job_history/")
+DOC_PATHS = ("BOARD.md", "README.md", "docs/decisions.md", "docs/uat/", "docs/research/", "tasks/<版本>/")
+VERSION_DIR_RE = re.compile(r"^tasks/v\d+\.\d+\.\d+/")
 
 
 def changed_paths() -> list[str]:
@@ -19,10 +21,16 @@ def changed_paths() -> list[str]:
     return sorted(set(tracked + untracked))
 
 
+def is_doc(path: str) -> bool:
+    if VERSION_DIR_RE.match(path):
+        return True
+    return any(path == d or (d.endswith("/") and path.startswith(d)) for d in DOC_PATHS if "<" not in d)
+
+
 def commit(message: str) -> None:
     require_on_base()
     changed = changed_paths()
-    paths = [p for p in changed if any(p == d or (d.endswith("/") and p.startswith(d)) for d in DOC_PATHS)]
+    paths = [p for p in changed if is_doc(p)]
     others = [p for p in changed if p not in paths]
     if not paths:
         raise FlowError("沒有任何文件修改")

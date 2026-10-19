@@ -1,10 +1,15 @@
-"""布告欄（BOARD.md）維護工具，manager 透過它更新，避免手改造成格式亂掉或超過行數上限。
+"""布告欄（BOARD.md）維護工具，manager 透過它更新，避免手改造成格式亂掉（D-054：不設行數上限）。
 
 用法：
     board.py scope "<本輪目標>" "<不做>"
     board.py task set <task_id> <status> [--owner <agent>] [--evidence "<驗收證據>"]
-    board.py task archive <vX.Y.Z>                  # 整份 BOARD.md 快照到 tasks/job_history/<版本>.md，再移除所有 done 的列
-    board.py decision add <D-編號> "<一行摘要>"     # 細節寫在 docs/decisions.md
+    board.py task archive <vX.Y.Z> <代稱>           # BOARD.md 快照到 tasks/<版本>/<代稱>.md，pr（無則 issue）小於
+                                                    # release-<版本>.json 的 pr 且已合併／作廢的派工單連同 release 檔
+                                                    # 搬進 tasks/<版本>/，再移除所有 done 的列（D-039、D-040）；
+                                                    # 沒有 release 檔就拒絕；失敗會反向還原
+    board.py decision add <D-編號> "<一行摘要>" [--version vX.Y.Z]   # 細節寫在 docs/decisions.md；
+                                                    # 未指定版本取「目標與範圍」本輪的版本號
+    board.py decision backfill-version              # 一次性補「版本」欄：D-001～D-032 標 v0.1.0，D-033 起標 v0.2.0
     board.py blocker add|clear "<卡點>"
     board.py check
 
@@ -12,13 +17,17 @@ status：todo / in-progress / qa / qa-fail / review / blocked / done（done = PR
 - done 必須附 --evidence
 - qa-fail 會讓「嘗試」+1；達 MAX_ATTEMPTS 時 exit 3，提醒 manager 停下來上報甲方
 
-環境變數（測試用）：BOARD_FILE 指定 BOARD.md 路徑；JOB_HISTORY_DIR 指定快照目錄
-（預設為專案根目錄的 BOARD.md 與 tasks/job_history/）
+代稱：小寫英數與 -（例：engine-ignition）。若舊的 tasks/job_history/<版本>.md 存在，
+改用它當快照（搬到 tasks/<版本>/<代稱>.md），不改 BOARD.md；job_history/ 空了就刪除。
+
+環境變數（測試用）：BOARD_FILE 指定 BOARD.md 路徑；TASKS_DIR 指定 tasks 目錄
+（預設為專案根目錄的 BOARD.md 與 tasks/）
 
 exit code：0 成功；1 參數或格式錯誤；3 重試達上限
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -26,9 +35,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BOARD_PATH = Path(os.environ.get("BOARD_FILE") or Path(__file__).resolve().parent.parent / "BOARD.md")
-JOB_HISTORY_DIR = Path(os.environ.get("JOB_HISTORY_DIR") or Path(__file__).resolve().parent.parent / "tasks" / "job_history")
+TASKS_PATH = Path(os.environ.get("TASKS_DIR") or Path(__file__).resolve().parent.parent / "tasks")
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
-MAX_LINES = 80
+ALIAS_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+LEGACY_LAST_V010 = 32  # D-032 以前屬 v0.1.0，其後屬 v0.2.0（一次性補欄用）
 MAX_ATTEMPTS = 3
 STATUSES = ("todo", "in-progress", "qa", "qa-fail", "review", "blocked", "done")
 DECISION_ID_RE = re.compile(r"^D-\d{3}$")
@@ -51,9 +61,7 @@ def _read() -> list[str]:
 
 
 def _commit(lines: list[str]) -> None:
-    """寫入前先檢查行數，超過上限就拒絕寫入。"""
-    if len(lines) > MAX_LINES:
-        raise BoardError(f"寫入後會有 {len(lines)} 行，超過上限 {MAX_LINES}；先清掉已完成的任務或過期的項目")
+    """寫回 BOARD.md（D-054：不設行數上限）。"""
     BOARD_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -126,34 +134,118 @@ def set_task(task_id: str, status: str, owner: str | None, evidence: str | None)
     return attempts
 
 
-def archive_done(version: str) -> list[str]:
-    """先把整份 BOARD.md 快照到 job_history/<版本>.md，再移除「任務狀態」表中所有 done 的列，回傳被移除的任務 ID。"""
+def _release_pr(version: str) -> int:
+    """讀 release-<版本>.json 的 pr；檔案不存在或沒有 pr 就拒絕（不改任何檔）。"""
+    release = TASKS_PATH / f"release-{version}.json"
+    if not release.exists():
+        raise BoardError(f"找不到 {release}；沒有發版紀錄無法判斷哪些派工單屬於 {version}")
+    try:
+        pr = json.loads(release.read_text(encoding="utf-8")).get("pr")
+    except (OSError, ValueError) as e:
+        raise BoardError(f"無法讀取 {release.name}：{e}") from e
+    if not isinstance(pr, int):
+        raise BoardError(f"{release.name} 沒有數字的 pr 欄位")
+    return pr
+
+
+def _archivable_files(version: str, release_pr: int) -> list[Path]:
+    """tasks/ 根目錄中 meta 為已合併或已作廢、且 pr（無 pr 用 issue）小於發版 PR 的 <id>.md、<id>.meta.json，加上 release-<版本>.json。"""
+    files: list[Path] = []
+    for meta_file in sorted(TASKS_PATH.glob("*.meta.json")):
+        try:
+            meta = json.loads(meta_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            raise BoardError(f"無法讀取 {meta_file.name}：{e}") from e
+        if not (meta.get("merged") or meta.get("cancelled")):
+            continue
+        number = meta.get("pr") or meta.get("issue")
+        if not isinstance(number, int) or number >= release_pr:
+            continue  # 發版後才合併（或無編號可比）：留在根目錄給下一版
+        card = meta_file.with_name(meta_file.name[: -len(".meta.json")] + ".md")
+        files.extend(f for f in (card, meta_file) if f.exists())
+    files.append(TASKS_PATH / f"release-{version}.json")
+    return files
+
+
+def archive_done(version: str, alias: str) -> tuple[list[str], list[str]]:
+    """快照到 tasks/<版本>/<代稱>.md、搬移該版已合併／作廢的派工單，再移除 done 的列。
+
+    回傳（被移除的任務 ID，搬移的檔名）。所有檢查在寫檔前完成；任何一步失敗都反向還原。
+    """
     if not VERSION_RE.match(version):
         raise BoardError(f"版本格式要是 v0.1.0，實際是 {version!r}")
-    snapshot = JOB_HISTORY_DIR / f"{version}.md"
-    if snapshot.exists():
-        raise BoardError(f"{snapshot} 已存在，拒絕覆寫")
+    if not ALIAS_RE.match(alias):
+        raise BoardError(f"代稱只能用小寫英數與 -（例：engine-ignition），實際是 {alias!r}")
+    release_pr = _release_pr(version)
+    dest_dir = TASKS_PATH / version
+    snapshot = dest_dir / f"{alias}.md"
+    legacy_dir = TASKS_PATH / "job_history"
+    legacy = legacy_dir / f"{version}.md"
+    files = _archivable_files(version, release_pr)
+
+    # 撞名檢查（不分大小寫，含快照檔名與搬入檔之間），寫任何檔之前完成
+    existing = {p.name.lower() for p in dest_dir.iterdir()} if dest_dir.is_dir() else set()
+    targets = [snapshot.name] + [f.name for f in files]
+    seen: set[str] = set()
+    clash = []
+    for name in targets:
+        key = name.lower()
+        if key in existing or key in seen:
+            clash.append(name)
+        seen.add(key)
+    if clash:
+        raise BoardError(f"{dest_dir} 已有同名檔案（不分大小寫），拒絕覆寫：{', '.join(clash)}")
+
     original = BOARD_PATH.read_text(encoding="utf-8")
     lines = original.splitlines()
     rows = _table_rows(lines, "tasks")
     done = [i for i in rows[2:] if _split_row(lines[i])[2] == "done"]
     ids = [_split_row(lines[i])[0] for i in done]
-    if not done:
-        return ids
-    for i in reversed(done):
-        del lines[i]
-    if len(lines) > MAX_LINES:
-        raise BoardError(f"寫入後會有 {len(lines)} 行，超過上限 {MAX_LINES}")
-    today = datetime.now(timezone.utc).date().isoformat()
+    migrate = legacy.exists()
+    if migrate:
+        ids = []  # 遷移：快照早已存在，不改 BOARD.md
+    elif not done:
+        return ids, []
+    else:
+        for i in reversed(done):
+            del lines[i]
+
+    moved: list[str] = []
+    undo: list = []  # 反向還原動作，後進先出
     try:
-        JOB_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-        with open(snapshot, "x", encoding="utf-8") as f:  # x：不覆寫
-            f.write(f"<!-- 封存 {version}，{today} -->\n{original}")
+        if not dest_dir.exists():
+            dest_dir.mkdir(parents=True)
+            undo.append(dest_dir.rmdir)
+        if migrate:
+            legacy.rename(snapshot)
+            undo.append(lambda: snapshot.rename(legacy))
+            moved.append(f"job_history/{legacy.name} -> {version}/{snapshot.name}")
+        else:
+            today = datetime.now(timezone.utc).date().isoformat()
+            with open(snapshot, "x", encoding="utf-8") as f:  # x：不覆寫
+                undo.append(snapshot.unlink)
+                f.write(f"<!-- 封存 {version}，{today} -->\n{original}")
+            moved.append(f"BOARD.md -> {version}/{snapshot.name}（快照）")
+        for f in files:
+            target = dest_dir / f.name
+            f.rename(target)
+            undo.append(lambda f=f, target=target: target.rename(f))
+            moved.append(f"{f.name} -> {version}/")
+        if not migrate:
+            _commit(lines)
+            undo.append(lambda: BOARD_PATH.write_text(original, encoding="utf-8"))
+        if migrate and legacy_dir.is_dir() and not any(legacy_dir.iterdir()):
+            legacy_dir.rmdir()  # 全部搬完才刪
     except OSError as e:
-        snapshot.unlink(missing_ok=True)
-        raise BoardError(f"快照寫入失敗，布告欄未修改：{e}") from e
-    _commit(lines)
-    return ids
+        failed = []
+        for action in reversed(undo):
+            try:
+                action()
+            except OSError as e2:
+                failed.append(str(e2))
+        tail = "；還原也失敗，請手動檢查：" + "; ".join(failed) if failed else "；已還原"
+        raise BoardError(f"歸檔失敗：{e}{tail}") from e
+    return ids, moved
 
 
 def set_scope(goal: str, exclude: str) -> None:
@@ -163,16 +255,56 @@ def set_scope(goal: str, exclude: str) -> None:
     _commit(lines)
 
 
-def add_decision(decision_id: str, summary: str) -> None:
+def _current_version(lines: list[str]) -> str:
+    """「目標與範圍」的「本輪：」第一個版本號。"""
+    start, end = _section_range(lines, "scope")
+    for i in range(start, end):
+        if lines[i].startswith("- 本輪"):
+            m = re.search(r"v\d+\.\d+\.\d+", lines[i])
+            if m:
+                return m.group(0)
+    raise BoardError("「目標與範圍」的「本輪」找不到版本號（vX.Y.Z），請用 --version 指定")
+
+
+def _decision_header(lines: list[str]) -> list[str]:
+    rows = _table_rows(lines, "decisions")
+    return _split_row(lines[rows[0]])
+
+
+def add_decision(decision_id: str, summary: str, version: str | None = None) -> None:
     if not DECISION_ID_RE.match(decision_id):
         raise BoardError(f"決策編號格式要是 D-001，實際是 {decision_id!r}")
+    if version is not None and not VERSION_RE.match(version):
+        raise BoardError(f"版本格式要是 v0.1.0，實際是 {version!r}")
     lines = _read()
     rows = _table_rows(lines, "decisions")
+    if "版本" not in _decision_header(lines):
+        raise BoardError("決策表還沒有「版本」欄；先跑 board.py decision backfill-version")
     if any(_split_row(lines[i])[1] == decision_id for i in rows[2:]):
         raise BoardError(f"{decision_id} 已在布告欄上")
+    version = version or _current_version(lines)
     today = datetime.now(timezone.utc).date().isoformat()
-    lines.insert(rows[-1] + 1, _row([today, decision_id, _cell(summary)]))
+    lines.insert(rows[-1] + 1, _row([today, decision_id, version, _cell(summary)]))
     _commit(lines)
+
+
+def backfill_decision_version() -> int:
+    """一次性：決策表加「版本」欄（日期、編號之後）。D-001～D-032 標 v0.1.0，D-033 起標 v0.2.0。回傳補了幾列。"""
+    lines = _read()
+    rows = _table_rows(lines, "decisions")
+    if "版本" in _split_row(lines[rows[0]]):
+        raise BoardError("決策表已有「版本」欄，不需補欄")
+    new_rows = {rows[0]: _row(["日期", "編號", "版本", "決策"]), rows[1]: "|---|---|---|---|"}
+    for i in rows[2:]:
+        cells = _split_row(lines[i])
+        if len(cells) != 3 or not DECISION_ID_RE.match(cells[1]):
+            raise BoardError(f"第 {i + 1} 行不是「日期｜D-編號｜決策」：{lines[i]}")
+        number = int(cells[1][2:])
+        new_rows[i] = _row([cells[0], cells[1], "v0.1.0" if number <= LEGACY_LAST_V010 else "v0.2.0", cells[2]])
+    for i, text in new_rows.items():
+        lines[i] = text
+    _commit(lines)
+    return len(rows) - 2
 
 
 def update_blocker(text: str, clear: bool) -> None:
@@ -199,8 +331,6 @@ def update_blocker(text: str, clear: bool) -> None:
 def check() -> list[str]:
     problems: list[str] = []
     lines = _read()
-    if len(lines) > MAX_LINES:
-        problems.append(f"共 {len(lines)} 行，超過上限 {MAX_LINES}")
     for key, heading in SECTIONS.items():
         if heading not in lines:
             problems.append(f"缺少區塊：{heading}")
@@ -233,7 +363,9 @@ def main() -> None:
     task_set.add_argument("--owner")
     task_set.add_argument("--evidence")
 
-    task.add_parser("archive").add_argument("version")
+    archive = task.add_parser("archive")
+    archive.add_argument("version")
+    archive.add_argument("alias")
 
     scope = sub.add_parser("scope")
     scope.add_argument("goal")
@@ -243,6 +375,8 @@ def main() -> None:
     decision_add = decision.add_parser("add")
     decision_add.add_argument("decision_id")
     decision_add.add_argument("summary")
+    decision_add.add_argument("--version")
+    decision.add_parser("backfill-version")
 
     blocker = sub.add_parser("blocker")
     blocker.add_argument("action", choices=("add", "clear"))
@@ -254,8 +388,13 @@ def main() -> None:
     exit_code = 0
     try:
         if args.area == "task" and args.action == "archive":
-            ids = archive_done(args.version)
-            print(f"已移除 {len(ids)} 張 done 任務：{', '.join(ids)}" if ids else "沒有 done 的任務可封存（未寫快照）")
+            ids, moved = archive_done(args.version, args.alias)
+            for m in moved:
+                print(f"搬移：{m}")
+            if ids:
+                print(f"已移除 {len(ids)} 張 done 任務：{', '.join(ids)}")
+            elif not moved:
+                print("沒有 done 的任務可封存（未寫快照）")
         elif args.area == "task":
             attempts = set_task(args.task_id, args.status, args.owner, args.evidence)
             if attempts >= MAX_ATTEMPTS and args.status == "qa-fail":
@@ -264,7 +403,10 @@ def main() -> None:
         elif args.area == "scope":
             set_scope(args.goal, args.exclude)
         elif args.area == "decision":
-            add_decision(args.decision_id, args.summary)
+            if args.action == "backfill-version":
+                print(f"已補「版本」欄：{backfill_decision_version()} 列")
+            else:
+                add_decision(args.decision_id, args.summary, args.version)
         elif args.area == "blocker":
             update_blocker(args.text, args.action == "clear")
     except BoardError as e:
