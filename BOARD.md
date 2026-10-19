@@ -84,13 +84,13 @@
 | FIX-09 | backend | done | 0 | PR #84 |
 | DESIGN-04 | architect | done | 1 | PR #83 |
 | CHORE-09 | backend | done | 0 | PR #86 |
-| tenant-id-drop | backend | qa | 0 |  |
+| tenant-id-drop | backend | qa-fail | 1 |  |
 | app-shell-login | frontend | qa | 0 |  |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 
 ## 卡住／待甲方決定
 
-- （無）
+- 甲方指示暫停（2026-10-20）：進行中的 backend（tenant-id-drop 修 .env.example）與 qa（app-shell-login 驗證）跑完後不再派工，等甲方通知再繼續
 
 ## 注意事項（踩過的坑）
 
