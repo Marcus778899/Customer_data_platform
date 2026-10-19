@@ -4,7 +4,7 @@
 
 - 通用規則：`journey-engine.md` §1、§5；憑證與角色：`auth.md` §1、§2
 - 旅程（journey）有一個生命週期狀態；版本（version）發佈後不可變（spec 03 §1）。Enrollment 綁定建立當下的最新版本，之後發佈新版不影響（spec 02 §2）
-- 第二版起發佈一律經管理員審核（D-056）：送審 → 管理員核准才建立版本並上線（§3.2）；可調整的審核規則集中在 §3.3（D-060）
+- 第二版起發佈一律經管理員審核（D-056）：送審 → 管理員核准才建立版本並上線（§3.2）；審核規則集中在 §3.3（D-060、D-061）
 
 ## §1 資料模型
 
@@ -38,10 +38,10 @@
 | | `status` | `ReviewStatus` | `PENDING`（送審中）`APPROVED` `REJECTED` `WITHDRAWN`（撤回，或旅程停止而取消）；後三者為終態 |
 | | `revision` | int \| null | 送審當下的草稿 `revision`（核准的就是這份內容）；§3.3 第 3 列的金鑰紀錄為 `null` |
 | | `base_version` | int \| null | 送審當下的 `latest_version` |
-| | `note` | string \| null | 送審說明，0–500 字 |
+| | `note` | string \| null | 送審說明（選填），≤ 200 字 |
 | | `submitted_by` `submitted_at` | `UserRef` \| null、time | `null` 只出現在 §3.3 第 3 列的金鑰紀錄 |
 | | `decided_by` `decided_at` | `UserRef` \| null、time \| null | `PENDING` 為 `null`；旅程停止造成的 `WITHDRAWN` 為停止者 |
-| | `reason` | string \| null | 退回原因（`REJECTED` 必有）、核准備註（選填）、撤回原因（選填；停止造成者為「旅程已停止」） |
+| | `reason` | string \| null | 退回原因（`REJECTED` 必有）、核准備註（選填）、撤回原因（選填；停止造成者為「旅程已停止」）；使用者輸入者皆 ≤ 200 字 |
 | | `version` | int \| null | `APPROVED` 建立的版本號 |
 
 ## §2 唯讀（第一版）
@@ -97,7 +97,7 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 | `ABORTED` | `409` `JOURNEY_ABORTED`，不建版本 |
 
 - 以上都把 `updated_at` 設為現在；草稿與 `revision` 不變（之後核准的草稿會成為再下一版）；送審中的 `Review` 不受影響
-- 只收管理金鑰（`auth.md` §2）；是否經審核與留紀錄方式見 §3.3 第 3 列
+- 只收管理金鑰（`auth.md` §2）；可否使用與紀錄見 §3.3 第 3 列（D-061）
 
 ### §3.2 審核（D-056；角色見 `auth.md` §2）
 
@@ -105,23 +105,24 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 |---|---|---|---|---|
 | POST | `/api/v1/journeys/{journey_id}/draft/submit` | `{ "revision", "note"? }` | `201` `Review`（`PENDING`）；草稿鎖定 | `400` `VALIDATION_FAILED`（先跑 `validate`，有錯不建立）、`404` `DRAFT_NOT_FOUND`、`409` `DRAFT_CONFLICT`／`REVIEW_PENDING`（已有送審中）／`JOURNEY_ABORTED` |
 | POST | `/api/v1/journeys/{journey_id}/reviews/{review_id}/approve` | `{ "reason"? }` | `200` `Review`（`APPROVED`，含 `version`）；同一交易：以送審的草稿建立新版本、`status` → `ACTIVE`、`latest_version` = 新版本、清除草稿 | `400` `VALIDATION_FAILED`（重驗失敗，維持 `PENDING`）、`403` `SELF_APPROVAL_FORBIDDEN`（§3.3）、`404` `REVIEW_NOT_FOUND`、`409` `REVIEW_NOT_PENDING` |
-| POST | `/api/v1/journeys/{journey_id}/reviews/{review_id}/reject` | `{ "reason" }`（1–500 字，必填） | `200` `Review`（`REJECTED`）；草稿解鎖，內容與 `revision` 不變 | `400`、`404` `REVIEW_NOT_FOUND`、`409` `REVIEW_NOT_PENDING` |
+| POST | `/api/v1/journeys/{journey_id}/reviews/{review_id}/reject` | `{ "reason" }`（1–200 字，必填） | `200` `Review`（`REJECTED`）；草稿解鎖，內容與 `revision` 不變 | `400`、`404` `REVIEW_NOT_FOUND`、`409` `REVIEW_NOT_PENDING` |
 | POST | `/api/v1/journeys/{journey_id}/reviews/{review_id}/withdraw` | `{ "reason"? }` | `200` `Review`（`WITHDRAWN`）；草稿解鎖 | `403` `FORBIDDEN`（非送審者且非 `ADMIN`）、`404` `REVIEW_NOT_FOUND`、`409` `REVIEW_NOT_PENDING` |
-| GET | `/api/v1/journeys/{journey_id}/reviews` | `cursor`、`limit`（1–100，預設 20） | `200` `Page<Review>`，依 `submitted_at` 新到舊（審核紀錄：誰、何時、原因） | `404` `JOURNEY_NOT_FOUND` |
+| GET | `/api/v1/journeys/{journey_id}/reviews` | `cursor`、`limit`（1–100，預設 20） | `200` `Page<Review>`，依 `submitted_at` 新到舊（審核紀錄：誰、何時、原因；停止不在其中，見下） | `404` `JOURNEY_NOT_FOUND` |
 
 - 狀態轉移：草稿（可編輯）—送審→ `PENDING` —核准→ `APPROVED`（新版本上線、草稿清除）／—退回→ `REJECTED`／—撤回→ `WITHDRAWN`；後兩者草稿回到可編輯，修改後再送審建立新的 `Review`
 - 送審期間草稿鎖定（`PUT`／`DELETE` 草稿 → `409` `DRAFT_IN_REVIEW`）；要改內容先撤回。核准的內容一定等於送審時的 `revision`
 - 一個旅程同時最多一筆 `PENDING`（DB 部分唯一索引，spec 07 §12）；核准、退回、撤回以「`status` 仍為 `PENDING`」為條件更新，兩位管理員同時處理時後到者得 `409` `REVIEW_NOT_PENDING`（重新載入）
 - 旅程停止（§3.5）時，送審中的 `Review` 同交易轉 `WITHDRAWN`（`decided_by` = 停止者、`reason` = 「旅程已停止」）
-- 送審、核准、退回、撤回只收 session（紀錄要對得到人）；Bearer 呼叫 → `403` `FORBIDDEN`。審核紀錄不可修改或刪除；使用者停用後紀錄照常保留
+- 憑證限制見 `auth.md` §2；審核紀錄不可修改或刪除；使用者停用後紀錄照常保留
+- 審核紀錄畫面：每筆 `Review` 一列，操作者取 `decided_by`（`PENDING` 取 `submitted_by`；`null` = 管理金鑰），時間取 `decided_at`（`PENDING` 取 `submitted_at`），原因取 `reason`（`PENDING` 取 `note`），版本取 `version`（未核准取 `base_version`）。停止不審核（D-060），不在本 API：前端以 `JourneyDetail` 的 `stopped_by`／`stopped_at`／`stop_reason` 自行併入一列（動作「停止」）；停止造成的 `WITHDRAWN` 照常在本 API
 
-### §3.3 審核規則（D-060 待甲方決定；本節是唯一的差異點，甲方選 B 只改本節與 `auth.md` §2 對應列）
+### §3.3 審核規則（D-060 1A、2A；D-061；審核規則只寫在本節）
 
-| # | 規則 | 本契約採用（建議 A） | 若選 B |
-|---|---|---|---|
-| 1 | 送審者能否核准自己的 `Review` | 不能：`decided_by` = `submitted_by` 的核准 → `403` `SELF_APPROVAL_FORBIDDEN`（退回、撤回不受限）；只有一位啟用中的 `ADMIN` 時，他送審的旅程須等增設第二位管理員才能核准（D-057 開通時建兩位） | 可以：拿掉此檢查與錯誤碼；紀錄照常有 `submitted_by`、`decided_by` |
-| 2 | 哪些動作要審核 | 每次發佈（含已上線旅程發新版）都要（`action` = `PUBLISH`）；停止不審核，`EDITOR` 以上直接停（§3.5），紀錄在 `JourneyDetail.stopped_by`／`stopped_at`／`stop_reason` | 停止也要審核：§3.5 改為建立 `action` = `STOP` 的 `Review`，核准時才執行停止；`ReviewAction` 加 `STOP` |
-| 3 | 管理金鑰經 journey-engine §3.1 直接建立版本（待決定，新） | 保留給維運與 demo-seed，不經審核；同交易寫一筆 `Review`（`APPROVED`、`submitted_by`／`decided_by` = `null`、`reason` = 「管理金鑰直接發佈」）留紀錄 | 金鑰也不可直接發佈：§3.1 第二版起回 `403` `FORBIDDEN`，旅程一律經草稿送審（demo-seed 改用兩個示範管理員送審＋核准） |
+| # | 規則 | 內容 |
+|---|---|---|
+| 1 | 送審者不可核准自己的 `Review`（D-060） | `decided_by` = `submitted_by` 的核准 → `403` `SELF_APPROVAL_FORBIDDEN`（退回、撤回不受限）；只有一位啟用中的 `ADMIN` 時，他送審的旅程須等增設第二位管理員才能核准（D-057 開通時建兩位） |
+| 2 | 每次發佈都要審核，停止不審核（D-060） | 每次發佈（含已上線旅程發新版）`action` = `PUBLISH`；停止由 `EDITOR` 以上直接執行（§3.5），紀錄在 `JourneyDetail.stopped_by`／`stopped_at`／`stop_reason` |
+| 3 | 管理金鑰經 journey-engine §3.1 建立旅程版本（D-061） | 開關 `CDP_ADMIN_KEY_JOURNEY_CREATE`：`true`（預設）= 允許，建立版本的同一交易寫一筆 `Review`（`PUBLISH`、`APPROVED`、`revision`／`submitted_by`／`decided_by` = `null`、`submitted_at` = `decided_at` = 建立時間、`reason` = 「管理金鑰建立」、`version` = 新版本）；`false` = `403` `ADMIN_KEY_JOURNEY_CREATE_DISABLED`，不建版本、不寫紀錄，旅程一律經草稿送審。第二版（BE-08）起生效，第一版不讀此變數 |
 
 ### §3.5 停止 `POST /api/v1/journeys/{journey_id}/stop`
 
@@ -142,6 +143,7 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 
 - 條件樹子集（spec 06 §2～§4）：群組 `op` = `AND` `OR` `NOT`（`NOT` 恰一個子節點），深度 ≤ 5；葉節點只支援 `type: "attribute"`，`field` = 客戶屬性鍵或 `trigger.properties.<鍵>`；`operator` = `EQ` `NEQ` `IN` `NOT_IN` `GT` `GTE` `LT` `LTE` `CONTAINS` `IS_NULL` `IS_NOT_NULL`；`behavior`、`segment` 葉節點 → 驗證錯誤
 - `settings` 支援：`reentry`（spec 03 §3，五種 `mode`；省略 = `UNLIMITED`）；`goal`（`condition` 只支援 `{ "type": "event", "event" }`）；`global_exit`（條件為 `event`〔`since` 只支援 `ENROLLMENT`〕或上列 `attribute` 葉節點）；其他鍵存而不用
+- 條件欄位建議清單 `GET /api/v1/journeys/field-keys?event_name=<名稱>`（選填；角色同 §2）→ `200` `{ "profile_attributes": string[], "event_properties": string[], "as_of" }`：`profile_attributes` = 任取 1000 位客戶的 `attributes` 鍵聯集；`event_properties` = 帶 `event_name` 時該事件最近 1000 筆 `properties` 的鍵聯集（`ix_event_name_time`），未帶為 `[]`；皆字母序。只是建議、不保證完整：前端仍允許手動輸入符合 `^[a-z][a-z0-9_]*$` 的鍵（事件屬性填 `trigger.properties.<鍵>`）；正式欄位字典屬 spec 06（未排期）
 - 迴圈：允許，但每個強連通分量須含 `WaitDelayNode` 或 `WaitForEventNode`（spec 03 §6 規則 7）
 - `EnrollmentStatus` 本版會出現 `GOAL_MET` `EXITED` `ABORTED`；`TraceEntry.out_port` 會出現各節點的出口名
 

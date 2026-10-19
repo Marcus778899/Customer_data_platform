@@ -56,7 +56,7 @@
 - Request：spec 03 §2 頂層結構去掉 `tenant_id`、`version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
 - 規則：`entry_node` 指向唯一的 `StartNode`；`StartNode.outputs.next` 指向 `EventSourceNode`（可為陣列）；每個 `outputs` 目標都存在；無迴圈；每條路徑終於 `EndNode`；`EventSourceNode.config.event_name` 必填、`event_filter`／`profile_filter` 須為 `null` 或省略；`WaitDelayNode.config.duration` 為正的 Duration；`SendMessageNode.config` 需 `template_id`、`channel_id`，`outputs` 需 `sent`（`skipped` 可省略）；`node.name` 可省略
 - 成功 `201`：`{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；同 `journey_id` 再送 = 新版本，進行中的 Enrollment 不受影響
-- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）；v0.2.0 第二版起另有 `409` `JOURNEY_ABORTED`（旅程已停止），旅程列的同步見 `journeys.md` §3.1
+- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）；v0.2.0 第二版起另有 `409` `JOURNEY_ABORTED`（旅程已停止）與 `403` `ADMIN_KEY_JOURNEY_CREATE_DISABLED`（D-061，`journeys.md` §3.3 第 3 列），旅程列的同步見 `journeys.md` §3.1
 
 ### §3.2 事件攝取 `POST /api/v1/events`、`POST /api/v1/events/batch`
 
@@ -183,8 +183,9 @@
 | `409` | `DRAFT_CONFLICT`／`DRAFT_REQUIRED`／`JOURNEY_ABORTED`／`JOURNEY_NOT_PUBLISHED` | 第二版：`journeys.md` §3 | `DRAFT_CONFLICT`：重新載入草稿 |
 | `409` | `DRAFT_IN_REVIEW`／`REVIEW_PENDING`／`REVIEW_NOT_PENDING` | 第二版：`journeys.md` §3.2 審核 | `REVIEW_NOT_PENDING`：重新載入審核紀錄 |
 | `403` | `SELF_APPROVAL_FORBIDDEN` | 第二版：核准自己送審的（`journeys.md` §3.3，D-060） | 請另一位管理員核准 |
+| `403` | `ADMIN_KEY_JOURNEY_CREATE_DISABLED` | 第二版：`CDP_ADMIN_KEY_JOURNEY_CREATE` = `false` 時以管理金鑰呼叫 §3.1（`journeys.md` §3.3 第 3 列，D-061） | 改經草稿送審 |
 | `404` | `REVIEW_NOT_FOUND` | 第二版：`journeys.md` §3.2 | 這筆資料不存在 |
-| `429` | `LOGIN_RATE_LIMITED` | v0.2.0：登入失敗達上限（`auth.md` §3）；回應帶 `Retry-After` | 顯示稍後再試，不自動重試 |
+| `429` | `LOGIN_RATE_LIMITED` | v0.2.0：登入失敗達上限（`auth.md` §3）；回應帶 `Retry-After` | 顯示稍後再試，不自動重試；`Retry-After` 可直接讀（同源，不受 CORS 暴露標頭限制；dev proxy 與部署的反向代理須原樣轉送） |
 | `405` | `METHOD_NOT_ALLOWED` | 路由存在、方法不符；回應帶 `Allow` 標頭 | — |
 | `406` | `NOT_ACCEPTABLE` | `Accept` 不接受 `application/json` | — |
 | `413` | `PAYLOAD_TOO_LARGE` | 保留：請求大小上限未定案前不會出現 | — |

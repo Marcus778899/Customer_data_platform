@@ -23,6 +23,8 @@
 | | `masked_paths` | string[] | 例 `attributes.birthday`、`identifiers[0].value` |
 | | `as_of` | time | |
 
+- 顯示名稱：沒有專用欄位；約定屬性鍵 `name`。客戶頁標題：`attributes.name` 存在且不在 `masked_paths` → 用它；否則用 `profile_id`（識別碼照常以遮罩值列在下方）。資料來源要讓名稱可顯示，須寫入 `name` 且甲方把 `name` 列入 `CDP_TRACE_PLAIN_KEYS`
+
 ### §1.1 識別碼正規化（寫入與搜尋共用）
 
 | `type` | 規則 | 不合法 |
