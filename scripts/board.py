@@ -3,7 +3,8 @@
 用法：
     board.py scope "<本輪目標>" "<不做>"
     board.py task set <task_id> <status> [--owner <agent>] [--evidence "<驗收證據>"]
-    board.py task archive <vX.Y.Z>                  # 整份 BOARD.md 快照到 tasks/job_history/<版本>.md，再移除所有 done 的列
+    board.py task archive <vX.Y.Z> <代稱>           # BOARD.md 快照到 tasks/<版本>/<代稱>.md，已合併／作廢的派工單與 release-<版本>.json
+                                                    # 搬進 tasks/<版本>/，再移除所有 done 的列（D-039、D-040）
     board.py decision add <D-編號> "<一行摘要>"     # 細節寫在 docs/decisions.md
     board.py blocker add|clear "<卡點>"
     board.py check
@@ -12,13 +13,17 @@ status：todo / in-progress / qa / qa-fail / review / blocked / done（done = PR
 - done 必須附 --evidence
 - qa-fail 會讓「嘗試」+1；達 MAX_ATTEMPTS 時 exit 3，提醒 manager 停下來上報甲方
 
-環境變數（測試用）：BOARD_FILE 指定 BOARD.md 路徑；JOB_HISTORY_DIR 指定快照目錄
-（預設為專案根目錄的 BOARD.md 與 tasks/job_history/）
+代稱：小寫英數與 -（例：engine-ignition）。若舊的 tasks/job_history/<版本>.md 存在，
+改用它當快照（搬到 tasks/<版本>/<代稱>.md），不改 BOARD.md；job_history/ 空了就刪除。
+
+環境變數（測試用）：BOARD_FILE 指定 BOARD.md 路徑；TASKS_DIR 指定 tasks 目錄
+（預設為專案根目錄的 BOARD.md 與 tasks/）
 
 exit code：0 成功；1 參數或格式錯誤；3 重試達上限
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -26,8 +31,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BOARD_PATH = Path(os.environ.get("BOARD_FILE") or Path(__file__).resolve().parent.parent / "BOARD.md")
-JOB_HISTORY_DIR = Path(os.environ.get("JOB_HISTORY_DIR") or Path(__file__).resolve().parent.parent / "tasks" / "job_history")
+TASKS_PATH = Path(os.environ.get("TASKS_DIR") or Path(__file__).resolve().parent.parent / "tasks")
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
+ALIAS_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_LINES = 80
 MAX_ATTEMPTS = 3
 STATUSES = ("todo", "in-progress", "qa", "qa-fail", "review", "blocked", "done")
@@ -126,34 +132,77 @@ def set_task(task_id: str, status: str, owner: str | None, evidence: str | None)
     return attempts
 
 
-def archive_done(version: str) -> list[str]:
-    """先把整份 BOARD.md 快照到 job_history/<版本>.md，再移除「任務狀態」表中所有 done 的列，回傳被移除的任務 ID。"""
+def _archivable_files(version: str) -> list[Path]:
+    """tasks/ 根目錄中 meta 為已合併或已作廢的 <id>.md、<id>.meta.json，加上 release-<版本>.json。"""
+    files: list[Path] = []
+    for meta_file in sorted(TASKS_PATH.glob("*.meta.json")):
+        try:
+            meta = json.loads(meta_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            raise BoardError(f"無法讀取 {meta_file.name}：{e}") from e
+        if meta.get("merged") or meta.get("cancelled"):
+            card = meta_file.with_name(meta_file.name[: -len(".meta.json")] + ".md")
+            files.extend(f for f in (card, meta_file) if f.exists())
+    release = TASKS_PATH / f"release-{version}.json"
+    if release.exists():
+        files.append(release)
+    return files
+
+
+def archive_done(version: str, alias: str) -> tuple[list[str], list[str]]:
+    """快照到 tasks/<版本>/<代稱>.md、搬移已合併／作廢的派工單，再移除 done 的列。回傳（被移除的任務 ID，搬移的檔名）。"""
     if not VERSION_RE.match(version):
         raise BoardError(f"版本格式要是 v0.1.0，實際是 {version!r}")
-    snapshot = JOB_HISTORY_DIR / f"{version}.md"
+    if not ALIAS_RE.match(alias):
+        raise BoardError(f"代稱只能用小寫英數與 -（例：engine-ignition），實際是 {alias!r}")
+    dest_dir = TASKS_PATH / version
+    snapshot = dest_dir / f"{alias}.md"
     if snapshot.exists():
         raise BoardError(f"{snapshot} 已存在，拒絕覆寫")
+    legacy_dir = TASKS_PATH / "job_history"
+    legacy = legacy_dir / f"{version}.md"
+    files = _archivable_files(version)
+    clash = [f.name for f in files if (dest_dir / f.name).exists()]
+    if clash:
+        raise BoardError(f"{dest_dir} 已有同名檔案，拒絕覆寫：{', '.join(clash)}")
+
     original = BOARD_PATH.read_text(encoding="utf-8")
     lines = original.splitlines()
     rows = _table_rows(lines, "tasks")
     done = [i for i in rows[2:] if _split_row(lines[i])[2] == "done"]
     ids = [_split_row(lines[i])[0] for i in done]
-    if not done:
-        return ids
-    for i in reversed(done):
-        del lines[i]
-    if len(lines) > MAX_LINES:
-        raise BoardError(f"寫入後會有 {len(lines)} 行，超過上限 {MAX_LINES}")
-    today = datetime.now(timezone.utc).date().isoformat()
+    migrate = legacy.exists()
+    if migrate:
+        ids = []  # 遷移：快照早已存在，不改 BOARD.md
+    elif not done:
+        return ids, []
+    else:
+        for i in reversed(done):
+            del lines[i]
+        if len(lines) > MAX_LINES:
+            raise BoardError(f"寫入後會有 {len(lines)} 行，超過上限 {MAX_LINES}")
+
+    moved: list[str] = []
     try:
-        JOB_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-        with open(snapshot, "x", encoding="utf-8") as f:  # x：不覆寫
-            f.write(f"<!-- 封存 {version}，{today} -->\n{original}")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        if migrate:
+            legacy.rename(snapshot)
+            moved.append(f"job_history/{legacy.name} -> {version}/{snapshot.name}")
+            if not any(legacy_dir.iterdir()):
+                legacy_dir.rmdir()
+        else:
+            today = datetime.now(timezone.utc).date().isoformat()
+            with open(snapshot, "x", encoding="utf-8") as f:  # x：不覆寫
+                f.write(f"<!-- 封存 {version}，{today} -->\n{original}")
+            moved.append(f"BOARD.md -> {version}/{snapshot.name}（快照）")
+        for f in files:
+            f.rename(dest_dir / f.name)
+            moved.append(f"{f.name} -> {version}/")
     except OSError as e:
-        snapshot.unlink(missing_ok=True)
-        raise BoardError(f"快照寫入失敗，布告欄未修改：{e}") from e
-    _commit(lines)
-    return ids
+        raise BoardError(f"歸檔失敗（已處理：{'; '.join(moved) or '無'}）：{e}") from e
+    if not migrate:
+        _commit(lines)
+    return ids, moved
 
 
 def set_scope(goal: str, exclude: str) -> None:
@@ -233,7 +282,9 @@ def main() -> None:
     task_set.add_argument("--owner")
     task_set.add_argument("--evidence")
 
-    task.add_parser("archive").add_argument("version")
+    archive = task.add_parser("archive")
+    archive.add_argument("version")
+    archive.add_argument("alias")
 
     scope = sub.add_parser("scope")
     scope.add_argument("goal")
@@ -254,8 +305,13 @@ def main() -> None:
     exit_code = 0
     try:
         if args.area == "task" and args.action == "archive":
-            ids = archive_done(args.version)
-            print(f"已移除 {len(ids)} 張 done 任務：{', '.join(ids)}" if ids else "沒有 done 的任務可封存（未寫快照）")
+            ids, moved = archive_done(args.version, args.alias)
+            for m in moved:
+                print(f"搬移：{m}")
+            if ids:
+                print(f"已移除 {len(ids)} 張 done 任務：{', '.join(ids)}")
+            elif not moved:
+                print("沒有 done 的任務可封存（未寫快照）")
         elif args.area == "task":
             attempts = set_task(args.task_id, args.status, args.owner, args.evidence)
             if attempts >= MAX_ATTEMPTS and args.status == "qa-fail":

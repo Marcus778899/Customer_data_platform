@@ -1,6 +1,7 @@
 .env
 .worktrees/
-tasks/
+tasks/*
+!tasks/v[0-9]*/
 reports/
 .hooklog/
 .venv
