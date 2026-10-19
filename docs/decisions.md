@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-064 CDP_TENANT_ID 暫時保留在 .env
+- 決定：A。甲方已把 `CDP_TENANT_ID` 填回 `.env`，REFACTOR-01 合併後再刪（manager 屆時提醒）
+- 理由：develop 程式與開單檢查在 REFACTOR-01 合併前仍需要這個值
+- 影響：無設計變更
+- 日期：2026-10-19
+
 ### D-063 v0.2.0 從 schema 移除 tenant_id
 - 決定：B。新增一支 migration 拿掉 7 張表的 `tenant_id`、重建 `event` PK 與相關索引；程式、spec 04 介面、契約、spec 一併清掉；廢除 `CDP_TENANT_ID`；v0.2.0 新表（profile、profile_identifier、journey 等）不帶 `tenant_id`
 - 理由：D-051 已定一家一套環境，固定值欄位沒有意義；越晚清要改的表越多
