@@ -4,8 +4,8 @@
 
 ## 目標與範圍
 
-- 本輪：v0.2.0：分支節點（WaitForEvent/Condition/SplitTest/Exit）、G1、G3、版本綁定、RLS、最小 ProfileStore；產品外框（導覽＋分頁、受眾佔位）、旅程列表與畫布、客戶搜尋→客戶頁→圖形軌跡、租戶使用者登入；relay／迴圈改寫與壓測（D-018、D-033～D-038）
-- 不做：受眾實作（v0.4.0）、真實通道、Redis、CDC；範圍過大時由設計提出拆版
+- 本輪：v0.2.0（單一租戶，D-051）：分支節點（WaitForEvent/Condition/SplitTest/Exit）、G1、G3、版本綁定、最小 ProfileStore；產品外框（導覽＋分頁、受眾佔位）、旅程列表與畫布、客戶搜尋→客戶頁→圖形軌跡、使用者登入；relay／迴圈改寫與壓測（D-018、D-033～D-038）
+- 不做：不做：多租戶與 RLS（D-051）、資料來源實際串接（D-052）、受眾實作、真實通道、Redis、CDC；範圍過大時由設計提出拆版
 
 ## 已定案決策（細節見 docs/decisions.md；要改先問甲方）
 
@@ -51,20 +51,23 @@
 | 2026-10-18 | D-038 | v0.2.0 不設流量目標，先壓測 |
 | 2026-10-19 | D-039 | 版本封存進 git，不再 ignore |
 | 2026-10-19 | D-040 | 已發版派工單歸檔到 tasks/<版本>/，含版本代稱快照 |
+| 2026-10-19 | D-051 | 代管、每家客戶一套單一租戶環境，主打資料整合 |
+| 2026-10-19 | D-052 | 資料來源串接延後；整合以 PostgreSQL 解耦（含 ETL） |
 
 ## 任務狀態
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | in-progress | 0 |  |
-| UI-03 | designer | review | 0 |  |
+| DESIGN-03 | architect | blocked | 0 |  |
+| UI-03 | designer | blocked | 0 |  |
 | CHORE-07 | backend | qa | 0 |  |
 | FIX-09 | backend | in-progress | 0 |  |
+| DESIGN-04 | architect | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
-- 待甲方決定 D-041～D-050（v0.2.0 拆版與設計細節）
+- DESIGN-03、UI-03 依 D-051 改單一租戶；D-045～D-050 仍待甲方決定
 
 ## 注意事項（踩過的坑）
 
