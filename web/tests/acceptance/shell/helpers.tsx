@@ -158,3 +158,12 @@ export function announced(el: Element): string {
   clone.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove())
   return (clone.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
+
+/** 外框帳號區的「登出」（桌面側欄與窄螢幕選單各有一份，jsdom 不套 CSS，兩份都在；取第一個可點的） */
+export function logoutControl(): HTMLElement {
+  const els = [...document.querySelectorAll<HTMLElement>('button, a, [role="button"], [role="link"]')].filter(
+    (e) => e.textContent?.trim() === '登出',
+  )
+  if (!els.length) throw new Error('找不到「登出」（應在外框帳號區）')
+  return els[0]
+}

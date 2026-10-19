@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * FIX-06 驗收測試（qa 撰寫，worker 不可改）。攔截全域 fetch，寫法同 integration 測試。
- * 文案依 docs/ui/enrollment-trace.md：逾時「登入已逾時，請重新登入」；401「帳號或密碼不正確」。
+ * 文案依 docs/ui/enrollment-trace.md：逾時「登入已逾時，請重新登入」；401「Email 或密碼不正確。」。
  *
  * 對 worker 的假設：
  *   - 進入點為 `web/src/App.tsx` 具名匯出 `App`；請求路徑與契約同 integration 測試。
@@ -13,9 +13,10 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../../../src/App'
+import { AMY, logoutControl } from '../shell/helpers'
 
 const EXPIRED = '登入已逾時，請重新登入'
-const BAD_CRED = '帳號或密碼不正確'
+const BAD_CRED = 'Email 或密碼不正確。'
 const PID = '01JCXYZPROFILE00000000001'
 const EID = '01JCXYZENROLL000000000001'
 
@@ -45,11 +46,11 @@ const detail = () => ({
 
 function install(state: State, extra: Record<string, Handler> = {}) {
   const routes: Record<string, Handler> = {
-    'GET /api/v1/auth/me': () => (state.me ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+    'GET /api/v1/auth/me': () => (state.me ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
     'GET /api/v1/enrollments': () =>
       state.list ? json({ items: [summary()], next_cursor: null }) : problem(401, 'UNAUTHENTICATED'),
     'POST /api/v1/auth/login': () => {
-      if (!state.loginOk) return problem(401, 'UNAUTHENTICATED')
+      if (!state.loginOk) return problem(401, 'INVALID_CREDENTIALS')
       state.me = true
       state.list = true
       return empty()
@@ -99,7 +100,7 @@ async function expireSession(state: State) {
   state.list = false
   state.me = false
   await user.click(screen.getByRole('button', { name: '查詢' }))
-  await screen.findByLabelText('帳號')
+  await screen.findByLabelText('Email')
   return user
 }
 
@@ -128,7 +129,7 @@ describe('session 逾時提示', () => {
     const state = { me: true, list: true, loginOk: true }
     install(state)
     const user = await expireSession(state)
-    await user.type(screen.getByLabelText('帳號'), 'support01')
+    await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
@@ -150,11 +151,11 @@ describe('session 逾時提示', () => {
     detailOk = false
     state.me = false
     await user.click(screen.getAllByRole('link').find((a) => a.getAttribute('href')?.includes(EID)) as HTMLElement)
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
     expect(text()).toContain(EXPIRED)
     detailOk = true
-    await user.type(screen.getByLabelText('帳號'), 'support01')
+    await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(window.location.pathname).toBe(`/enrollments/${EID}`))
@@ -166,7 +167,7 @@ describe('不應顯示逾時提示的情境', () => {
   it('未登入直接進站（/me 401）→ 導向 /login，不顯示逾時提示', async () => {
     install({ me: false, list: false, loginOk: true })
     start('/')
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
     expect(text()).not.toContain(EXPIRED)
   })
@@ -174,29 +175,29 @@ describe('不應顯示逾時提示的情境', () => {
   it('未登入帶 ?q= 進站 → 不顯示逾時提示', async () => {
     install({ me: false, list: false, loginOk: true })
     start(`/?q=${PID}`)
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 
   it('直接開 /login → 不顯示逾時提示', async () => {
     install({ me: false, list: false, loginOk: true })
     start('/login')
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 
   it('直接開 /login?next=… 且尚未登入 → 不顯示逾時提示（不能只靠網址參數判斷）', async () => {
     install({ me: false, list: false, loginOk: true })
     start(`/login?next=${encodeURIComponent('/?q=' + PID)}`)
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 
-  it('未登入進站 → 登入失敗 → 只有「帳號或密碼不正確」，無逾時提示', async () => {
+  it('未登入進站 → 登入失敗 → 只有「Email 或密碼不正確」，無逾時提示', async () => {
     install({ me: false, list: false, loginOk: false })
     const user = userEvent.setup()
     start('/login')
-    await user.type(await screen.findByLabelText('帳號'), 'u')
+    await user.type(await screen.findByLabelText('Email'), 'u')
     await user.type(screen.getByLabelText('密碼'), 'p')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(text()).toContain(BAD_CRED))
@@ -213,21 +214,21 @@ describe('不應顯示逾時提示的情境', () => {
     })
     const user = userEvent.setup()
     start('/')
-    await screen.findByText('support01')
-    await user.click(screen.getByRole('button', { name: '登出' }))
-    await screen.findByLabelText('帳號')
+    await waitFor(() => expect(text()).toContain('已登入：陳小美'))
+    await user.click(logoutControl())
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 })
 
 describe('逾時提示與登入錯誤訊息互斥', () => {
-  it('逾時後輸入錯誤密碼：顯示「帳號或密碼不正確」，逾時提示消失，兩者不同時出現', async () => {
+  it('逾時後輸入錯誤密碼：顯示「Email 或密碼不正確」，逾時提示消失，兩者不同時出現', async () => {
     const state = { me: true, list: true, loginOk: false }
     install(state)
     const user = await expireSession(state)
     expect(text()).toContain(EXPIRED)
     expect(text()).not.toContain(BAD_CRED)
-    await user.type(screen.getByLabelText('帳號'), 'support01')
+    await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'wrong')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(text()).toContain(BAD_CRED))
@@ -238,7 +239,7 @@ describe('逾時提示與登入錯誤訊息互斥', () => {
     const state = { me: true, list: true, loginOk: false }
     install(state)
     const user = await expireSession(state)
-    await user.type(screen.getByLabelText('帳號'), 'support01')
+    await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'wrong')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(text()).toContain(BAD_CRED))
@@ -251,11 +252,11 @@ describe('逾時提示與登入錯誤訊息互斥', () => {
     expect(text()).not.toContain(EXPIRED)
   })
 
-  it('逾時後登入遇 5xx：顯示 request_id，逾時提示與「帳號或密碼不正確」都不出現', async () => {
+  it('逾時後登入遇 5xx：顯示 request_id，逾時提示與「Email 或密碼不正確」都不出現', async () => {
     const state = { me: true, list: true, loginOk: true }
     install(state, { 'POST /api/v1/auth/login': () => problem(500, 'INTERNAL_ERROR') })
     const user = await expireSession(state)
-    await user.type(screen.getByLabelText('帳號'), 'support01')
+    await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(text()).toContain('REQ-INTERNAL_ERROR'))
@@ -265,7 +266,7 @@ describe('逾時提示與登入錯誤訊息互斥', () => {
 })
 
 describe('重新載入後的逾時提示（追加 1）', () => {
-  const USER = 'support01'
+  const USER = 'amy.chen@example.com'
   const PW = 'S3cretPw!x'
   const COOKIE = 'SESSIONCOOKIEVALUE98765'
 
@@ -278,11 +279,11 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
     expect(text()).toContain(EXPIRED)
     expect(text()).not.toContain(BAD_CRED)
-    await user.type(screen.getByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('Email'), USER)
     await user.type(screen.getByLabelText('密碼'), PW)
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
@@ -296,14 +297,14 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     install(state)
     const user = userEvent.setup()
     start('/login')
-    await user.type(await screen.findByLabelText('帳號'), USER)
+    await user.type(await screen.findByLabelText('Email'), USER)
     await user.type(screen.getByLabelText('密碼'), PW)
     await user.click(screen.getByRole('button', { name: '登入' }))
-    await screen.findByText(USER)
+    await waitFor(() => expect(text()).toContain('已登入：陳小美'))
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).toContain(EXPIRED)
   })
 
@@ -316,9 +317,9 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).toContain(EXPIRED)
-    await user.type(screen.getByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('Email'), USER)
     await user.type(screen.getByLabelText('密碼'), PW)
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(window.location.pathname).toBe(`/enrollments/${EID}`))
@@ -328,12 +329,12 @@ describe('重新載入後的逾時提示（追加 1）', () => {
   it('從未登入過，重新載入 /me 401 → 不顯示逾時提示', async () => {
     install({ me: false, list: false, loginOk: true })
     start(`/?q=${PID}`)
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 
@@ -348,14 +349,14 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     })
     const user = userEvent.setup()
     start('/')
-    await screen.findByText(USER)
-    await user.click(screen.getByRole('button', { name: '登出' }))
-    await screen.findByLabelText('帳號')
+    await waitFor(() => expect(text()).toContain('已登入：陳小美'))
+    await user.click(logoutControl())
+    await screen.findByLabelText('Email')
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 
@@ -363,18 +364,18 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     const state = { me: true, list: true, loginOk: true }
     install(state)
     start('/')
-    await screen.findByText(USER)
+    await waitFor(() => expect(text()).toContain('已登入：陳小美'))
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).toContain(EXPIRED)
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
     window.history.pushState({}, '', '/login')
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).not.toContain(EXPIRED)
   })
 
@@ -387,9 +388,9 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).toContain(EXPIRED)
-    await user.type(screen.getByLabelText('帳號'), USER)
+    await user.type(screen.getByLabelText('Email'), USER)
     await user.type(screen.getByLabelText('密碼'), PW)
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
@@ -397,7 +398,7 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).toContain(EXPIRED)
   })
 
@@ -407,10 +408,10 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     install(state)
     const user = userEvent.setup()
     start('/login')
-    await user.type(await screen.findByLabelText('帳號'), USER)
+    await user.type(await screen.findByLabelText('Email'), USER)
     await user.type(screen.getByLabelText('密碼'), PW)
     await user.click(screen.getByRole('button', { name: '登入' }))
-    await screen.findByText(USER)
+    await waitFor(() => expect(text()).toContain('已登入：陳小美'))
     const check = () => {
       for (const v of storageDump()) {
         expect(v).not.toContain(USER)
@@ -422,7 +423,7 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     state.me = false
     state.list = false
     reload()
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(text()).toContain(EXPIRED)
     check()
   })
