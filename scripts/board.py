@@ -4,7 +4,8 @@
 用法：
     board.py scope "<本輪目標>" "<不做>"
     board.py task set <task_id> <status> [--owner <agent>] [--evidence "<驗收證據>"]
-    board.py decision add <D-編號> "<一行摘要>"     # 細節寫在 docs/decisions.md
+    board.py decision add <D-編號> "<一行摘要>" [--version vX.Y.Z]   # 細節寫在 docs/decisions.md；
+                                                    # 未指定版本取「目標與範圍」本輪的版本號
     board.py blocker add|clear "<卡點>"
     board.py archive <tag>                          # 階段完成：BOARD.md → tasks/<tag>.md，派工單、meta、回報 → tasks/<tag>/
     board.py check
@@ -21,15 +22,22 @@ exit code：0 成功；1 參數或格式錯誤；3 重試達上限
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
 
 from _common import REPORTS_DIR, ROOT, TASKS_DIR
 
-BOARD_PATH = ROOT / "BOARD.md"
+BOARD_PATH = Path(os.environ.get("BOARD_FILE") or ROOT / "BOARD.md")  # BOARD_FILE：測試用
 MAX_ATTEMPTS = 3
+VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 ARCHIVE_TAG_RE = re.compile(r"^[A-Za-z0-9][\w.-]*$")
 PREVIOUS_PREFIX = "> 上一階段："
 STATUSES = ("todo", "in-progress", "qa", "qa-fail", "review", "blocked", "done")
@@ -132,15 +140,31 @@ def set_scope(goal: str, exclude: str) -> None:
     _commit(lines)
 
 
-def add_decision(decision_id: str, summary: str) -> None:
+def _current_version(lines: list[str]) -> str:
+    """「目標與範圍」的「本輪：」第一個版本號。"""
+    start, end = _section_range(lines, "scope")
+    for i in range(start, end):
+        if lines[i].startswith("- 本輪"):
+            m = re.search(r"v\d+\.\d+\.\d+", lines[i])
+            if m:
+                return m.group(0)
+    raise BoardError("「目標與範圍」的「本輪」找不到版本號（vX.Y.Z），請用 --version 指定")
+
+
+def add_decision(decision_id: str, summary: str, version: str | None = None) -> None:
     if not DECISION_ID_RE.match(decision_id):
         raise BoardError(f"決策編號格式要是 D-001，實際是 {decision_id!r}")
+    if version is not None and not VERSION_RE.match(version):
+        raise BoardError(f"版本格式要是 v0.1.0，實際是 {version!r}")
     lines = _read()
     rows = _table_rows(lines, "decisions")
+    if _split_row(lines[rows[0]]) != ["日期", "編號", "版本", "決策"]:
+        raise BoardError("決策表表頭不是「日期｜編號｜版本｜決策」")
     if any(_split_row(lines[i])[1] == decision_id for i in rows[2:]):
         raise BoardError(f"{decision_id} 已在布告欄上")
+    version = version or _current_version(lines)
     today = datetime.now(timezone.utc).date().isoformat()
-    lines.insert(rows[-1] + 1, _row([today, decision_id, _cell(summary)]))
+    lines.insert(rows[-1] + 1, _row([today, decision_id, version, _cell(summary)]))
     _commit(lines)
 
 
@@ -258,6 +282,7 @@ def main() -> None:
     decision_add = decision.add_parser("add")
     decision_add.add_argument("decision_id")
     decision_add.add_argument("summary")
+    decision_add.add_argument("--version")
 
     blocker = sub.add_parser("blocker")
     blocker.add_argument("action", choices=("add", "clear"))
@@ -278,7 +303,7 @@ def main() -> None:
         elif args.area == "scope":
             set_scope(args.goal, args.exclude)
         elif args.area == "decision":
-            add_decision(args.decision_id, args.summary)
+            add_decision(args.decision_id, args.summary, args.version)
         elif args.area == "blocker":
             update_blocker(args.text, args.action == "clear")
         elif args.area == "archive":
