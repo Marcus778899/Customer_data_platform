@@ -103,7 +103,7 @@ NodeResult execute(NodeContext context);
 
 | 欄位 | 型別 | 說明 |
 |---|---|---|
-| `tenantId` | `String` (ULID) | **所有實體必帶**，所有查詢必過濾 |
+| `tenantId` | `String` (ULID) | **所有實體必帶**，所有查詢必過濾；例外：D-052 整合介面表（`docs/design/DESIGN-03.md` 做法 #1） |
 | `profileId` | `String` (ULID) | 客戶單一視圖識別碼 |
 | 其餘 id | `String` (ULID) | 排序友善、可讀性優於 UUID |
 
@@ -116,12 +116,12 @@ NodeResult execute(NodeContext context);
 
 ### 多租戶
 
-- 資料庫層開啟 **PostgreSQL Row Level Security**，以 session 變數 `app.tenant_id` 為準
+> **D-051（2026-10-19）起產品為單一租戶**：本節與下一小節（RLS、`journey_engine`、雙連線池）移出 v0.2.0、不排期，保留為回到多租戶時的做法；各表 `tenant_id` 欄位照舊保留（`docs/design/DESIGN-03.md` 做法 #1）。
+
+- 回到多租戶時：資料庫層開啟 **PostgreSQL Row Level Security**，以 session 變數 `app.tenant_id` 為準
 - 應用層仍要帶 `tenantId`，RLS 是最後一道防線不是唯一一道
 
 #### RLS 的唯一例外：`journey_engine`
-
-> **D-051（2026-10-19）起產品為單一租戶**：本節（RLS、`journey_engine`、雙連線池）移出 v0.2.0、不排期，保留為回到多租戶時的做法；各表 `tenant_id` 欄位照舊保留（`docs/design/DESIGN-03.md` 做法 #1）。
 
 推進迴圈的 `StateStore.lockDue(now, limit)` **必須跨租戶掃描**——它的工作就是找出「所有到期的 Enrollment」，沒有 `tenantId` 可帶。RLS 開著時這個查詢回傳空集合，計時器一則都推不動。
 

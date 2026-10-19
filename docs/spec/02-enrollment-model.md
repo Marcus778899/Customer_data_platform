@@ -351,7 +351,8 @@ CREATE INDEX ix_enrollment_journey_active
   ON enrollment (tenant_id, journey_id)
   WHERE terminated_at IS NULL;
 
-ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY;
+-- D-051 起單一租戶：RLS 不排期，回到多租戶時才加，且須與 policy 同一支 migration（07 §2）
+-- ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY;
 ```
 
 > `next_wake_at` 出現在資料表是允許的，出現在 `EnrollmentState` 或 `JourneyRuntime` 介面則是違規。

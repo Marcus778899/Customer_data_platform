@@ -62,13 +62,15 @@
 
 | 欄位 | 規則 |
 |---|---|
-| `tenant_id TEXT NOT NULL` | README 共通約定「所有實體必帶」。**RLS 排到 Phase 1b，但欄位現在就要有**——事後加欄位要回填所有歷史資料 |
+| `tenant_id TEXT NOT NULL` | README 共通約定「所有實體必帶」。**RLS 回到多租戶時才做（D-051 後不排期），但欄位現在就要有**——事後加欄位要回填所有歷史資料；D-052 整合介面表例外（`docs/design/DESIGN-03.md` 做法 #1） |
 
 ### RLS 的現況
 
-`02` §9 的 DDL 結尾有 `ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY`，**Phase 0 先不要下這行**。
+> D-051（2026-10-19）起單一租戶：RLS 不排期，本節為回到多租戶時的規則。
 
-開了 RLS 卻沒有對應的 `POLICY` 時，Postgres 的預設行為是**全部拒絕**——所有查詢回空集合，且不報錯。`ENABLE` 與 policy 必須同一個 migration 一起上，排在 Phase 1b。
+`02` §9 的 DDL 結尾的 `ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY` 已註解，**回到多租戶前不要下這行**。
+
+開了 RLS 卻沒有對應的 `POLICY` 時，Postgres 的預設行為是**全部拒絕**——所有查詢回空集合，且不報錯。`ENABLE` 與 policy 必須同一個 migration 一起上；D-051 後不排期，回到多租戶時才上。
 
 `journey_engine` role 與 RLS、policy 原排 v0.2.0（`docs/design/INIT-01.md` R2）；D-051 改為單一租戶後不排期，`tenant_id` 欄位照舊保留（`docs/design/DESIGN-03.md` 做法 #1）。
 
@@ -335,7 +337,7 @@ PRIMARY KEY (tenant_id, event_id)
 | 1 | 表名 `enrollment` 還是 `enrollment_record` | **`enrollment_record`** | 貼合「實作層 Record」的命名意圖，與契約層 `EnrollmentState` 一眼可辨。`02` §9 的 DDL 待同步修正 |
 | 2 | `journey_definition` 主鍵 | **`(journey_id, version)`** | 版本並存是硬需求，見 §3 |
 | 3 | `created_at` / `published_at` 契約沒列，要不要加 | **要加** | 「草稿不佔版本、發布時才配版本號」必須答得出「v2 何時發布」。事後補要回填 |
-| 4 | Phase 0 要不要開 RLS | **不開** | 有 `ENABLE` 沒 `POLICY` = 全部拒絕且不報錯。與 policy 一起排 Phase 1b |
+| 4 | Phase 0 要不要開 RLS | **不開** | 有 `ENABLE` 沒 `POLICY` = 全部拒絕且不報錯。D-051 後不排期；回到多租戶時與 policy 一起上 |
 | 5 | enum 用 Postgres `ENUM` 還是 `TEXT` | **`TEXT`** | `ALTER TYPE` 跨 migration 很痛，狀態機還會演進 |
 | 6 | 要不要加外鍵 | **不加** | `node_trace` 每次節點推進都寫，外鍵檢查在熱路徑上；且 `enrollment_record → journey_definition` 的複合外鍵會擋住旅程封存。完整性靠應用層與單一交易 |
 | 7 | `CREATE TABLE IF NOT EXISTS` | **不用** | Flyway 靠 `flyway_schema_history` 保證只跑一次。`IF NOT EXISTS` 會讓「表已存在但結構不同」靜默通過，得到一個與 migration 不符的 schema 卻沒有任何錯誤 |

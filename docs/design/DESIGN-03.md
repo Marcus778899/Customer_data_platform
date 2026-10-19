@@ -1,7 +1,7 @@
 # 設計：v0.2.0 登入與角色、客戶、分支引擎、畫布與 relay 改寫（DESIGN-03，單一租戶改版）
 - 契約：`docs/contracts/auth.md`、`profiles.md`、`journeys.md`（新）；`journey-engine.md`（§4 瀏覽、§4.5 圖形軌跡、§5 新錯誤碼）；表見 spec 07 §12；G3、喚醒見 spec 02 §4、§6「落地」；SplitTest、驗證、global_exit 見 spec 03；停止見 spec 05 §5「落地」；外部 review 見 #72（D-036～D-038）；代管單一租戶與整合入口見 D-051、D-052、DESIGN-04；`J`、`T` 同 DESIGN-01
 
-## 拆版提案（待決定 1；單數 = 「派工順序」表的單號數，qa 單與 a／b 各算一張，不含 UI-03）
+## 拆版提案（D-055；單數 = 「派工順序」表的單號數，qa 單與 a／b 各算一張，不含 UI-03）
 | 方案 | 第一版（v0.2.0） | 第二版（v0.3.0） | 單數 |
 |---|---|---|---|
 | **A（建議）** | relay／迴圈改寫＋壓測、使用者登入與角色、ProfileStore＋客戶搜尋＋客戶頁、外框分頁＋受眾佔位、旅程列表（唯讀）、最近 Enrollment 瀏覽（D-030）、圖形軌跡（直線旅程） | 旅程生命週期（草稿、發佈、停止）、畫布（D-018）、分支節點＋goal／global_exit、G1、G3、分支與循環軌跡、節點統計 | 12＋8 |
@@ -12,7 +12,7 @@
 ## 做法
 | # | 決策 | 理由 |
 |---|---|---|
-| 1 | 單一租戶（D-051）：**保留**所有表的 `tenant_id` 欄位與以它開頭的 PK／索引，值一律 `CDP_TENANT_ID`（v0.1.0 起既有，`CdpProperties.tenantId`）；新表 `profile`、`profile_identifier`、`journey` 同樣帶；`app_user` 不帶（公司層級）。不做 RLS、DB role、雙連線池、`X-Tenant-Id`、平台 API、每租戶金鑰（D-019 維持）；連線維持現有單一連線池（spec README「RLS 的唯一例外」保留為回到多租戶時的做法） | 既有七張表 PK 含 `tenant_id`、spec 04 介面全帶 `tenantId`，拿掉要改全部 PK 與查詢且無功能收益；固定值只多一欄；回到多租戶時只需加成員表＋RLS，不必回填 |
+| 1 | 單一租戶（D-051）：**保留**所有表的 `tenant_id` 欄位與以它開頭的 PK／索引，值一律 `CDP_TENANT_ID`（v0.1.0 起既有，`CdpProperties.tenantId`）；新表 `profile`、`profile_identifier`、`journey` 同樣帶；`app_user` 不帶（公司層級）。不做 RLS、DB role、雙連線池、`X-Tenant-Id`、平台 API、每租戶金鑰（D-019 維持）；連線維持現有單一連線池（spec README「RLS 的唯一例外」保留為回到多租戶時的做法）。**例外：D-052 整合介面表**（landing／outbound，DESIGN-04）不帶 `tenant_id`：核心吸收寫入核心表時補 `CDP_TENANT_ID`、寫 outbound 時只讀本環境的列；ETL 不得直寫核心表；spec 07 §2 的 RLS 目錄檢查只看帶 `tenant_id` 的表，不受影響；回到多租戶時介面表的租戶歸屬由 DESIGN-04 另定 | 既有七張表 PK 含 `tenant_id`、spec 04 介面全帶 `tenantId`，拿掉要改全部 PK 與查詢且無功能收益；固定值只多一欄；回到多租戶時只需加成員表＋RLS，不必回填；介面表是一套環境對外的邊界，ETL 不必知道內部租戶值 |
 | 2 | 認證（`auth.md`）：`SecurityConfig` 改寫；`ApiKeyAuthenticationFilter` 不變（兩把 env 金鑰，管理金鑰對應角色 `ADMIN`）；`AuthController.login` 改查 `app_user`（新套件 `com.cdp.user`：`AppUserStore`〔JDBC〕、`UserService`、`UserController`），BCrypt（`spring-security-crypto`，已在 starter 內，不加相依），帳號不存在也跑一次 BCrypt；session 只存 `user_id`，每請求由 `UserService` 載入使用者決定角色與停用；`RoleHierarchy` `ADMIN` > `EDITOR` > `VIEWER`；`LAST_ADMIN` 檢查與更新同一交易（`SELECT … FOR UPDATE` 啟用中的 ADMIN）；CSRF：`csrf.spa()`（Spring Security 7），`ignoringRequestMatchers` 排除帶 `Authorization` 的請求與 login／logout，`SameSite` 以 `CookieCsrfTokenRepository.setCookieCustomizer` 設定（`spa()` 不接受自訂 repository 時改用同版文件的 `withHttpOnlyFalse()`＋SPA handler，行為以 `auth.md` §1.1 為準）；session 仍在記憶體；`AuthProperties` 移除 D-020 帳密 | session 要能寫入（畫布、使用者管理），v0.1.0 關 CSRF 的前提不再成立；停用要立即生效 |
 | 3 | 過渡：BE-06 合併前 `auth/login` 仍收 `username`（journey-engine §1.2）；BE-06 加 V5（只建 `app_user`，不動既有表）、移除 `CDP_SUPPORT_USERNAME`／`CDP_SUPPORT_PASSWORD`，`tools/demo-seed/` 以管理金鑰經 `POST /users` 建三種角色的示範帳號；既有驗收中用客服帳密登入的測試由 QA-04 同批改寫 | 一次只換一層，每張單 `make check` 都綠 |
 | 4 | ProfileStore（`profiles.md`）：`com.cdp.profile`（Controller、`ProfileService`、`IdentifierNormalizer`、`ProfileSearchService`）；所有寫入（§2 API、事件攝取建空白客戶 `insert … on conflict do nothing`）只經 `ProfileWriter`（合併、正規化、衝突判定的唯一實作）；引擎用的 `engine.ProfileStore.getFields`（spec 04 §8 子集）由 `persistence.JdbcProfileStore` 即時查表、不快取；遮罩重用 `PiiMasker`（根路徑 `attributes`、`identifiers[i].value`） | 搜尋與條件判斷共用一份客戶資料 |
@@ -29,26 +29,27 @@
 | broker 與關機 | `spring.rabbitmq.connection-timeout` = `RABBITMQ_CONNECTION_TIMEOUT`；listener container `shutdownTimeout` = `DELIVERY_SHUTDOWN_TIMEOUT`；consumer 另查 outbox 列 `CANCELLED` → `delivery_task.CANCELLED` |
 | 驗收（QA-02） | 沿用兩處中斷恰好一則；新增：lease 過期重發恰好一則（`RELAY_AFTER_CONFIRM` 後快轉超過 lease）；遲到 confirm 不覆寫（`RELAY_BEFORE_WRITEBACK` 期間另一輪重搶並標 `PUBLISHED`，`publish_count` = 1）；relay 卡住時計時器照常推進；3 倍批量到期一個 tick 內清空；lease ≤ confirm 逾時拒絕啟動。第二版（QA-07）：停止時在途的列維持 `CANCELLED`、Mock 0 則 |
 | 壓測（QA-06，D-038） | 1 萬、10 萬筆同時到期的清空時間與各迴圈每秒筆數；子交易溢位：壓測前 `pg_stat_reset_slru('subtransaction')`，記錄 `pg_stat_slru` 中 `name = 'subtransaction'` 的 `blks_read`／`blks_zeroed` 增量、取樣 `pg_stat_activity` 的 `wait_event = 'SubtransSLRU'` 次數、各 backend `pg_stat_get_backend_subxact()` 的 `subxact_overflow`；積壓下 `lockDue`、`claimDue`、派發佇列的 `EXPLAIN (ANALYZE, BUFFERS)`；壓測前後 `effect_outbox`、`event`、`enrollment_record` 的 `n_dead_tup` 與表／索引大小；confirm 延遲分布。`make perf` 執行，不進 `make check` |
-## 設定（寫進 .env.example，這裡不寫值）
-| 變數 | 用途 | 機密 |
-|---|---|---|
-| `CDP_PHONE_DEFAULT_COUNTRY_CODE` | `profiles.md` §1.1 | 否 |
-| `OUTBOX_RELAY_CONFIRM_TIMEOUT`、`OUTBOX_RELAY_LEASE`、`RABBITMQ_CONNECTION_TIMEOUT`、`DELIVERY_SHUTDOWN_TIMEOUT`、`CDP_SCHEDULER_POOL_SIZE`、`CDP_LOOP_MAX_DRAIN` | 「relay 與迴圈」（D-047） | 否 |
-| 保留：`CDP_TENANT_ID`、`CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`、`CDP_SESSION_IDLE_TIMEOUT`；BE-06 移除：`CDP_SUPPORT_USERNAME`、`CDP_SUPPORT_PASSWORD`；登入限速變數待 D-045 | 做法 #1～#3 | 金鑰是 |
+## 設定（寫進 .env.example；建議值 = `.env.example` 預設，D-045、D-047 採用）
+| 變數 | 用途 | 建議值 | 機密 |
+|---|---|---|---|
+| `CDP_PHONE_DEFAULT_COUNTRY_CODE` | `profiles.md` §1.1 | 甲方填 | 否 |
+| `OUTBOX_RELAY_CONFIRM_TIMEOUT`、`OUTBOX_RELAY_LEASE`、`RABBITMQ_CONNECTION_TIMEOUT`、`DELIVERY_SHUTDOWN_TIMEOUT`、`CDP_SCHEDULER_POOL_SIZE`、`CDP_LOOP_MAX_DRAIN` | 「relay 與迴圈」（D-047）；lease 必須 > confirm 逾時（啟動驗證） | PT5S、PT30S、PT10S、PT30S、4（第二版四個迴圈）、PT10S | 否 |
+| `CDP_LOGIN_MAX_FAILURES`、`CDP_LOGIN_LOCKOUT` | 登入限速（D-045，`auth.md` §3） | 5、PT15M | 否 |
+| 保留：`CDP_TENANT_ID`、`CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`、`CDP_SESSION_IDLE_TIMEOUT`；BE-06 移除：`CDP_SUPPORT_USERNAME`、`CDP_SUPPORT_PASSWORD` | 做法 #1～#3 | 不變 | 金鑰是 |
 
 ## 派工順序與檔案分工（D-022 一次一到兩張實作單；qa 與對應實作單同批；驗收目錄 `T/acceptance/<區>/`、`web/tests/acceptance/<區>/`）
 | 批 | 單 | 角色 | 內容 | 相依 | 負責檔案（隨單授權的跨界檔） | 驗收目錄 |
 |---|---|---|---|---|---|---|
 | 1 | BE-05＋QA-02 | backend／qa | relay 與迴圈 | — | `J/delivery/`、`J/engine/runtime/AdvanceLoop`、`J/ingest/EventDispatcher`、`J/persistence/JdbcOutboxStore`、`J/common/fault/`；`application.yml`、`application-test.yml` | `delivery/` |
 | 1 | FE-02＋QA-03 | frontend／qa | 外框、email 登入、受眾佔位；client 帶 `X-XSRF-TOKEN`（對 `auth.md` mock） | UI-03 | `web/src/`（`tokens.css` 除外） | `shell/` |
-| 2 | BE-06＋QA-04 | backend／qa | V5、`auth.md` 全部（含 `/users`）、demo-seed 建帳號；D-045 選 A 時含登入限速 | BE-05 | `J/security/`、`J/user/`、`V5__app_user.sql`、`tools/demo-seed/`、`application*.yml`、`.env.example`（只刪做法 #3 的變數；D-045 選 A 時新增限速變數） | `security/`（改寫既有） |
+| 2 | BE-06＋QA-04 | backend／qa | V5、`auth.md` 全部（含 `/users`）、demo-seed 建帳號、登入限速（D-045） | BE-05 | `J/security/`、`J/user/`、`V5__app_user.sql`、`tools/demo-seed/`、`application*.yml`、`.env.example`（刪做法 #3 的變數；登入限速兩變數已由本單加入，BE-06 接上） | `security/`（改寫既有） |
 | 2 | FE-03＋QA-05a | frontend／qa | 旅程列表、Enrollment 瀏覽、客戶搜尋→客戶頁→圖形軌跡 | FE-02 | `web/src/`、`web/package.json`、`package-lock.json` | `customer/`、`trace-graph/` |
 | 3 | BE-07＋QA-05b | backend／qa | V6、`profiles.md`、`journeys.md` §2、`/enrollments` 瀏覽 | BE-06 | `J/profile/`、`J/journey/`、`J/query/`、`J/ingest/EventIngestionService`、`J/persistence/JdbcProfileStore`、`V6__profile_store.sql` | `profile/`、`journey/` |
 | 4 | QA-06、INT-02 | qa／frontend | 壓測（含 `Makefile` 的 `perf`、`docs/perf/`）；整合與 demo-seed 端到端 | 1～3 | 依單 | — |
 | 二 | BE-08＋QA-07、FE-04 → BE-09＋QA-08、FE-05 → BE-10、INT-03 | | 做法 #7 → #8 → #9；FE-04 畫布對 `journeys.md` §3 mock | 第一版 | `V7__journey_lifecycle.sql` 歸 BE-08 | `journey/`、`engine/`、`canvas/` |
 
 ## 待甲方決定／需要調查
-- 待決定（取代撤回的 D-041～D-044）：1 拆版（上表，建議 A）；2 角色採 `VIEWER`／`EDITOR`／`ADMIN`，編輯者可直接發佈、無送審（`auth.md` §2）；3 帳號開通：`ADMIN` 經 `/users` API 開通，第一位 `ADMIN` 由團隊以管理金鑰建立（代管），第一版無使用者管理畫面（要畫面 = 第一版 +1 張 FE）；4 `CDP_PHONE_DEFAULT_COUNTRY_CODE` 填值。D-042（每租戶金鑰）不再需要，D-019 維持。D-045～D-050 不受影響（D-049 外框不再有工作區切換）
+- 待決定：D-055 拆版（上表）、D-056 角色（`auth.md` §2）、D-057 帳號開通（`auth.md` §4）。D-042（每租戶金鑰）不再需要，D-019 維持。已定案的影響：D-045 → `auth.md` §3 限速、上表兩變數、BE-06；D-047 → 上表 relay 六變數；D-046、D-048、D-050 已反映於驗收與契約；D-049 外框不再有工作區切換
 - 需調查：1 `json-schema-validator` 3.0.8 依賴 Jackson 3.2.1，與 Boot 4.1.1 BOM 管的 Jackson 能否並用——BE-08 開工時實測，不行則維持 Java 規則（不需甲方決定）
 
 ## 風險

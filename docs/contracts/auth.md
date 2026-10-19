@@ -42,7 +42,7 @@
 
 | Method | Path | Request | 成功 | 錯誤 |
 |---|---|---|---|---|
-| POST | `/api/v1/auth/login` | `{ "email", "password" }` 皆必填；`email` 不分大小寫 | `204`，`Set-Cookie: CDP_SESSION=…; Path=/api; HttpOnly; Secure; SameSite=Strict`（每次換新 id）與 `XSRF-TOKEN` | `400` `VALIDATION_FAILED`、`401` `INVALID_CREDENTIALS`（帳號不存在、停用、密碼錯一律同一碼）、`415` |
+| POST | `/api/v1/auth/login` | `{ "email", "password" }` 皆必填；`email` 不分大小寫 | `204`，`Set-Cookie: CDP_SESSION=…; Path=/api; HttpOnly; Secure; SameSite=Strict`（每次換新 id）與 `XSRF-TOKEN` | `400` `VALIDATION_FAILED`、`401` `INVALID_CREDENTIALS`（帳號不存在、停用、密碼錯一律同一碼）、`429` `LOGIN_RATE_LIMITED`（見下）、`415` |
 | POST | `/api/v1/auth/logout` | — | `204`，清除 cookie；沒有 session 也回 `204` | — |
 | GET | `/api/v1/auth/me` | — | `200` `CurrentUser` | `401`；`403`（Bearer 呼叫） |
 | POST | `/api/v1/auth/password` | `{ "current_password", "new_password" }` | `204`；其他 session 不登出 | `400` `VALIDATION_FAILED`（密碼規則見下）、`401` `INVALID_CREDENTIALS`（舊密碼錯）、`403` `CSRF_INVALID` |
@@ -50,7 +50,14 @@
 - `CurrentUser`：`user_id` string、`email` string、`display_name` string、`role` `VIEWER` \| `EDITOR` \| `ADMIN`
 - 密碼規則：12–72 字元（UTF-8 位元組數 ≤ 72）；不檢查複雜度
 - session 閒置逾時 = `CDP_SESSION_IDLE_TIMEOUT`；後端重啟 session 全失效
-- 登入失敗限速：見 D-045（未定案前不限速）
+- 登入失敗限速（D-045）：
+  | 項目 | 規則 |
+  |---|---|
+  | 計算維度 | 請求的 `email`（轉小寫）；帳號不存在也計數、回應與存在者相同；不依來源 IP |
+  | 計數 | 密碼錯（`401` `INVALID_CREDENTIALS`）才 +1；`400` 不計；距上次失敗超過 `CDP_LOGIN_LOCKOUT` 先歸零再計；登入成功歸零 |
+  | 門檻與鎖定 | 計數達 `CDP_LOGIN_MAX_FAILURES` → 鎖定到「最後一次失敗 + `CDP_LOGIN_LOCKOUT`」；鎖定中的嘗試不計數、不延長 |
+  | 超限回應 | 鎖定中任何登入（含正確密碼）→ `429` `LOGIN_RATE_LIMITED`，標頭 `Retry-After` = 剩餘秒數（整數，無條件進位）；不跑 BCrypt |
+  | 範圍 | 只限 `POST /auth/login`（`/auth/password` 不計）；計數存記憶體，後端重啟歸零（同 session） |
 - 前端：任何 API 回 `401` `UNAUTHENTICATED` → 導向登入
 
 ## §4 使用者管理（`ADMIN`）
@@ -63,7 +70,7 @@
 
 - `User`：`user_id`（ULID）、`email`（存小寫）、`display_name`（1–100 字）、`role`、`status`、`created_at`、`updated_at`
 - 不提供刪除（停用即可；歷史紀錄的 `updated_by` 需要對得到人）
-- 第一位 `ADMIN` 由維運以管理金鑰建立（帳號開通方式見 DESIGN-03 待決定）
+- 第一位 `ADMIN` 由維運以管理金鑰建立（帳號開通方式見 D-057）
 
 ## §5 範例
 

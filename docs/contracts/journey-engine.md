@@ -181,6 +181,7 @@
 | `404` | `PROFILE_NOT_FOUND`／`USER_NOT_FOUND`／`DRAFT_NOT_FOUND` | v0.2.0 起：`profiles.md`、`auth.md` §4、`journeys.md` §3 | 這筆資料不存在 |
 | `409` | `IDENTIFIER_CONFLICT`／`EMAIL_TAKEN`／`LAST_ADMIN` | v0.2.0：`profiles.md` §2、`auth.md` §4 | 顯示衝突，不重試 |
 | `409` | `DRAFT_CONFLICT`／`DRAFT_REQUIRED`／`JOURNEY_ABORTED`／`JOURNEY_NOT_PUBLISHED` | 第二版：`journeys.md` §3 | `DRAFT_CONFLICT`：重新載入草稿 |
+| `429` | `LOGIN_RATE_LIMITED` | v0.2.0：登入失敗達上限（`auth.md` §3）；回應帶 `Retry-After` | 顯示稍後再試，不自動重試 |
 | `405` | `METHOD_NOT_ALLOWED` | 路由存在、方法不符；回應帶 `Allow` 標頭 | — |
 | `406` | `NOT_ACCEPTABLE` | `Accept` 不接受 `application/json` | — |
 | `413` | `PAYLOAD_TOO_LARGE` | 保留：請求大小上限未定案前不會出現 | — |
