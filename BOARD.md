@@ -53,17 +53,18 @@
 | 2026-10-19 | D-040 | 已發版派工單歸檔到 tasks/<版本>/，含版本代稱快照 |
 | 2026-10-19 | D-051 | 代管、每家客戶一套單一租戶環境，主打資料整合 |
 | 2026-10-19 | D-052 | 資料來源串接延後；整合以 PostgreSQL 解耦（含 ETL） |
+| 2026-10-19 | D-053 | 委外客戶先當資料中樞，名單推給第三方平台發送 |
 
 ## 任務狀態
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | blocked | 0 |  |
+| DESIGN-03 | architect | in-progress | 0 |  |
 | UI-03 | designer | blocked | 0 |  |
 | CHORE-07 | backend | qa | 0 |  |
 | FIX-09 | backend | in-progress | 0 |  |
-| DESIGN-04 | architect | todo | 0 |  |
+| DESIGN-04 | architect | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
