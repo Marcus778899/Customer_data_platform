@@ -74,15 +74,16 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | qa | 1 |  |
-| UI-03 | designer | in-progress | 0 |  |
+| DESIGN-03 | architect | qa | 2 |  |
+| UI-03 | designer | review | 0 |  |
 | CHORE-07 | backend | done | 1 | PR #79 |
 | FIX-09 | backend | done | 0 | PR #84 |
 | DESIGN-04 | architect | review | 1 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- 甲方指示：DESIGN-03 架構師這輪完成後全部暫停，等甲方通知再繼續
+- D-062 v0.2.0 是否加唯讀旅程頁，待甲方決定
 
 ## 注意事項（踩過的坑）
 
