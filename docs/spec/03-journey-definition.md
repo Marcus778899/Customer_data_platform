@@ -24,7 +24,6 @@
 ```json
 {
   "journey_id": "01JCXYZJOURNEY0000000001",
-  "tenant_id":  "01JCXYZ0000TENANT0000000001",
   "version":    3,
   "name":       "棄單挽回",
   "description": "加入購物車未結帳的挽回流程",
@@ -129,6 +128,8 @@
 上例中「已購買」算達標、「已退訂」只是移出。**若只有單一的頂層 `on_match`，這兩件事會被迫共用同一個終態，成效報表必錯一邊**——附錄 C 場景三（全域退出＝發生任何購買直接算達標、已退訂）就是這個情況。
 
 `since` 指定條件的觀察起點：`ENROLLMENT`（進入旅程後）或 `ALWAYS`（不限時間）。
+
+> **落地（v0.2.0 第二版）**：`event` 條件在事件派發時對該客戶未結束的 Enrollment 求值（`occurred_at` ≥ `enrolled_at`）；`attribute` 條件在推進迴圈步驟 3 求值（每次建立、喚醒、連續推進），**不在**客戶屬性被寫入的當下求值——屬性變更要等該 Enrollment 下一次被推進才會退出，即時評估留到受眾版本（v0.4.0 以後）。`ALWAYS` 本版不支援（驗證錯誤）。
 
 ### `goal`
 
@@ -323,6 +324,7 @@
 - `weight` 總和必須 = 100
 - **分組結果寫入 `variables.__split_{nodeId}`，重跑不得改變**
 - 至多一個 `is_control: true`
+- `STABLE`（唯一支援的 `assignment_seed`）：`variables` 已有分組就沿用；否則 `bucket = SHA-256(journey_id + ":" + node_id + ":" + profile_id)` 前 8 位元組（無號）mod 100，依 `variants` 陣列順序的累積權重取第一個 `bucket < 累積值` 者。同一客戶重新進入同一旅程會分到同一組（`docs/design/DESIGN-03.md`）
 
 #### `FilterNode`
 ```json
@@ -424,6 +426,8 @@
 
 ## 6. 圖驗證規則
 
+> **落地（`docs/design/DESIGN-03.md`）**：本版三層都由後端 Java 執行（Schema 層用 `com.networknt:json-schema-validator`，版本與不相容時的退路見 DESIGN-03 做法 #7）；草稿存檔只驗結構，`validate`／`publish` 跑全部適用規則。本版不檢查規則 10、11（無模板表）。畫布座標放在定義之外的 `layout`（`docs/contracts/journeys.md` §1），引擎不讀。
+
 發布（`DRAFT` → `PENDING_APPROVAL`）前必須全數通過：
 
 驗證分三層，各有各的執行時機：
@@ -470,7 +474,6 @@
 ```json
 {
   "journey_id": "01JCXYZJOURNEY0000000001",
-  "tenant_id":  "01JCXYZ0000TENANT0000000001",
   "version": 1,
   "name": "棄單挽回",
   "status": "ACTIVE",

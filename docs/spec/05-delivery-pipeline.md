@@ -8,7 +8,7 @@
 ## 1. 管線階段
 
 節點只回傳 `Effect.SendMessage`（見 `04-node-contract.md`），**不認識任何通道**。
-管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 取到期列、經 correlated publisher confirm＋`mandatory` 推到 RabbitMQ（nack／returned／逾時即延後該列 `available_at` 重試，見 `docs/design/DESIGN-01.md` 做法 #4）→ 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
+管線入口：引擎在 `StateStore.save` 的同一交易寫入 `effect_outbox` → 獨立 relay 以 `available_at` 當 lease 搶到期列、交易外整批經 correlated publisher confirm＋`mandatory` 推到 RabbitMQ、條件式回寫（nack／returned／逾時即延後該列 `available_at` 重試；v0.2.0 起見 `07` §12「relay」，v0.1.0 見 `docs/design/DESIGN-01.md` 做法 #4）→ 冪等 consumer 執行下列階段（`docs/design/INIT-01.md`「RabbitMQ」；表見 `07` §10）。
 從 Effect 到客戶收到訊息，中間有六個階段：
 
 ```
@@ -131,7 +131,7 @@ record ConsentState(
 |---|---|
 | 作用域 | **租戶層**，跨所有旅程。不是單一旅程內的節流 |
 | 計數基準 | **入列即扣配額（reserve）**，不是等到 `SENT` 才計 |
-| 儲存 | Redis 計數器，key 為 `{tenantId}:{profileId}:{channel}:{window}` |
+| 儲存 | Redis 計數器，key 為 `{profileId}:{channel}:{window}` |
 | 一致性 | 以 Redis 為準；Redis 不可用時 **fail-closed（擋下）** |
 
 > **fail-closed 是刻意的**：計數器掛掉時寧可少發，不可能因為基礎設施故障而對客戶連發十則。
@@ -227,11 +227,11 @@ record ConsentState(
 ### 執行動作
 
 ```java
-void killJourney(String tenantId, String journeyId, String reason) {
+void killJourney(String journeyId, String reason) {
     1. journey.status = ABORTED                    // 立刻擋下新進入
-    2. killSwitch.set(tenantId, journeyId)         // Redis，管線每階段都會讀
+    2. killSwitch.set(journeyId)         // Redis，管線每階段都會讀
     3. effectExecutor.cancelPendingByJourney(...)  // 取消 outbox 中待送訊息
-    4. timer.cancelAll(tenantId, journeyId)        // 取消所有計時器
+    4. timer.cancelAll(journeyId)        // 取消所有計時器
     5. stateStore 批次轉 ABORTED，記 terminationReason
     6. 寫稽核日誌
 }
@@ -243,7 +243,7 @@ void killJourney(String tenantId, String journeyId, String reason) {
 
 管線每個階段開始前都要重讀 kill switch，判定來源依序：
 
-1. **Redis**（`killSwitch:{tenantId}:{journeyId}`）——快取，正常路徑，微秒級
+1. **Redis**（`killSwitch:{journeyId}`）——快取，正常路徑，微秒級
 2. **Postgres**（`journey.status = ABORTED`、租戶停用旗標）——**Redis 讀取失敗時降級查它，不是直接放行**
 
 > **為什麼不能只有 Redis**：頻率上限在 Redis 不可用時是 fail-closed（擋下行銷型），但**交易型不受頻率上限約束、會繼續送**。
@@ -263,6 +263,10 @@ void killJourney(String tenantId, String journeyId, String reason) {
 - 已經發過哪些訊息（`deliveryHistory`）
 - 有幾則訊息被取消（`SkipReason = KILL_SWITCH`）
 - 誰在什麼時候按下停止、理由是什麼
+
+### 落地（v0.2.0 第二版，`docs/design/DESIGN-03.md`）
+
+只做旅程層（`docs/contracts/journeys.md` §3.5）；判定來源只有 Postgres 的 `journey.status`（Redis 於之後的版本接上）。步驟 1 與 3 同一交易（設 `ABORTED`、outbox `PENDING` → `CANCELLED`）；步驟 4、5 由背景清理迴圈分批做（每批一個小交易，每筆寫一列軌跡）；步驟 2 本版無 Redis 可設。consumer 在發送前檢查 `journey.status` 與 outbox 列狀態，任一為停止／取消即 `CANCELLED`。
 
 ### 恢復
 
@@ -308,7 +312,7 @@ public interface ChannelAdapter {
     Set<ContentFormat> supportedFormats();
 
     /** 解析收件人；回傳 empty 表示此客戶在該通道沒有可用地址 */
-    Optional<Recipient> resolveRecipient(String tenantId, String profileId);
+    Optional<Recipient> resolveRecipient(String profileId);
 
     /** 實際送出。必須是冪等的：同一 idempotencyKey 重送不得產生兩則訊息 */
     SendResult send(SendRequest request);
@@ -323,7 +327,7 @@ public interface ChannelAdapter {
 
 ```java
 record SendRequest(
-    String tenantId, String channelId, String idempotencyKey,
+    String channelId, String idempotencyKey,
     Recipient recipient, RenderedContent content,
     MessageType messageType, Instant deadline
 ) {}
@@ -361,7 +365,7 @@ record SendResult(
 
 ```java
 record MessageTemplate(
-    String templateId, String tenantId,
+    String templateId,
     String groupId,               // 訊息內容群組：同一則訊息的各通道版本
     String channelType,
     MessageType messageType,      // G9

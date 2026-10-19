@@ -1,18 +1,21 @@
 # 契約：旅程引擎 v0.1.0 — 認證、旅程建立、事件攝取、軌跡查詢（v1）
 
-<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-01.md；欄位語意正本見 docs/spec/ -->
+<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-01.md、DESIGN-03.md；欄位語意正本見 docs/spec/ -->
+
+> v0.2.0 起：認證與角色改由 `auth.md` 定義（取代本檔 §1.1、§1.2，BE-06 合併起生效）；客戶與旅程 API 見 `profiles.md`、`journeys.md`；錯誤碼仍只在本檔 §5。
 
 ## §1 通用
 
 - Base URL：前端一律用相對路徑 `/api`（dev server 轉給後端，見 `web/vite.config.ts`）；後端 port 為環境變數 `API_PORT`
-- Auth：§1.1（D-013）；`tenant_id` 一律取環境變數 `CDP_TENANT_ID`，請求 body 帶 `tenant_id` 會被忽略
+- Auth：§1.1（D-013）
+- 沒有租戶欄位（D-051、D-063）：請求 body 帶 `tenant_id` 一律忽略、不回錯，回應不含 `tenant_id`；REFACTOR-01 合併前後端仍在內部寫入舊欄位，對外行為相同
 - 跨域：不開 CORS（同源經 proxy）
 - JSON 欄位 `snake_case`；時間為 ISO-8601 UTC（`2026-10-18T02:00:00Z`）；期間為 ISO-8601 Duration（`PT1H`）；ID 為 ULID 字串
 - 所有時間都取自後端注入的 `Clock`（含 `received_at`、`as_of`）：正式環境 = 系統時間；測試快轉時 = 模擬時間，同一筆回應不會混用兩種時間
 - 每個回應都有標頭 `X-Request-Id`；請求帶合法的 `X-Request-Id`（1–64 字元 `[A-Za-z0-9._-]`）會沿用，否則後端產生
 - 型別欄的 `T | null` 表示可為 `null`；沒寫 `null` 的欄位一定有值
 
-### §1.1 認證與角色（D-013）
+### §1.1 認證與角色（D-013；v0.1.0，BE-06 起由 `auth.md` 取代）
 
 | 角色 | 憑證 | 可用 API |
 |---|---|---|
@@ -26,7 +29,7 @@
 - `403` `FORBIDDEN`：憑證有效但角色不在上表（例：`SUPPORT` 呼叫 §3、`INGEST` 呼叫 §4）
 - 先驗認證再驗輸入：未認證一律 `401`，不會先回 `400`／`404`
 
-### §1.2 客服登入
+### §1.2 客服登入（v0.1.0，BE-06 起由 `auth.md` §3 取代）
 
 | Method | Path | Request | 成功 | 錯誤 |
 |---|---|---|---|---|
@@ -45,16 +48,16 @@
 | `DeliveryStatus` | `PENDING`（已排入、尚未送） `SENT` `SKIPPED` `FAILED` `CANCELLED` |
 | `SkipReason` | `CONSENT` `FREQUENCY_CAP` `QUIET_HOURS` `PRIORITY_LOST` `BUDGET_EXCEEDED` `KILL_SWITCH`（v0.1.0 無守門，不會出現） |
 | `MessageType` | `TRANSACTIONAL` `MARKETING`；v0.1.0 無模板表，一律 `null` |
-| 節點 `type` | v0.1.0 只接受 `StartNode` `EventSourceNode` `WaitDelayNode` `SendMessageNode` `EndNode` |
+| 節點 `type` | v0.1.0 只接受 `StartNode` `EventSourceNode` `WaitDelayNode` `SendMessageNode` `EndNode`；第二版增加的型別見 `journeys.md` §4 |
 
-## §3 寫入 API（只收 Bearer，角色見 §1.1；另可回 `401`／`403`）
+## §3 寫入 API（只收 Bearer，角色見 §1.1；另可回 `401`／`403`；v0.2.0 起角色見 `auth.md` §2）
 
 ### §3.1 建立旅程版本 `POST /api/v1/journeys`
 
-- Request：spec 03 §2 頂層結構去掉 `tenant_id`、`version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
+- Request：spec 03 §2 頂層結構去掉 `version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
 - 規則：`entry_node` 指向唯一的 `StartNode`；`StartNode.outputs.next` 指向 `EventSourceNode`（可為陣列）；每個 `outputs` 目標都存在；無迴圈；每條路徑終於 `EndNode`；`EventSourceNode.config.event_name` 必填、`event_filter`／`profile_filter` 須為 `null` 或省略；`WaitDelayNode.config.duration` 為正的 Duration；`SendMessageNode.config` 需 `template_id`、`channel_id`，`outputs` 需 `sent`（`skipped` 可省略）；`node.name` 可省略
 - 成功 `201`：`{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；同 `journey_id` 再送 = 新版本，進行中的 Enrollment 不受影響
-- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）
+- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）；v0.2.0 第二版起另有 `409` `JOURNEY_ABORTED`（旅程已停止）與 `403` `ADMIN_KEY_JOURNEY_CREATE_DISABLED`（D-061，`journeys.md` §3.3 第 3 列），旅程列的同步見 `journeys.md` §3.1
 
 ### §3.2 事件攝取 `POST /api/v1/events`、`POST /api/v1/events/batch`
 
@@ -68,7 +71,7 @@
 
 | Method | Path | Request | 成功 | 錯誤 |
 |---|---|---|---|---|
-| GET | `/api/v1/enrollments` | `q`（必填，精確比對 `profile_id` 或 `enrollment_id`）、`status`（選填，逗號分隔多個 `EnrollmentStatus`）、`cursor`（選填）、`limit`（1–100，預設 20） | `200` `Page<EnrollmentSummary>`，依 `enrolled_at` 新到舊；查無 = `items: []`（不是 404） | `400` |
+| GET | `/api/v1/enrollments` | `q`（v0.1.0 必填；v0.2.0 起選填，省略 = 瀏覽最近的 Enrollment〔D-030〕；精確比對 `profile_id` 或 `enrollment_id`）、`status`（選填，逗號分隔多個 `EnrollmentStatus`）、`journey_id`（v0.2.0 起，選填）、`cursor`（選填）、`limit`（1–100，預設 20） | `200` `Page<EnrollmentSummary>`，依 `enrolled_at` 新到舊；查無 = `items: []`（不是 404） | `400` |
 | GET | `/api/v1/enrollments/{enrollment_id}` | — | `200` `EnrollmentDetail` | `404` `ENROLLMENT_NOT_FOUND` |
 | GET | `/api/v1/enrollments/{enrollment_id}/deliveries` | `cursor`、`limit`（1–100，預設 50） | `200` `Page<Delivery>`，依 `attempted_at` 新到舊 | `400`、`404` `ENROLLMENT_NOT_FOUND` |
 
@@ -141,6 +144,18 @@
 - 遮罩後的值一律是字串：符合 `^[^@\s]+@[^@\s]+$` 的字串 → 首字＋`***@`＋網域（`a***@example.com`）；其他字串、數字、布林 → `"***"`；`null` 保持 `null`
 - `masked_paths`：每個被遮罩的值一條，點號＋`[索引]`（0 起算）路徑，例 `trigger_snapshot.properties.email`、`trace[1].evaluated.phone`、`variables.items[0].name`；前端以此判斷該值是遮罩、不靠比對 `***`
 
+### §4.5 圖形軌跡的推導（v0.2.0）
+
+前端以 `journey_id`＋`journey_version` 取 `journeys.md` §2 的 `JourneyVersion`，疊上 `trace`：
+
+| 要畫的東西 | 推導 |
+|---|---|
+| 走過的節點 | `trace[].node_id` 的集合；同一節點多次 = 多筆（循環），依 `seq` 列出每次的 `entered_at`／`exited_at`／`out_port`／`decision_reason` |
+| 走過的連線 | 對每個 `out_port` 不為 `null` 的 `trace[i]`：`nodes[trace[i].node_id].outputs[out_port]`；與 `trace[i+1].node_id` 不一致時不畫（定義與軌跡對不上，不推測）。`StartNode` 不寫軌跡：`entry_node` → `trace[0].node_id` 視為已走過 |
+| 第幾次經過（visit） | 後端不提供，前端自行計算：`trace[i]` 的 visit = 1 ＋ `seq` 比它小且 `node_id` 相同的筆數（`trace` 是完整軌跡，算得出來）。這不是冪等鍵的 `visitSeq`（後者 = `seq`） |
+| 目前位置 | `status` 非終態：`exited_at` 為 `null` 的那筆（= `current_node_id`）；終態：最後一筆，以 `status` 表示結束方式 |
+| 每步時間與原因 | `TraceEntry` 原值（`evaluated` 已遮罩，`masked_paths` 同 §4.4） |
+
 ## §5 錯誤格式
 
 `Content-Type: application/problem+json`（RFC 9457，不受請求 `Accept` 影響）；HTTP status 區分大類，`code` 區分細項。
@@ -153,7 +168,7 @@
 | `code` | string | 下表其一 |
 | `detail` | string | 人可讀說明；5xx 不含內部訊息 |
 | `request_id` | string | 同回應標頭 `X-Request-Id`，供回報 |
-| `errors` | `{ field, message }[]` | 僅 `400`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
+| `errors` | `{ field, message }[]` | 僅 `400`；`journeys.md` §3、§3.2 的驗證錯誤每筆另帶 `rule`、`node_id`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
 
 | HTTP | `code` | 何時 | 前端處理 |
 |---|---|---|---|
@@ -163,6 +178,15 @@
 | `403` | `FORBIDDEN` | §1.1 | 此角色不可用 |
 | `404` | `ENROLLMENT_NOT_FOUND`／`JOURNEY_NOT_FOUND` | §4／§3.1 | 這筆資料不存在，不必重試 |
 | `404` | `NOT_FOUND` | 無此路由 | — |
+| `403` | `CSRF_INVALID` | v0.2.0：session 寫入請求的 `X-XSRF-TOKEN` 缺或不符（`auth.md` §1.1） | 重取 `/auth/me` 後重試一次 |
+| `404` | `PROFILE_NOT_FOUND`／`USER_NOT_FOUND`／`DRAFT_NOT_FOUND` | v0.2.0 起：`profiles.md`、`auth.md` §4、`journeys.md` §3 | 這筆資料不存在 |
+| `409` | `IDENTIFIER_CONFLICT`／`EMAIL_TAKEN`／`LAST_ADMIN` | v0.2.0：`profiles.md` §2、`auth.md` §4 | 顯示衝突，不重試 |
+| `409` | `DRAFT_CONFLICT`／`DRAFT_REQUIRED`／`JOURNEY_ABORTED`／`JOURNEY_NOT_PUBLISHED` | 第二版：`journeys.md` §3 | `DRAFT_CONFLICT`：重新載入草稿 |
+| `409` | `DRAFT_IN_REVIEW`／`REVIEW_PENDING`／`REVIEW_NOT_PENDING` | 第二版：`journeys.md` §3.2 審核 | `REVIEW_NOT_PENDING`：重新載入審核紀錄 |
+| `403` | `SELF_APPROVAL_FORBIDDEN` | 第二版：核准自己送審的（`journeys.md` §3.3，D-060） | 請另一位管理員核准 |
+| `403` | `ADMIN_KEY_JOURNEY_CREATE_DISABLED` | 第二版：`CDP_ADMIN_KEY_JOURNEY_CREATE` = `false` 時以管理金鑰呼叫 §3.1（`journeys.md` §3.3 第 3 列，D-061） | 改經草稿送審 |
+| `404` | `REVIEW_NOT_FOUND` | 第二版：`journeys.md` §3.2 | 這筆資料不存在 |
+| `429` | `LOGIN_RATE_LIMITED` | v0.2.0：登入失敗達上限（`auth.md` §3）；回應帶 `Retry-After` | 顯示稍後再試，不自動重試；`Retry-After` 可直接讀（同源，不受 CORS 暴露標頭限制；dev proxy 與部署的反向代理須原樣轉送） |
 | `405` | `METHOD_NOT_ALLOWED` | 路由存在、方法不符；回應帶 `Allow` 標頭 | — |
 | `406` | `NOT_ACCEPTABLE` | `Accept` 不接受 `application/json` | — |
 | `413` | `PAYLOAD_TOO_LARGE` | 保留：請求大小上限未定案前不會出現 | — |
@@ -175,7 +199,7 @@
 
 ## §6 範例
 
-`POST /api/v1/auth/login` body `{ "username": "…", "password": "…" }` → `204`（帳密錯 → `401` `INVALID_CREDENTIALS`）；以下 §4 範例皆帶 `CDP_SESSION` cookie
+`POST /api/v1/auth/login` body `{ "email": "…", "password": "…" }` → `204`（帳密錯 → `401` `INVALID_CREDENTIALS`；欄位與回應見 `auth.md` §3、§5；BE-06 合併前仍是 §1.2 的 `username`）；以下 §4 範例皆帶 `CDP_SESSION` cookie
 
 `GET /api/v1/enrollments?q=01JCXYZPROFILE00000000001&status=WAITING,COMPLETED` → `200`
 

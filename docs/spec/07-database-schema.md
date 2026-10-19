@@ -15,10 +15,14 @@
 | `journey_definition` | 旅程定義 | `03` §1, §2, §3 | V1 | Phase 0 |
 | `enrollment_record` | `EnrollmentState` 的實作層 | `02` §9 | V1 | Phase 0 |
 | `node_trace` | `EnrollmentTrace` | `02` §8 | V1 | Phase 0 |
-| `event` | 事件契約（最小版） | `01` §3 | V1（V2 加 `dispatched_at`） | Phase 0 |
+| `event` | 事件契約（最小版） | `01` §3 | V1（V2 加 `dispatched_at`；V5 PK 改 `event_id`） | Phase 0 |
 | `effect_outbox` | Effect 交易外寄箱 | `04` §5、本檔 §10 | V2 | v0.1.0 |
 | `delivery_task` | 發送紀錄完整版（任務級狀態，consumer 冪等依據） | `05` §6、本檔 §10 | V2 | v0.1.0（v0.3.0 起擴充 `05` §6 的完整狀態） |
 | `mock_channel_message` | Mock 通道已送出的訊息（驗收計數） | 本檔 §10 | V2 | v0.1.0 |
+| `app_user` | 登入使用者與角色 | `docs/contracts/auth.md`、本檔 §12 | V6 | v0.2.0 |
+| `profile`、`profile_identifier` | 最小 ProfileStore（`04` §8）與客戶搜尋 | `docs/contracts/profiles.md`、本檔 §12 | V7 | v0.2.0 |
+| `journey` | 旅程生命週期與草稿（版本仍在 `journey_definition`） | `docs/contracts/journeys.md`、本檔 §12 | V8 | v0.3.0（D-055） |
+| `journey_review` | 旅程送審與審核紀錄（D-056） | `docs/contracts/journeys.md` §3.2、本檔 §12 | V8 | v0.3.0（D-055） |
 | `field_definition` | 資料字典 | `06` §1 | — | **未定義**，Phase 3 |
 | `event_definition` | 事件字典 | `06` §1 | — | **未定義**，Phase 3 |
 
@@ -55,19 +59,21 @@
 | `int` | `INT` | |
 | `long`（`seq`） | `BIGINT` | |
 
-### 每張表都要有
+### 不帶 `tenant_id`（D-063）
 
-| 欄位 | 規則 |
-|---|---|
-| `tenant_id TEXT NOT NULL` | README 共通約定「所有實體必帶」。**RLS 排到 Phase 1b，但欄位現在就要有**——事後加欄位要回填所有歷史資料 |
+一套環境一家公司（D-051）：所有表（含 v0.2.0 新表與 DESIGN-04 的整合介面表）都不帶 `tenant_id`；V1～V4 建立的 7 張表由 V5 移除（§12「V5」）。回到多租戶時須以新 migration 加回欄位、回填所有歷史資料、重建含它的 PK 與索引，再上下一小節的 RLS（README「回到多租戶時的做法」）。
 
-### RLS 的現況
+### RLS（回到多租戶時的做法，不排期）
 
-`02` §9 的 DDL 結尾有 `ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY`，**Phase 0 先不要下這行**。
+> D-051 起單一租戶、D-063 起無 `tenant_id`：本節的前提是上一小節的「加回欄位並回填」已完成。
 
-開了 RLS 卻沒有對應的 `POLICY` 時，Postgres 的預設行為是**全部拒絕**——所有查詢回空集合，且不報錯。`ENABLE` 與 policy 必須同一個 migration 一起上，排在 Phase 1b。
+`02` §9 的 DDL 結尾的 `ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY` 已註解，**回到多租戶前不要下這行**。
 
-`journey_engine` role 與 RLS、policy 同一個 migration 於 v0.2.0 上線（`docs/design/INIT-01.md` R2）。
+開了 RLS 卻沒有對應的 `POLICY` 時，Postgres 的預設行為是**全部拒絕**——所有查詢回空集合，且不報錯。`ENABLE` 與 policy 必須同一個 migration 一起上；D-051 後不排期，回到多租戶時才上。
+
+`journey_engine` role 與 RLS、policy 原排 v0.2.0（`docs/design/INIT-01.md` R2）；D-051 改為單一租戶後不排期。
+
+規則（`README`「RLS 的唯一例外」）：**每張帶 `tenant_id` 的表**都要在建表的同一支 migration 裡 `ENABLE` ＋ `FORCE ROW LEVEL SECURITY` ＋ 兩條 policy：`tenant_isolation`（`USING` 與 `WITH CHECK` 皆為 `tenant_id = current_setting('app.tenant_id', true)`）與 `engine_all`（`TO journey_engine USING (true) WITH CHECK (true)`）；驗收以系統目錄檢查「有 `tenant_id` 欄位卻缺 forced RLS 或缺這兩條 policy 的表」為零。
 
 ### 命名
 
@@ -85,7 +91,6 @@
 |---|---|---|---|
 | `journey_id` | TEXT | ✅ | ULID |
 | `version` | INT | ✅ | 單調遞增，不重用 |
-| `tenant_id` | TEXT | ✅ | |
 | `name` | TEXT | ✅ | |
 | `description` | TEXT | | |
 | `status` | TEXT | ✅ | `DRAFT` / `TESTING` / `PENDING_APPROVAL` / `ACTIVE` / `PAUSED` / `ARCHIVED` / `ABORTED` |
@@ -129,7 +134,7 @@ Partition 同理，不需要。那是給 `event` 表的（億級、有時間維�
 
 | 組 | 欄位 | 出處 |
 |---|---|---|
-| 識別 | `enrollment_id`(PK)、`tenant_id`、`journey_id`、`journey_version`、`profile_id` | `02` §2 |
+| 識別 | `enrollment_id`(PK)、`journey_id`、`journey_version`、`profile_id` | `02` §2 |
 | 狀態 | `status`、`current_node_id` | `02` §3 |
 | **喚醒（僅實作層）** | `wake_type`、`next_wake_at`、`wake_event_name`、`wake_event_filter` | `02` §4 |
 | G1 | `trigger_snapshot` JSONB NOT NULL | `02` §5 |
@@ -154,10 +159,10 @@ Partition 同理，不需要。那是給 `event` 表的（億級、有時間維�
 
 | 索引 | 服務誰 | 為什麼是 partial |
 |---|---|---|
-| `uq_enrollment_dedup`<br>`(tenant_id, journey_id, profile_id, dedup_key)`<br>`WHERE dedup_key IS NOT NULL` | G3 併發去重 | `COOLDOWN` / `UNLIMITED` 模式的 `dedup_key` 是 null，不該佔唯一性 |
+| `uq_enrollment_dedup`<br>`(journey_id, profile_id, dedup_key)`<br>`WHERE dedup_key IS NOT NULL` | G3 併發去重 | `COOLDOWN` / `UNLIMITED` 模式的 `dedup_key` 是 null，不該佔唯一性 |
 | `ix_enrollment_wake`<br>`(next_wake_at)`<br>`WHERE status = 'WAITING' AND next_wake_at IS NOT NULL` | `StateStore.lockDue()` | 只有 `WAITING` 需要被掃，其餘是死重量 |
-| `ix_enrollment_wake_event`<br>`(tenant_id, profile_id, wake_event_name)`<br>`WHERE status = 'WAITING' AND wake_event_name IS NOT NULL` | `StateStore.findWaitingForEvent()` | **必須含 `profile_id`**，理由見 `04` §7 |
-| `ix_enrollment_journey_active`<br>`(tenant_id, journey_id)`<br>`WHERE terminated_at IS NULL` | G10 緊急停止、全域退出的批次操作 | 終態實例不需要被批次操作掃到 |
+| `ix_enrollment_wake_event`<br>`(profile_id, wake_event_name)`<br>`WHERE status = 'WAITING' AND wake_event_name IS NOT NULL` | `StateStore.findWaitingForEvent()` | **必須含 `profile_id`**，理由見 `04` §7 |
+| `ix_enrollment_journey_active`<br>`(journey_id)`<br>`WHERE terminated_at IS NULL` | G10 緊急停止、全域退出的批次操作 | 終態實例不需要被批次操作掃到 |
 
 > `uq_enrollment_dedup` 不只是索引，它是 **G3 併發正確性的唯一來源**。
 > `02` §6 寫明「不可用先查再插判斷重複——那有競態，一定會漏」。5 個執行緒同時插入時，靠這個約束讓 4 個失敗，捕捉衝突後回傳既有 Enrollment。
@@ -204,7 +209,6 @@ CONSTRAINT ck_enrollment_variables_size
 | ----------------- | ----------- | --- | -------------------- |
 | `enrollment_id`   | TEXT        | ✅   |                      |
 | `seq`             | BIGINT      | ✅   | 遞增序號。見下方             |
-| `tenant_id`       | TEXT        | ✅   | 契約 record 沒有，但共通約定要求 |
 | `node_id`         | TEXT        | ✅   |                      |
 | `node_type`       | TEXT        | ✅   |                      |
 | `entered_at`      | TIMESTAMPTZ | ✅   |                      |
@@ -242,7 +246,6 @@ CONSTRAINT ck_enrollment_variables_size
 | 欄位            | 型別          | 必填  | 說明                                                             |
 | ------------- | ----------- | --- | -------------------------------------------------------------- |
 | `event_id`    | TEXT        | ✅   | ULID，**由產生端提供**                                                |
-| `tenant_id`   | TEXT        | ✅   | 由認證憑證推導，**不接受請求端指定**                                           |
 | `source_type` | TEXT        | ✅   | `CUSTOMER_BEHAVIOR` / `EXTERNAL_SYSTEM` / `INTERNAL_OPERATION` |
 | `source_id`   | TEXT        | 條件  | 見 `01` §4                                                      |
 | `name`        | TEXT        | ✅   | `snake_case`                                                   |
@@ -262,10 +265,10 @@ CONSTRAINT ck_enrollment_variables_size
 ### 主鍵
 
 ```
-PRIMARY KEY (tenant_id, event_id)
+PRIMARY KEY (event_id)
 ```
 
-`01` §7 的去重鍵就是這組。重複的 `event_id` 撞主鍵 → 丟棄並回 `200`（不是錯誤，是正常重試）。
+`01` §7 的去重鍵就是它（V5 前為 `(tenant_id, event_id)`，D-063）。重複的 `event_id` 撞主鍵 → 丟棄並回 `200`（不是錯誤，是正常重試）。
 
 > 去重視窗規格寫 7 天，但主鍵是永久的。Phase 0 先讓它永久——見下方，這件事與未來的分區直接衝突。
 
@@ -275,7 +278,7 @@ PRIMARY KEY (tenant_id, event_id)
 
 > **Postgres 要求分區表的所有 unique constraint 必須包含分區鍵，沒有例外。**
 
-所以 partition by `occurred_at` 會迫使 PK 從 `(tenant_id, event_id)` 變成 `(tenant_id, event_id, occurred_at)`——而那會**靜默打爛去重**：同一個 `event_id` 配不同時間戳變成兩列，`01` §7 的「重複 `event_id` 丟棄並回 200」失效，重送的事件會被當成新事件重複觸發旅程。
+所以 partition by `occurred_at` 會迫使 PK 從 `(event_id)` 變成 `(event_id, occurred_at)`——而那會**靜默打爛去重**：同一個 `event_id` 配不同時間戳變成兩列，`01` §7 的「重複 `event_id` 丟棄並回 200」失效，重送的事件會被當成新事件重複觸發旅程。
 
 **不會有任何錯誤訊息。** 這是最糟的那種失效。
 
@@ -293,7 +296,7 @@ PRIMARY KEY (tenant_id, event_id)
 
 | 索引 | 欄位 | 服務哪一類查詢 |
 | --- | --- | --- |
-| `ix_event_name_time` | `(tenant_id, name, occurred_at DESC)` | `WHERE tenant_id = ? AND name = ? AND occurred_at > ?`，例如行為條件「最近 30 天有沒有 `order_completed`」 |
+| `ix_event_name_time` | `(name, occurred_at DESC)` | `WHERE name = ? AND occurred_at > ?`，例如行為條件「最近 30 天有沒有 `order_completed`」 |
 
 #### ⚠️ 這裡**不加** `WHERE`
 
@@ -304,7 +307,7 @@ PRIMARY KEY (tenant_id, event_id)
 | **索引的 `WHERE`**（partial index） | schema | 建表時，**永久固定** | `WHERE status = 'WAITING'` |
 | **查詢的 `WHERE`** | 應用程式 | 每次查詢，**每次不同** | `WHERE name = 'order_completed'` |
 
-`tenant_id` / `name` / `occurred_at` 是查詢條件，由索引的**欄位順序**（前綴匹配）服務，不進索引定義。
+`name` / `occurred_at` 是查詢條件，由索引的**欄位順序**（前綴匹配）服務，不進索引定義。
 
 把它們寫進 partial index 會有兩個後果：
 
@@ -330,7 +333,7 @@ PRIMARY KEY (tenant_id, event_id)
 | 1 | 表名 `enrollment` 還是 `enrollment_record` | **`enrollment_record`** | 貼合「實作層 Record」的命名意圖，與契約層 `EnrollmentState` 一眼可辨。`02` §9 的 DDL 待同步修正 |
 | 2 | `journey_definition` 主鍵 | **`(journey_id, version)`** | 版本並存是硬需求，見 §3 |
 | 3 | `created_at` / `published_at` 契約沒列，要不要加 | **要加** | 「草稿不佔版本、發布時才配版本號」必須答得出「v2 何時發布」。事後補要回填 |
-| 4 | Phase 0 要不要開 RLS | **不開** | 有 `ENABLE` 沒 `POLICY` = 全部拒絕且不報錯。與 policy 一起排 Phase 1b |
+| 4 | Phase 0 要不要開 RLS | **不開** | 有 `ENABLE` 沒 `POLICY` = 全部拒絕且不報錯。D-051 後不排期；D-063 後須先加回 `tenant_id`，再與 policy 一起上 |
 | 5 | enum 用 Postgres `ENUM` 還是 `TEXT` | **`TEXT`** | `ALTER TYPE` 跨 migration 很痛，狀態機還會演進 |
 | 6 | 要不要加外鍵 | **不加** | `node_trace` 每次節點推進都寫，外鍵檢查在熱路徑上；且 `enrollment_record → journey_definition` 的複合外鍵會擋住旅程封存。完整性靠應用層與單一交易 |
 | 7 | `CREATE TABLE IF NOT EXISTS` | **不用** | Flyway 靠 `flyway_schema_history` 保證只跑一次。`IF NOT EXISTS` 會讓「表已存在但結構不同」靜默通過，得到一個與 migration 不符的 schema 卻沒有任何錯誤 |
@@ -348,7 +351,10 @@ PRIMARY KEY (tenant_id, event_id)
 | V2 | `V2__engine_pipeline.sql` | §10：`event.dispatched_at`、`ix_enrollment_profile`、`effect_outbox`、`delivery_task`、`mock_channel_message` |
 | V3 | `V3__event_dispatch_retry.sql` | §11：`event` 派發重試欄位、`ix_event_dispatch_queue`（取代 `ix_event_undispatched`） |
 | V4 | `V4__event_dispatch_outcome_strict.sql` | §11：回填 `dispatch_outcome`，CHECK 改雙向 |
-| V5 起 | （v0.2.0） | role 三分與 RLS（`docs/design/INIT-01.md` R2） |
+| V5 | `V5__drop_tenant_id.sql` | §12「V5」：7 張表移除 `tenant_id`、重建 `event` PK 與 7 個索引（D-063，REFACTOR-01） |
+| V6 | `V6__app_user.sql` | §12：`app_user`（不動既有表） |
+| V7 | `V7__profile_store.sql` | §12：`profile`、`profile_identifier`、自既有 Enrollment 與事件回填空白客戶、`enrollment_record` 兩個瀏覽索引 |
+| V8 | `V8__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
 
 ### 鐵則
 
@@ -360,13 +366,13 @@ PRIMARY KEY (tenant_id, event_id)
 
 ## 9. 驗收條件
 
-`02` §10 的清單中，V1～V4 能覆蓋的部分：
+`02` §10 的清單中，V1～V5 能覆蓋的部分：
 
-- [ ] `mvn flyway:migrate` 在乾淨資料庫上從 V1 跑到 V4 無錯
-- [ ] 同一 `(tenant_id, journey_id, profile_id, dedup_key)` 併發插入 5 次，4 次撞 `uq_enrollment_dedup`（**由 DB 約束保證，不是先查再插**）
+- [ ] `mvn flyway:migrate` 在乾淨資料庫上從 V1 跑到最新版無錯
+- [ ] 同一 `(journey_id, profile_id, dedup_key)` 併發插入 5 次，4 次撞 `uq_enrollment_dedup`（**由 DB 約束保證，不是先查再插**）
 - [ ] 同一 `journey_id` 可同時存在 v1 與 v2 兩列
 - [ ] `EXPLAIN` 確認 `lockDue` 的查詢走 `ix_enrollment_wake`，不是 Seq Scan
-- [ ] 重複 `(tenant_id, event_id)` 插入撞主鍵
+- [ ] 重複 `event_id` 插入撞主鍵
 - [ ] `node_trace` 的 `decision_reason` 為 null 時插入失敗
 - [ ] `delivery_history` 塞第 51 筆時被 `CHECK` 擋下
 - [ ] `variables` 塞超過 32 KB 時被 `CHECK` 擋下
@@ -382,9 +388,9 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 | 表／欄位 | 語意 | 鍵與索引 |
 |---|---|---|
 | `event.dispatched_at` | 扇出（比對 EventSource、建立 Enrollment）結束時間；遲到 > 24h、重試用完（§11）也標上但不建立（`01` §6） | V3 起改 `ix_event_dispatch_queue`（§11） |
-| `enrollment_record` 查詢索引 | 軌跡頁依客戶列 Enrollment，新到舊 | `ix_enrollment_profile (tenant_id, profile_id, enrolled_at DESC, enrollment_id DESC)` |
-| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`；confirm 才標 `PUBLISHED`；`publish_count` 只在標 `PUBLISHED`（`markPublished`）時遞增，reschedule 不動；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
-| `delivery_task` | 每個 SendMessage 一列，consumer 冪等依據（已 `SENT` 即丟棄重投）；`status` = `PENDING`／`SENT`／`SKIPPED`／`FAILED`／`CANCELLED`，`SKIPPED` 必帶 `skip_reason`（CHECK）；`visit_seq` = `node_trace.seq` | PK `idempotency_key`；`ix_delivery_task_enrollment (tenant_id, enrollment_id, attempted_at DESC, idempotency_key DESC)` |
+| `enrollment_record` 查詢索引 | 軌跡頁依客戶列 Enrollment，新到舊 | `ix_enrollment_profile (profile_id, enrolled_at DESC, enrollment_id DESC)` |
+| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`（v0.2.0 起 `available_at` 兼作 lease 與 fencing 值，見 §12「relay」）；confirm 才標 `PUBLISHED`；`publish_count` 只在標 `PUBLISHED`（`markPublished`）時遞增，reschedule 不動；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
+| `delivery_task` | 每個 SendMessage 一列，consumer 冪等依據（已 `SENT` 即丟棄重投）；`status` = `PENDING`／`SENT`／`SKIPPED`／`FAILED`／`CANCELLED`，`SKIPPED` 必帶 `skip_reason`（CHECK）；`visit_seq` = `node_trace.seq` | PK `idempotency_key`；`ix_delivery_task_enrollment (enrollment_id, attempted_at DESC, idempotency_key DESC)` |
 | `mock_channel_message` | Mock 通道「已送出」的訊息，與 `delivery_task` 同一交易寫入；驗收「恰好一則」數這張表 | PK `idempotency_key` |
 
 `enrollment_record.delivery_history` 只由 consumer 以單一 `UPDATE` 追加並修剪到 50 筆；`StateStore.save` 不寫這個欄位，兩者不互相覆蓋。
@@ -399,7 +405,7 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 
 - v0.1.0 只會出現 `SendMessage`；`04` §5 其他 Effect 在用到的那期加一列本表。relay 遇未列的 `effect_type`：不發佈、記錯誤日誌、留 `PENDING` 並延後 `available_at`（同上表），不阻塞同批其他列
 - MQ 訊息 body 只有 `idempotency_key`（DESIGN-01 做法 #4）；consumer 以 `OutboxStore.find` 讀回整列。`payload` 缺鍵或型別不符 = 無法解析 → DLQ
-- 路由與歸屬資訊從**欄位**讀，不從 `payload` 讀：`delivery_task` 的 `tenant_id` `enrollment_id` `journey_id` `journey_version` `node_id` `visit_seq` 取同名欄位；`template_id` `channel_id` 取 `payload`；`channel_type` = `ChannelAdapter.channelType()`（v0.1.0 只有 `MockChannelAdapter` = `MOCK`）、`message_type` = `NULL`（v0.1.0）
+- 路由與歸屬資訊從**欄位**讀，不從 `payload` 讀：`delivery_task` 的 `enrollment_id` `journey_id` `journey_version` `node_id` `visit_seq` 取同名欄位；`template_id` `channel_id` 取 `payload`；`channel_type` = `ChannelAdapter.channelType()`（v0.1.0 只有 `MockChannelAdapter` = `MOCK`）、`message_type` = `NULL`（v0.1.0）
 - `delivery_history` 追加的 `DeliveryRecord.traceSeq` = `visit_seq`；`attempted_at` 取注入的 `Clock`
 
 ---
@@ -428,3 +434,54 @@ DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作：FIX-
 設定變數（值在 `.env`）：`ENGINE_DISPATCH_MAX_ATTEMPTS`（上限次數）、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`（ISO Duration）。
 
 過渡：V3 合併到 FIX-03a 合併之間，`markDispatched` 不寫 `dispatch_outcome`（為 `NULL`）；FIX-03a 合併後每次標派發必寫。V4 先以 V3 的規則回填這段期間的列，再把 CHECK 收緊為雙向；之後兩欄須在同一 `UPDATE` 同時設值或同時清空，只改其中一欄的 `UPDATE` 會被擋。
+
+---
+
+## 12. v0.2.0 新增（V5～V8；設計見 `docs/design/DESIGN-03.md`）
+
+DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `Clock`。
+
+| 表 | 欄位（型別依 §2） | 鍵、索引、約束 |
+|---|---|---|
+| `app_user` | `user_id`、`email`（存小寫）、`display_name`、`password_hash`（BCrypt）、`role`（`VIEWER`／`EDITOR`／`ADMIN`）、`status`（`ACTIVE`／`DISABLED`）、`created_at`、`updated_at` | PK `user_id`；`uq_app_user_email (email)`（回到多租戶時另加成員表，D-051） |
+| `profile` | `profile_id`、`attributes` JSONB（預設 `{}`）、`created_at`、`updated_at` | PK `profile_id`；`ck_profile_attributes_size`：`octet_length(attributes::text) <= 32768` |
+| `profile_identifier` | `id_type`、`id_value`（已正規化，`profiles.md` §1.1）、`profile_id`、`created_at` | PK `(id_type, id_value)`（一個識別碼只屬於一位客戶）；`ix_profile_identifier_profile (profile_id)`；`ck_profile_identifier_type`（五種 `IdentifierType`）；`ck_profile_identifier_norm`：`EMAIL` = `lower(btrim(id_value))` 且含 `@`、`PHONE` 符合 `^\+[1-9][0-9]{6,14}$`、其他 = `btrim(id_value)` 且 1–200 字 |
+| `journey` | `journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (updated_at DESC, journey_id DESC)`；V8 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
+| `journey_review` | `review_id`、`journey_id`、`action`（`PUBLISH`；停止不審核，依 D-060）、`status`（`PENDING`／`APPROVED`／`REJECTED`／`WITHDRAWN`）、`revision` INT（可 null，管理金鑰建立的紀錄，D-061）、`base_version` INT（可 null）、`note`、`submitted_by`（可 null）、`submitted_at`、`decided_by`（可 null）、`decided_at`、`reason`、`version` INT（可 null） | PK `review_id`；`uq_journey_review_pending (journey_id) WHERE status = 'PENDING'`；`ix_journey_review_journey (journey_id, submitted_at DESC, review_id DESC)`；`ck_journey_review_reject_reason`：`status <> 'REJECTED' OR reason IS NOT NULL`；只 `INSERT` 與 `PENDING` → 終態的條件式 `UPDATE`，不刪除；V8 回填不建紀錄 |
+| `journey_definition.layout` | JSONB，可 null | 版本不可變，`layout` 隨版本一起寫入 |
+| `enrollment_record.trigger_event_id` | TEXT，可 null | `uq_enrollment_trigger (journey_id, trigger_event_id) WHERE trigger_event_id IS NOT NULL`；V8 以 `trigger_snapshot->>'event_id'` 回填（`02` §6「落地」） |
+| `enrollment_record` 瀏覽索引（V7） | — | `ix_enrollment_recent (enrolled_at DESC, enrollment_id DESC)`（`/enrollments` 省略 `q`）；`ix_enrollment_journey_recent (journey_id, enrolled_at DESC, enrollment_id DESC)`（帶 `journey_id`；節點統計 `journeys.md` §5 也用它） |
+
+### V5：移除 `tenant_id`（D-063，REFACTOR-01）
+
+一支 migration、一個交易（Flyway 預設）。先明確 `DROP INDEX`／`DROP CONSTRAINT`，再 `DROP COLUMN`，再以**原名**重建（不靠 PostgreSQL 刪欄時連帶刪索引，讓 migration 自己說明做了什麼）：
+
+| 表 | 重建 |
+|---|---|
+| `event` | `event_pkey` → `PRIMARY KEY (event_id)`；`ix_event_name_time (name, occurred_at DESC)` |
+| `enrollment_record` | `uq_enrollment_dedup (journey_id, profile_id, dedup_key) WHERE dedup_key IS NOT NULL`；`ix_enrollment_wake_event (profile_id, wake_event_name) WHERE status = 'WAITING' AND wake_event_name IS NOT NULL`；`ix_enrollment_journey_active (journey_id) WHERE terminated_at IS NULL`；`ix_enrollment_profile (profile_id, enrolled_at DESC, enrollment_id DESC)` |
+| `effect_outbox` | `ix_effect_outbox_enrollment (enrollment_id)` |
+| `delivery_task` | `ix_delivery_task_enrollment (enrollment_id, attempted_at DESC, idempotency_key DESC)` |
+| `journey_definition`、`node_trace`、`mock_channel_message` | 只刪欄（PK 不含 `tenant_id`） |
+
+- 既有資料不搬動、不回填；`partial index` 的 `WHERE` 與 V1、V2 相同
+- `event_id` 在既有資料中若重複（同一環境曾換過 `CDP_TENANT_ID` 才會發生），`ADD PRIMARY KEY` 失敗、整支回滾；不手改資料庫，回報後另開單處理
+- 驗收（QA-09）：系統目錄中 `public` schema 無 `tenant_id` 欄位；`event` PK 只有 `event_id`；上表 7 個索引的 `pg_indexes.indexdef` 與上表一致；在 V4 灌資料後升到 V5，列數不變、`uq_enrollment_dedup` 與 PK 照常擋重複
+
+### ProfileStore 的寫入規則下放資料庫（D-052）
+
+- 不變條件（識別碼唯一、正規化格式、屬性大小）以上表的 PK 與 CHECK 表達，不只寫在 Java；之後任何寫入來源（API、事件攝取、DESIGN-04 的整合入口）都受同一組約束
+- 引擎與 API 讀客戶資料一律即時查表、不快取；其他來源寫入後，下一次查詢或推進即可見
+- 整合入口的資料表與 DB 帳號權限由 DESIGN-04 定，本版不建（同樣不帶 `tenant_id`，§2）
+
+### relay（`effect_outbox`，不需 migration）
+
+| 步驟 | SQL 語意 |
+|---|---|
+| 搶列（短交易） | `PENDING` 且 `available_at <= now`，`ORDER BY available_at`，`LIMIT n FOR UPDATE SKIP LOCKED`，同一敘述把 `available_at` 設為 `lease_until = now + OUTBOX_RELAY_LEASE` 並回傳列；提交後不持鎖 |
+| 發送（交易外） | 整批 publish、一起等 confirm（上限 `OUTBOX_RELAY_CONFIRM_TIMEOUT`） |
+| 回寫（條件式） | 成功：`status='PUBLISHED'`、`published_at`、`publish_count+1`，**`WHERE status='PENDING' AND available_at = lease_until`**；失敗：同條件下 `available_at = now + OUTBOX_RELAY_RETRY_DELAY`。影響 0 列 = lease 已過期被別人重搶或已被取消，丟棄這次結果 |
+| 取消 | 進入終態、旅程停止：`PENDING` → `CANCELLED`（不論是否被搶走）；之後的回寫因 `status` 條件失效；已在 MQ 的訊息由 consumer 讀到 `CANCELLED` 列即寫 `delivery_task.CANCELLED` 後 ack |
+
+- `OUTBOX_RELAY_LEASE` 必須大於 `OUTBOX_RELAY_CONFIRM_TIMEOUT`（啟動時驗證，不符即拒絕啟動）；lease 過期重發的重複由 consumer 冪等吸收（`delivery_task`）
+
