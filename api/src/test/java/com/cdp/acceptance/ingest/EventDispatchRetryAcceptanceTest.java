@@ -32,19 +32,19 @@ class EventDispatchRetryAcceptanceTest extends IngestAcceptanceBase {
     private void armFailures() {
         doAnswer(
                         inv -> {
-                            if (failing.contains(inv.<String>getArgument(1))) {
+                            if (failing.contains(inv.<String>getArgument(0))) {
                                 throw new IllegalStateException("binding boom");
                             }
                             return inv.callRealMethod();
                         })
                 .when(runtime)
-                .start(any(), any(), anyInt(), any(), any(), any(), any());
+                .start(any(), anyInt(), any(), any(), any(), any());
     }
 
     private long startCalls(String journeyId) {
         return mockingDetails(runtime).getInvocations().stream()
                 .filter(i -> i.getMethod().getName().equals("start"))
-                .filter(i -> journeyId.equals(i.getArgument(1)))
+                .filter(i -> journeyId.equals(i.getArgument(0)))
                 .count();
     }
 
