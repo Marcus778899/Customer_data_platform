@@ -13,13 +13,19 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-039 版本快照要不要進 git
-- 背景：`.gitignore` 忽略整個 `tasks/`（派工單只存本機與 GitHub issue），所以 `tasks/job_history/v0.1.0.md` 已產生但 docs.py 提交不進去
-- 選項：A. 開 chore 在 `.gitignore` 加例外，讓 `tasks/job_history/` 進 git（換電腦或 clone 都看得到） ／ B. 維持只存本機
-- 建議：A，快照是歷史紀錄，留在 repo 才不會遺失
-- 提出：manager
-
 ## 已決定
+
+### D-039 版本快照進 git
+- 決定：A. 版本封存留在 repo，不被 `.gitignore` 忽略（存放結構見 D-040）
+- 理由：快照是歷史紀錄，換電腦或 clone 都看得到
+- 影響：`.gitignore`、`scripts/init_project.py`、`scripts/docs.py`（CHORE-07）
+- 日期：2026-10-19
+
+### D-040 已發版的派工單依版本歸檔
+- 決定：甲方指示。`tasks/<版本>/` 放「該版工作歷程」快照（檔名為版本代稱，例：`tasks/v0.1.0/engine-ignition.md`）與該版所有派工單；進行中的派工單仍放 `tasks/` 根目錄。取代 D-035 的 `tasks/job_history/` 位置
+- 理由：派工單一多，依版本分開好查
+- 影響：`scripts/board.py task archive`、CHORE-07；v0.1.0 現有派工單一次搬移
+- 日期：2026-10-19
 
 ### D-036 外部 review 的修正併入 v0.2.0 設計
 - 決定：A. relay 改寫（available_at 當 lease、交易外整批發送、條件式回寫）＋每迴圈獨立執行緒＋小交易＋滿批續做併入 v0.2.0 設計；LISTEN/NOTIFY、索引與 autovacuum 調校進之後的效能專題（分析見 #72）
