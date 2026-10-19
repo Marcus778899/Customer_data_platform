@@ -266,7 +266,7 @@ void killJourney(String tenantId, String journeyId, String reason) {
 
 ### 落地（v0.2.0 第二版，`docs/design/DESIGN-03.md`）
 
-只做旅程層（`docs/contracts/journeys.md` §3.5）；判定來源只有 Postgres 的 `journey.status`（Redis 於之後的版本接上）。步驟 1 與 3 同一交易（設 `ABORTED`、outbox `PENDING` → `CANCELLED`）；步驟 4、5 由引擎池的背景清理分批做（每批一個小交易，每筆寫一列軌跡）；步驟 2 本版無 Redis 可設。consumer 在發送前檢查 `journey.status` 與 outbox 列狀態，任一為停止／取消即 `CANCELLED`。
+只做旅程層（`docs/contracts/journeys.md` §3.5）；判定來源只有 Postgres 的 `journey.status`（Redis 於之後的版本接上）。步驟 1 與 3 同一交易（設 `ABORTED`、outbox `PENDING` → `CANCELLED`）；步驟 4、5 由背景清理迴圈分批做（每批一個小交易，每筆寫一列軌跡）；步驟 2 本版無 Redis 可設。consumer 在發送前檢查 `journey.status` 與 outbox 列狀態，任一為停止／取消即 `CANCELLED`。
 
 ### 恢復
 

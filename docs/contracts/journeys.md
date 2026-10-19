@@ -2,7 +2,7 @@
 
 <!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md；定義格式正本見 spec 03。§2 屬第一版（v0.2.0），§3～§5 屬第二版（拆版見 DESIGN-03） -->
 
-- 通用規則：`journey-engine.md` §1、§5；憑證、租戶、角色：`tenancy-auth.md` §1、§2（本檔 API 皆為「租戶」API）
+- 通用規則：`journey-engine.md` §1、§5；憑證與角色：`auth.md` §1、§2
 - 旅程（journey）有一個生命週期狀態；版本（version）發佈後不可變（spec 03 §1）。Enrollment 綁定建立當下的最新版本，之後發佈新版不影響（spec 02 §2）
 
 ## §1 資料模型
@@ -63,7 +63,7 @@
 | POST | `/api/v1/journeys/{journey_id}/draft/validate` | — | `200` `ValidationReport`（不改資料） | `404` |
 | POST | `/api/v1/journeys/{journey_id}/publish` | `{ "revision" }` | `201` `{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；草稿清除 | `400` `VALIDATION_FAILED`（`errors` 同 `ValidationReport.errors`）、`404`、`409` `DRAFT_CONFLICT`／`JOURNEY_ABORTED` |
 
-- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`{ "user_id", "display_name" }` \| null；後端帶出使用者目前的顯示名稱，不需呼叫 `/members`；金鑰呼叫為 `null`）
+- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`{ "user_id", "display_name" }` \| null；後端帶出使用者目前的顯示名稱，不需呼叫 `/users`；金鑰呼叫為 `null`）
 - `ValidationReport`：`valid` bool、`errors` `Issue[]`、`warnings` `Issue[]`；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
 - `Issue`：`field` string（JSON 路徑，例 `definition.nodes[3].outputs.yes`）、`message` string（繁體中文一句，可直接顯示）、`rule` int \| null（spec 03 §6 規則編號；該表沒有編號的檢查，例 §4 的 `config` 必填，為 `null`）、`node_id` string \| null（錯誤所在節點；`settings`、`name` 等不屬於單一節點者為 `null`；規則 7 每個違規的迴圈一筆，取迴圈中在 `nodes` 陣列最前的節點，`message` 列出迴圈全部節點 id）
 - `publish` 的 `400` `VALIDATION_FAILED`：`errors` 每筆同 `Issue`（journey-engine §5 的 `{ field, message }` 再加 `rule`、`node_id`）

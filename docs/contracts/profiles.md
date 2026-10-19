@@ -1,9 +1,10 @@
-# 契約：最小 ProfileStore 與客戶搜尋（v1，v0.2.0）
+# 契約：最小 ProfileStore 與客戶搜尋（v2，v0.2.0；單一租戶 D-051）
 
 <!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md；表語意見 spec 07 §12 -->
 
-- 通用規則（Base URL、JSON、時間、錯誤格式）：`journey-engine.md` §1、§5；憑證、租戶、角色：`tenancy-auth.md` §1、§2（本檔 API 皆為「租戶」API）
-- 遮罩：同 `journey-engine.md` §4.4 的規則與 `CDP_TRACE_PLAIN_KEYS` 白名單（全平台一份，不分租戶）
+- 通用規則（Base URL、JSON、時間、錯誤格式）：`journey-engine.md` §1、§5；憑證與角色：`auth.md` §1、§2
+- 遮罩：同 `journey-engine.md` §4.4 的規則與 `CDP_TRACE_PLAIN_KEYS` 白名單
+- 寫入來源：本版只有 §2 API 與事件攝取；§1.1 正規化、§2 合併與識別碼唯一是**所有**寫入來源共用的規則，之後經 PostgreSQL 的整合入口（D-052，DESIGN-04）寫入的結果必須與經 §2 寫入相同
 
 ## §1 資料模型
 
@@ -55,7 +56,7 @@
 
 ## §4 範例
 
-`GET /api/v1/profiles/search?q=Amy@Example.com`（`X-Tenant-Id` 為成員租戶；`CDP_TRACE_PLAIN_KEYS=member_id`）→ `200`
+`GET /api/v1/profiles/search?q=Amy@Example.com`（`CDP_TRACE_PLAIN_KEYS=member_id`）→ `200`
 
 ```json
 { "items": [ { "profile_id": "01JCXYZPROFILE00000000001", "matched_by": "EMAIL",
@@ -64,4 +65,4 @@
   "created_at": "2026-10-18T02:00:00Z", "updated_at": "2026-11-01T08:00:00Z" } ] }
 ```
 
-`PUT /api/v1/profiles/01JCXYZPROFILE00000000002`（租戶 `INGEST` 金鑰）`{ "identifiers": [ { "type": "EMAIL", "value": "amy@example.com" } ] }` → `409` `IDENTIFIER_CONFLICT`
+`PUT /api/v1/profiles/01JCXYZPROFILE00000000002`（攝取金鑰）`{ "identifiers": [ { "type": "EMAIL", "value": "amy@example.com" } ] }` → `409` `IDENTIFIER_CONFLICT`
