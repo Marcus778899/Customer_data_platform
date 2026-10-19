@@ -67,11 +67,11 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | qa-fail | 1 |  |
+| DESIGN-03 | architect | review | 1 |  |
 | UI-03 | designer | blocked | 0 |  |
 | CHORE-07 | backend | done | 1 | PR #79 |
-| FIX-09 | backend | qa | 0 |  |
-| DESIGN-04 | architect | qa-fail | 1 |  |
+| FIX-09 | backend | done | 0 | PR #84 |
+| DESIGN-04 | architect | review | 1 |  |
 
 ## 卡住／待甲方決定
 
