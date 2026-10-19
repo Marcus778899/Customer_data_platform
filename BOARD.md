@@ -83,10 +83,12 @@
 | FIX-09 | backend | done | 0 | PR #84 |
 | DESIGN-04 | architect | done | 1 | PR #83 |
 | CHORE-09 | backend | done | 0 | PR #86 |
+| tenant-id-drop | backend | in-progress | 0 |  |
+| app-shell-login | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- D-065 已定案；布告欄決策表等 scripts-fix-restore 合併（補回版本欄）後再加 D-065
 
 ## 注意事項（踩過的坑）
 
