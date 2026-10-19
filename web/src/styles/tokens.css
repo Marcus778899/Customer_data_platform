@@ -79,6 +79,10 @@
   --color-trace-current: #9a6700;
   --color-trace-unvisited: #6e7781; /* 虛線框；狀態另以文字標示 */
 
+  /* 對話框（審核、停止確認） */
+  --color-overlay: rgba(31, 35, 40, 0.55);
+  --shadow-popover: 0 8px 24px rgba(31, 35, 40, 0.25);
+
   /* 版面尺寸 */
   --nav-width: 232px;
   --topbar-height: 56px;
