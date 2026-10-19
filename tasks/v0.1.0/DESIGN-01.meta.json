@@ -1,0 +1,21 @@
+{
+  "task_id": "DESIGN-01",
+  "kind": "docs",
+  "owner": "architect",
+  "title": "出 v0.1.0 旅程引擎直線流程的設計、契約與骨架，並排出實作派工順序",
+  "issue": 3,
+  "branch": "docs/design-01",
+  "worktree": ".worktrees\\DESIGN-01",
+  "pr": 7,
+  "qa": {
+    "result": "pass",
+    "sha": "052b293c53e213735792df68626d3e7175f9a747",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "052b293c53e213735792df68626d3e7175f9a747",
+    "by": "甲方"
+  },
+  "merged": true
+}

@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-05",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "事件派發重試設定的啟動驗證，與解析失敗路徑的單元測試",
+  "issue": 43,
+  "branch": "fix/fix-05",
+  "worktree": ".worktrees\\FIX-05",
+  "pr": 46,
+  "qa": {
+    "result": "pass",
+    "sha": "ade59798c2322e24eaa99f08b6b2efe0515ac09a",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "ade59798c2322e24eaa99f08b6b2efe0515ac09a",
+    "by": "architect"
+  },
+  "merged": true
+}

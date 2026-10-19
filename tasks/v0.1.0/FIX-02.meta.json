@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-02",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "錯誤處理收斂：405／406 專用 code 與標頭、移除 @Order 依賴、Security 例外不轉 500",
+  "issue": 25,
+  "branch": "fix/fix-02",
+  "worktree": ".worktrees\\FIX-02",
+  "pr": 27,
+  "qa": {
+    "result": "pass",
+    "sha": "20ec8ede63e7435bca4fea9c4f350ff8c1f593d4",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "20ec8ede63e7435bca4fea9c4f350ff8c1f593d4",
+    "by": "architect"
+  },
+  "merged": true
+}

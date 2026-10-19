@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-08",
+  "kind": "fix",
+  "owner": "frontend",
+  "title": "375px 窄螢幕下列表與發送歷史的說明一行顯示、查詢表單欄位間距與設計稿一致",
+  "issue": 61,
+  "branch": "fix/fix-08",
+  "worktree": ".worktrees\\FIX-08",
+  "pr": 63,
+  "qa": {
+    "result": "pass",
+    "sha": "4e344ddca1298aeaff01d4a317029b657567ee3a",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "4e344ddca1298aeaff01d4a317029b657567ee3a",
+    "by": "architect"
+  },
+  "merged": true
+}

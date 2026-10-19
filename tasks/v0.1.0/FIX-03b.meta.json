@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-03b",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "發送管線穩健：relay 失敗退避與 mandatory 檢查、consumer 暫時性錯誤延遲重排、移除全域 missingQueuesFatal",
+  "issue": 33,
+  "branch": "fix/fix-03b",
+  "worktree": ".worktrees\\FIX-03b",
+  "pr": 42,
+  "qa": {
+    "result": "pass",
+    "sha": "5d63a12ab9594b2b8e548444b268903ee86caf65",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "5d63a12ab9594b2b8e548444b268903ee86caf65",
+    "by": "architect"
+  },
+  "merged": true
+}

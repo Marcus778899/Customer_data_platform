@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-06",
+  "kind": "fix",
+  "owner": "frontend",
+  "title": "session 失效被導回登入時，登入頁顯示「登入已逾時，請重新登入」",
+  "issue": 57,
+  "branch": "fix/fix-06",
+  "worktree": ".worktrees\\FIX-06",
+  "pr": 58,
+  "qa": {
+    "result": "pass",
+    "sha": "53809779967b08a6694e189d9e6ab1c6e93c7a5a",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "53809779967b08a6694e189d9e6ab1c6e93c7a5a",
+    "by": "architect"
+  },
+  "merged": true
+}

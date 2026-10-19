@@ -1,0 +1,22 @@
+{
+  "task_id": "BE-03",
+  "kind": "feat",
+  "owner": "backend",
+  "title": "實作 v0.1.0 Enrollment 唯讀查詢 API（列表、詳情、發送紀錄續查）與個資遮罩",
+  "issue": 17,
+  "branch": "feat/be-03",
+  "worktree": ".worktrees\\BE-03",
+  "pr": 20,
+  "qa": {
+    "result": "pass",
+    "sha": "7c6438b4b58bba0693d139b4ca5a3688663640ff",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "7c6438b4b58bba0693d139b4ca5a3688663640ff",
+    "by": "architect"
+  },
+  "merged": true,
+  "qa_fails": 1
+}

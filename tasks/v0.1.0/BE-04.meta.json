@@ -1,0 +1,22 @@
+{
+  "task_id": "BE-04",
+  "kind": "feat",
+  "owner": "backend",
+  "title": "實作 v0.1.0 認證：API 金鑰（INGEST、ADMIN）、客服帳密登入與 session、401／403 錯誤格式",
+  "issue": 12,
+  "branch": "feat/be-04",
+  "worktree": ".worktrees\\BE-04",
+  "pr": 14,
+  "qa": {
+    "result": "pass",
+    "sha": "ad55d066716100eb4b8cdcadaf5bde11ea225c39",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "ad55d066716100eb4b8cdcadaf5bde11ea225c39",
+    "by": "architect"
+  },
+  "merged": true,
+  "qa_fails": 1
+}

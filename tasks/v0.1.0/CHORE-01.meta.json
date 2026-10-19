@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-01",
+  "kind": "chore",
+  "owner": "architect",
+  "title": "把 agent 專案記憶目錄加進 .gitignore",
+  "issue": 5,
+  "branch": "chore/chore-01",
+  "worktree": ".worktrees\\CHORE-01",
+  "pr": 6,
+  "qa": {
+    "result": "pass",
+    "sha": "954d180a869c8b86c9bb1024c9be4f24b890df82",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "954d180a869c8b86c9bb1024c9be4f24b890df82",
+    "by": "architect"
+  },
+  "merged": true
+}

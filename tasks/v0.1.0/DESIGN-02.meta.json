@@ -1,0 +1,21 @@
+{
+  "task_id": "DESIGN-02",
+  "kind": "docs",
+  "owner": "architect",
+  "title": "補齊 BE-02 開工前與 review 累積的契約、設計缺口",
+  "issue": 18,
+  "branch": "docs/design-02",
+  "worktree": ".worktrees\\DESIGN-02",
+  "pr": 19,
+  "qa": {
+    "result": "pass",
+    "sha": "4d888d24f400f55c408c6e895c368170bf83a0be",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "4d888d24f400f55c408c6e895c368170bf83a0be",
+    "by": "甲方"
+  },
+  "merged": true
+}

@@ -1,0 +1,21 @@
+{
+  "task_id": "BE-01",
+  "kind": "feat",
+  "owner": "backend",
+  "title": "實作 v0.1.0 引擎直線流程：事件攝取、旅程建立 API、事件派發、推進迴圈、狀態儲存與計時器、outbox 寫入",
+  "issue": 9,
+  "branch": "feat/be-01",
+  "worktree": ".worktrees\\BE-01",
+  "pr": 13,
+  "qa": {
+    "result": "pass",
+    "sha": "c1e30d2c637142f3c6bff3659c8b8d4122115822",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "c1e30d2c637142f3c6bff3659c8b8d4122115822",
+    "by": "architect"
+  },
+  "merged": true
+}
