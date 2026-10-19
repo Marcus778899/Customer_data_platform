@@ -47,6 +47,5 @@ D-060 畫法：自己送的不可核准（只有一位管理員時須等增設�
 - 對比：文字 >= 4.5:1、邊框與圖形 >= 3:1；狀態一律有文字。鍵盤：圖卡片是 `<button aria-pressed>`，拖曳皆有替代操作，縮放 + / − / 0；對話框 `role="dialog" aria-modal`，焦點進入並回到觸發鈕，Esc 取消。讀屏：圖 `role="group"`、邊與裝飾 `aria-hidden`、軌跡用 `<ol>` 且目前步驟 `aria-current="step"`、載入 `role="status"`、錯誤 `role="alert"`、429 倒數只在開始時朗讀；尊重 `prefers-reduced-motion`
 ## 待決定與需調查
 - 待決定：（無；v0.2.0 唯讀旅程頁 D-062、審核 D-060／D-061、撤回送審與倒數已定案）
-- 契約已回答、設計稿已依據：`review_status` 與 `?review_status=PENDING`、審核 API 與 200 字上限、`Retry-After`、顯示名稱鍵 `name`（甲方須把 `name` 列入 `CDP_TRACE_PLAIN_KEYS` 才會顯示姓名）、條件欄位建議清單 `field-keys`（可手動輸入）
-- 需調查（architect）：(1) `field-keys` 的 `profile_attributes` 鍵在條件節點 `field` 裡的路徑寫法（契約只寫事件屬性 `trigger.properties.<鍵>`），設計稿暫以純鍵名示意；(2) 審核紀錄的「撤回」是否顯示撤回者（`decided_by`）即可，設計稿照此畫
+- 契約已回答、設計稿已依據：`field-keys` 路徑寫法（`journeys.md` §4：事件屬性填 `trigger.properties.<鍵>`，設計稿的客戶屬性鍵暫以純鍵名示意）、審核紀錄「撤回」顯示 `decided_by`（§3.2）、`review_status` 與 `?review_status=PENDING`、審核 API 與 200 字上限、`Retry-After`、顯示名稱鍵 `name`（甲方須把 `name` 列入 `CDP_TRACE_PLAIN_KEYS` 才會顯示姓名）、條件欄位建議清單 `field-keys`（可手動輸入）
 - 需調查（researcher）：圖形函式庫（React Flow／xyflow、dagre）的授權、鍵盤無障礙、回邊（迴圈）與自動排版；業界迴圈畫法查不到，本稿為自訂，建議用戶測試
