@@ -34,6 +34,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
+
 BOARD_PATH = Path(os.environ.get("BOARD_FILE") or Path(__file__).resolve().parent.parent / "BOARD.md")
 TASKS_PATH = Path(os.environ.get("TASKS_DIR") or Path(__file__).resolve().parent.parent / "tasks")
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")

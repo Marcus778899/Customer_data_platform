@@ -5,6 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 TASKS_DIR = ROOT / "tasks"
 REPORTS_DIR = ROOT / "reports"
@@ -19,7 +23,7 @@ class FlowError(Exception):
 
 
 def run(*cmd: str, cwd: Path = ROOT, check: bool = True) -> str:
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if check and result.returncode != 0:
         detail = (result.stderr or result.stdout).strip()
         raise FlowError(f"`{' '.join(cmd)}` 失敗：{detail}")
@@ -27,7 +31,7 @@ def run(*cmd: str, cwd: Path = ROOT, check: bool = True) -> str:
 
 
 def run_status(*cmd: str, cwd: Path = ROOT) -> tuple[int, str]:
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     return result.returncode, (result.stdout + result.stderr).strip()
 
 
