@@ -55,13 +55,12 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | in-progress | 0 |  |
+| DESIGN-03 | architect | qa | 0 |  |
 | UI-03 | designer | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
 - v0.2.0 設計中；設計完成後請甲方確認拆版
-- 甲方指示暫停（2026-10-19），等甲方說開始再繼續；暫停時進行中：DESIGN-03（architect）、UI-03 qa 檢查
 
 ## 注意事項（踩過的坑）
 
