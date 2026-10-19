@@ -32,7 +32,6 @@ class JourneyServiceTest {
                 public JourneyDefinition insertNewVersion(JourneyDefinition d) {
                     return new JourneyDefinition(
                             d.journeyId(),
-                            d.tenantId(),
                             1,
                             d.name(),
                             d.description(),
@@ -45,12 +44,12 @@ class JourneyServiceTest {
                 }
 
                 @Override
-                public Optional<JourneyDefinition> find(String t, String j, int v) {
+                public Optional<JourneyDefinition> find(String j, int v) {
                     return Optional.empty();
                 }
 
                 @Override
-                public List<EventSourceBinding> findActiveEventSources(String t, String e) {
+                public List<EventSourceBinding> findActiveEventSources(String e) {
                     return List.of();
                 }
             };
@@ -98,7 +97,7 @@ class JourneyServiceTest {
 
     @Test
     void validDefinitionIsActive() {
-        var response = service.create("tenant", request("m"));
+        var response = service.create(request("m"));
         assertThat(response.version()).isEqualTo(1);
         assertThat(response.status()).isEqualTo(JourneyStatus.ACTIVE);
         assertThat(response.journeyId()).hasSize(26);
@@ -106,11 +105,11 @@ class JourneyServiceTest {
 
     @Test
     void cycleAndDanglingTargetsAreRejected() {
-        assertThatThrownBy(() -> service.create("tenant", request("src")))
+        assertThatThrownBy(() -> service.create(request("src")))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())
                 .isEqualTo(ErrorCode.VALIDATION_FAILED);
-        assertThatThrownBy(() -> service.create("tenant", request("ghost")))
+        assertThatThrownBy(() -> service.create(request("ghost")))
                 .isInstanceOf(ApiException.class);
     }
 }

@@ -11,10 +11,10 @@ public interface EnrollmentQueryStore {
 
     /** q 精確比對 profile_id 或 enrollment_id；statuses 為空表示不篩。新到舊。 */
     List<EnrollmentSummary> list(
-            String tenantId, String q, Set<EnrollmentStatus> statuses, PageCursor after, int limit);
+            String q, Set<EnrollmentStatus> statuses, PageCursor after, int limit);
 
     /** deliveryHistory 留空、asOf 為 null，由 service 補。 */
-    Optional<EnrollmentDetail> detail(String tenantId, String enrollmentId);
+    Optional<EnrollmentDetail> detail(String enrollmentId);
 
-    List<DeliveryEntry> deliveries(String tenantId, String enrollmentId, PageCursor after, int limit);
+    List<DeliveryEntry> deliveries(String enrollmentId, PageCursor after, int limit);
 }

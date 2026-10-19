@@ -107,7 +107,6 @@ public class DeliveryConsumer {
                 tasks.insertIfAbsentAndLock(
                         new DeliveryTask(
                                 key,
-                                entry.tenantId(),
                                 entry.enrollmentId(),
                                 entry.journeyId(),
                                 entry.journeyVersion(),
@@ -126,11 +125,10 @@ public class DeliveryConsumer {
         if (task.status() != DeliveryTaskStatus.PENDING) {
             return; // 重複投遞：已處理過
         }
-        if (killSwitch.isStopped(entry.tenantId(), entry.journeyId(), entry.journeyVersion())) {
+        if (killSwitch.isStopped(entry.journeyId(), entry.journeyVersion())) {
             tasks.update(
                     new DeliveryTask(
                             task.idempotencyKey(),
-                            task.tenantId(),
                             task.enrollmentId(),
                             task.journeyId(),
                             task.journeyVersion(),
@@ -148,7 +146,7 @@ public class DeliveryConsumer {
                             now));
             return;
         }
-        executor.execute(entry.tenantId(), entry.enrollmentId(), effect);
+        executor.execute(entry.enrollmentId(), effect);
     }
 
     @SuppressWarnings("unchecked")

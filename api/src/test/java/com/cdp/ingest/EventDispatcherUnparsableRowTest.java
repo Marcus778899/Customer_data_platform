@@ -23,7 +23,6 @@ class EventDispatcherUnparsableRowTest {
     private static NormalizedEvent goodEvent() {
         return new NormalizedEvent(
                 "good",
-                "t",
                 SourceType.valueOf(SourceType.values()[0].name()),
                 "src",
                 "evt",
@@ -42,14 +41,14 @@ class EventDispatcherUnparsableRowTest {
                 new Class<?>[] {EventStore.class},
                 (p, m, a) -> switch (m.getName()) {
                     case "lockUndispatched" -> List.of(
-                            new UndispatchedEvent("t", "bad", null, "parse boom"),
-                            new UndispatchedEvent("t", "good", goodEvent(), null));
+                            new UndispatchedEvent("bad", null, "parse boom"),
+                            new UndispatchedEvent("good", goodEvent(), null));
                     case "recordFailure" -> {
-                        calls.add("fail:" + a[1]);
+                        calls.add("fail:" + a[0]);
                         yield 1;
                     }
                     case "markDispatched" -> {
-                        calls.add("mark:" + a[1] + ":" + a[3]);
+                        calls.add("mark:" + a[0] + ":" + a[2]);
                         yield null;
                     }
                     default -> throw new UnsupportedOperationException(m.getName());

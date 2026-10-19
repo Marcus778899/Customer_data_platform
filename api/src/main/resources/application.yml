@@ -40,8 +40,6 @@ server:
         same-site: strict
         path: /api
 cdp:
-  # v0.1.0 單租戶：所有資料寫入此 tenant_id（docs/contracts/journey-engine.md「Auth」）
-  tenant-id: ${CDP_TENANT_ID}
   engine:
     poll-interval: ${ENGINE_POLL_INTERVAL}
     batch-size: ${ENGINE_BATCH_SIZE}

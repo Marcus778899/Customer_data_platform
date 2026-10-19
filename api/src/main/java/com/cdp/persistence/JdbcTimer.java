@@ -38,12 +38,11 @@ public class JdbcTimer implements Timer {
     }
 
     @Override
-    public void cancelAll(String tenantId, String journeyId) {
+    public void cancelAll(String journeyId) {
         jdbc.sql(
                         "update enrollment_record set next_wake_at = null"
-                                + " where tenant_id = :tenant and journey_id = :journey"
+                                + " where journey_id = :journey"
                                 + " and next_wake_at is not null")
-                .param("tenant", tenantId)
                 .param("journey", journeyId)
                 .update();
     }

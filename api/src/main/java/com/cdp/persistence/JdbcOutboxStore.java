@@ -24,7 +24,7 @@ public class JdbcOutboxStore implements OutboxStore {
 
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
     private static final String COLUMNS =
-            "idempotency_key, tenant_id, enrollment_id, journey_id, journey_version, node_id,"
+            "idempotency_key, enrollment_id, journey_id, journey_version, node_id,"
                     + " visit_seq, effect_index, effect_type, payload, status, available_at,"
                     + " publish_count, created_at, published_at";
 
@@ -40,13 +40,12 @@ public class JdbcOutboxStore implements OutboxStore {
     public void insertAll(List<OutboxEntry> entries) {
         for (OutboxEntry e : entries) {
             jdbc.sql(
-                            "insert into effect_outbox (" + COLUMNS + ") values (:key, :tenant,"
+                            "insert into effect_outbox (" + COLUMNS + ") values (:key,"
                                     + " :enrollment, :journey, :version, :node, :visitSeq, :effectIndex,"
                                     + " :effectType, cast(:payload as jsonb), :status, :availableAt,"
                                     + " :publishCount, :createdAt, :publishedAt)"
                                     + " on conflict (idempotency_key) do nothing")
                     .param("key", e.idempotencyKey())
-                    .param("tenant", e.tenantId())
                     .param("enrollment", e.enrollmentId())
                     .param("journey", e.journeyId())
                     .param("version", e.journeyVersion())
@@ -107,7 +106,6 @@ public class JdbcOutboxStore implements OutboxStore {
     private OutboxEntry map(ResultSet rs) throws SQLException {
         return new OutboxEntry(
                 rs.getString("idempotency_key"),
-                rs.getString("tenant_id"),
                 rs.getString("enrollment_id"),
                 rs.getString("journey_id"),
                 rs.getInt("journey_version"),
