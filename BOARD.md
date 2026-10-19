@@ -77,11 +77,12 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | in-progress | 2 |  |
+| DESIGN-03 | architect | review | 2 |  |
 | UI-03 | designer | review | 0 |  |
 | CHORE-07 | backend | done | 1 | PR #79 |
 | FIX-09 | backend | done | 0 | PR #84 |
-| DESIGN-04 | architect | in-progress | 1 |  |
+| DESIGN-04 | architect | review | 1 |  |
+| CHORE-09 | backend | done | 0 | PR #86 |
 
 ## 卡住／待甲方決定
 
