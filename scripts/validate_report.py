@@ -16,6 +16,10 @@ import re
 import sys
 from pathlib import Path
 
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "contracts" / "report.schema.json"
 WORKER_TYPES = {"backend", "frontend"}
