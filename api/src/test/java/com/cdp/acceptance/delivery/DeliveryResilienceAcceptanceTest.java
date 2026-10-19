@@ -424,6 +424,28 @@ class DeliveryResilienceAcceptanceTest {
         }
     }
 
+    private Connection sideConnection;
+
+    /** 不經連線池的獨立連線（池被佔滿時仍可查 DB）；網址與帳密取自池設定，不寫死。 */
+    private Connection openOutOfPoolConnection() throws Exception {
+        com.zaxxer.hikari.HikariDataSource hikari =
+                dataSource.unwrap(com.zaxxer.hikari.HikariDataSource.class);
+        return java.sql.DriverManager.getConnection(
+                hikari.getJdbcUrl(), hikari.getUsername(), hikari.getPassword());
+    }
+
+    private int countOutOfPool(String table, String key) throws Exception {
+        try (java.sql.PreparedStatement ps =
+                sideConnection.prepareStatement(
+                        "select count(*) from " + table + " where idempotency_key = ?")) {
+            ps.setString(1, key);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
     private void assertPacedByRequeueDelay(List<Instant> attempts) {
         assertThat(attempts.size()).as("至少重排一次（未進 DLQ）").isGreaterThanOrEqualTo(2);
         for (int i = 1; i < attempts.size(); i++) {
@@ -437,6 +459,7 @@ class DeliveryResilienceAcceptanceTest {
     void consumer_cannotCreateTransaction_waitsRequeueDelay_noBusySpin_thenExactlyOnce()
             throws Exception {
         Scheduled s = scheduleSend();
+        sideConnection = openOutOfPoolConnection();
         List<Connection> held = exhaustPool();
         List<Instant> attempts;
         try {
@@ -444,11 +467,18 @@ class DeliveryResilienceAcceptanceTest {
                     RabbitTopology.EXCHANGE, RabbitTopology.SEND_MESSAGE_ROUTING_KEY, s.key());
             Thread.sleep(7_000);
             attempts = new ArrayList<>(DeliveryCounter.ATTEMPTS);
+            // 須在釋放連線前斷言：釋放後 consumer 隨時可能提交（FIX-09：原先放在 finally 之後有競態）。
+            // 連線池已被佔滿，改用池外的獨立連線查詢。
+            assertThat(countOutOfPool("delivery_task", s.key()))
+                    .as("DB 不可用期間不得有任務")
+                    .isZero();
+            assertThat(countOutOfPool("mock_channel_message", s.key()))
+                    .as("DB 不可用期間不得發送")
+                    .isZero();
         } finally {
             release(held);
+            sideConnection.close();
         }
-        assertThat(taskStatus(s.key())).as("DB 不可用期間不得有任務").isNull();
-        assertThat(mockCount(s.key())).isZero();
 
         // 7 秒、delay 2 秒：約 4 次；立即重排（舊行為）每 ~250ms 一次，會超過 20 次
         assertThat(attempts.size()).as("斷線期間不空轉").isLessThanOrEqualTo(6);
