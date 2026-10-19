@@ -34,9 +34,14 @@ def ensure_files() -> None:
             print(f"建立 {dst.relative_to(ROOT)}")
     gitignore = ROOT / ".gitignore"
     existing = gitignore.read_text(encoding="utf-8").splitlines() if gitignore.exists() else []
+    replaced = "tasks/" in existing  # 舊寫法會連 tasks/<版本>/ 一起忽略，換成 tasks/*
+    existing = ["tasks/*" if line == "tasks/" else line for line in existing]
     missing = [line for line in GITIGNORE if line not in existing]
-    if missing:
+    if replaced or missing:
         gitignore.write_text("\n".join(existing + missing) + "\n", encoding="utf-8")
+    if replaced:
+        print(".gitignore 已替換：tasks/ -> tasks/*")
+    if missing:
         print(f".gitignore 補上：{' '.join(missing)}")
 
 
