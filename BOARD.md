@@ -57,14 +57,14 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | qa | 0 |  |
-| UI-03 | designer | qa | 0 |  |
+| DESIGN-03 | architect | in-progress | 0 |  |
+| UI-03 | designer | review | 0 |  |
 | CHORE-07 | backend | qa | 0 |  |
-| FIX-09 | backend | todo | 0 |  |
+| FIX-09 | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
-- v0.2.0 設計中；設計完成後請甲方確認拆版
+- 待甲方決定 D-041～D-050（v0.2.0 拆版與設計細節）
 
 ## 注意事項（踩過的坑）
 
