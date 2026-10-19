@@ -59,7 +59,8 @@
 | CHORE-06 | backend | done | 0 | PR #71 |
 | DESIGN-03 | architect | qa | 0 |  |
 | UI-03 | designer | qa | 0 |  |
-| CHORE-07 | backend | todo | 0 |  |
+| CHORE-07 | backend | qa | 0 |  |
+| FIX-09 | backend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
