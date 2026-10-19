@@ -69,17 +69,18 @@
 | 2026-10-19 | D-060 | v0.2.0 | 旅程審核：不可核准自己送的；每次發佈都審，停止不審留紀錄 |
 | 2026-10-19 | D-061 | v0.2.0 | 管理金鑰建立旅程預設免審（留紀錄），各環境可用 .env 關閉 |
 | 2026-10-19 | D-062 | v0.2.0 | v0.2.0 加唯讀旅程頁（標頭、版本切換、節點圖），併進 FE-03＋QA-05a |
+| 2026-10-19 | D-063 | v0.2.0 | v0.2.0 從 schema 移除 tenant_id，廢除 CDP_TENANT_ID |
 
 ## 任務狀態
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | qa | 2 |  |
+| DESIGN-03 | architect | in-progress | 2 |  |
 | UI-03 | designer | review | 0 |  |
 | CHORE-07 | backend | done | 1 | PR #79 |
 | FIX-09 | backend | done | 0 | PR #84 |
-| DESIGN-04 | architect | review | 1 |  |
+| DESIGN-04 | architect | in-progress | 1 |  |
 
 ## 卡住／待甲方決定
 
