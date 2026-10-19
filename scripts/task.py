@@ -1,8 +1,12 @@
 """派工單工具：manager 透過它開工。一張派工單 = 一個 GitHub issue = 一個分支 = 一個 worktree。
 
+task_id 就是分支與工作目錄的名字，要看得出在做什麼：小寫英數、用 - 連接、至少兩個字，
+例 `todo-create-api`、`trip-list-click`；不可有純數字段（`ui-02`）、不可用類型開頭（`fix-login` → `fix/fix-login`）。
+分支 `<類型>/<task_id>`，工作目錄 `.worktrees/<task_id>`。
+
 用法（內容從 stdin 傳入，格式依 templates/task-card.md）：
     task.py new <task_id>     < card.md    # 檢查格式 → 寫 tasks/<id>.md → 開 issue → 從 develop 開分支與 worktree
-    task.py amend <task_id>   < note.md    # 追加內容（例：qa FAIL 的重現步驟），同步留言到 issue
+    task.py amend <task_id>   < note.md    # 追加內容（例：qa FAIL 的重現步驟），同步留言到 issue；分支沒有新 commit 前不能再追加（一輪一次）
     task.py cancel <task_id>  < 原因       # 作廢：關 PR 與 issue、刪 worktree 與分支；release.py 會略過作廢的單
 
 沒有 origin remote 時只建本機分支，不開 issue。
@@ -43,6 +47,31 @@ FIELD_RE = re.compile(r"^- \*\*(.+?)\*\*[：:]?\s*(.*)$")
 BACKTICK_RE = re.compile(r"`([^`]+)`")
 # 這些類型要先由 qa 寫驗收測試
 TDD_KINDS = ("feat", "fix")
+TASK_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")
+MAX_TASK_ID_LEN = 40
+# 封存資料夾用版本號命名（tasks/v0.1.0/），task_id 不可撞名
+VERSION_LIKE_RE = re.compile(r"^v\d")
+
+
+def check_task_id(task_id: str, kind: str = "") -> list[str]:
+    """task_id 會變成分支與 worktree 名稱，必須有意義。"""
+    example = "例：todo-create-api、trip-list-click"
+    if not TASK_ID_RE.match(task_id) or len(task_id) > MAX_TASK_ID_LEN:
+        return [f"task_id「{task_id}」要是小寫英數、用 - 連接、至少兩個字、最長 {MAX_TASK_ID_LEN} 字元（{example}）"]
+    problems = []
+    if any(part.isdigit() for part in task_id.split("-")):
+        problems.append(f"task_id「{task_id}」不可有流水號，用名稱說明在做什麼（{example}）")
+    if VERSION_LIKE_RE.match(task_id):
+        problems.append(f"task_id「{task_id}」不可用 v+數字開頭（會跟版本封存資料夾撞名）")
+    if kind and task_id.startswith(f"{kind}-"):
+        problems.append(f"task_id 不要用類型開頭（分支會變成 {kind}/{task_id}）；拿掉「{kind}-」，用功能與動作命名")
+    return problems
+
+
+def branch_exists(branch: str) -> bool:
+    if run("git", "branch", "--list", branch):
+        return True
+    return has_remote() and bool(run("git", "ls-remote", "--heads", "origin", branch))
 
 
 def acceptance_paths(fields: dict[str, list[str]]) -> list[str]:
@@ -81,6 +110,7 @@ def check_card(task_id: str, body: str) -> list[str]:
     kind = " ".join(fields.get("類型", []))
     if kind and kind not in BRANCH_TYPES:
         problems.append(f"類型必須是 {'/'.join(BRANCH_TYPES)} 其中一個，實際是「{kind}」")
+    problems += check_task_id(task_id, kind)
     if kind in TDD_KINDS and "驗收測試" in fields and not acceptance_paths(fields):
         problems.append(f"{kind} 單要列出「驗收測試」目錄（qa 先寫測試，worker 再實作）")
     lines = [line for line in body.splitlines() if line.strip()]
@@ -94,7 +124,9 @@ def check_card(task_id: str, body: str) -> list[str]:
 def start_worktree(task_id: str, kind: str) -> tuple[str, str]:
     if has_remote():
         run("git", "pull", "--ff-only", "origin", BASE_BRANCH)
-    branch = f"{kind}/{task_id.lower()}"
+    branch = f"{kind}/{task_id}"
+    if branch_exists(branch):
+        raise FlowError(f"分支 {branch} 已存在（之前的版本用過這個名字）；task_id 換個更具體的名字")
     path = WORKTREES_DIR / task_id
     run("git", "worktree", "add", "-b", branch, str(path), BASE_BRANCH)
     for name in SHARED_PATHS:
@@ -167,10 +199,19 @@ def amend_card(task_id: str, body: str) -> None:
         raise FlowError(f"{path.relative_to(ROOT)} 不存在；先用 new 建立")
     if not body.strip():
         raise FlowError("追加內容是空的")
+    meta = load_meta(task_id)
+    sha = run("git", "rev-parse", meta["branch"])
+    if meta.get("amend_sha") == sha:
+        raise FlowError(
+            "這一輪已經追加過（分支還沒有新 commit）：把 qa 與 review 的所有問題合併成一次追加；"
+            "要補充就先等 worker 修完這一輪"
+        )
     today = datetime.now(timezone.utc).date().isoformat()
     with path.open("a", encoding="utf-8") as f:
         f.write(f"\n## 追加 {today}\n\n{body.strip()}\n")
-    issue = load_meta(task_id).get("issue")
+    meta["amend_sha"] = sha
+    save_meta(meta)
+    issue = meta.get("issue")
     if issue:
         run("gh", "issue", "comment", str(issue), "--body", f"**派工單追加 {today}**\n\n{body.strip()}")
     print(path.relative_to(ROOT))

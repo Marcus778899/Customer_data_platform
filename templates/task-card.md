@@ -2,6 +2,8 @@
 
 <!-- 用 `python3 scripts/task.py new <task_id>` 建立（內容走 stdin）；格式不符、超過 40 行、背景超過 5 行會被拒絕 -->
 <!-- 建立後 task.py 會自動附上 issue、分支、工作目錄 -->
+<!-- task_id = 分支與工作目錄名稱：<功能>-<動作>，小寫、用 - 連接（例：todo-create-api、trip-list-click）；不可用流水號 -->
+<!-- 檔尾「追加」一輪只能寫一次：qa、review 的問題合併成一則 -->
 
 - **類型**：feat / fix / chore / docs / refactor / test
 - **負責**：backend / frontend / architect / designer

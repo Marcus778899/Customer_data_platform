@@ -1,18 +1,19 @@
-"""文件提交：布告欄、README、決策紀錄、UAT 報告、研究摘要、版本歸檔（tasks/<版本>/）不走 PR，由 manager 直接 commit 到 develop。
+"""文件提交：布告欄、README、決策紀錄、UAT 報告、研究摘要、階段封存不走 PR，由 manager 直接 commit 到 develop。
 
 用法：
-    docs.py commit "<訊息>"     # 只提交 DOC_PATHS 內的修改；其他修改不提交也不擋，只列出來
+    docs.py commit "<訊息>"     # 只提交 DOC_PATHS 內的修改與階段封存；其他修改不提交也不擋，只列出來
+
+階段封存（board.py archive 產生的 tasks/<tag>.md 與 tasks/<tag>/）：tasks/ 在 .gitignore（進行中的派工單不進 git），
+封存用 git add -f 強制加入。
 
 程式碼的修改一律走派工單 → PR，不可用這支。
 """
 
 import argparse
-import re
 
-from _common import BASE_BRANCH, FlowError, fail, has_remote, require_on_base, run
+from _common import BASE_BRANCH, ROOT, TASKS_DIR, FlowError, fail, has_remote, require_on_base, run
 
-DOC_PATHS = ("BOARD.md", "README.md", "docs/decisions.md", "docs/uat/", "docs/research/", "tasks/<版本>/")
-VERSION_DIR_RE = re.compile(r"^tasks/v\d+\.\d+\.\d+/")
+DOC_PATHS = ("BOARD.md", "README.md", "docs/decisions.md", "docs/uat/", "docs/research/")
 
 
 def changed_paths() -> list[str]:
@@ -21,22 +22,36 @@ def changed_paths() -> list[str]:
     return sorted(set(tracked + untracked))
 
 
-def is_doc(path: str) -> bool:
-    if VERSION_DIR_RE.match(path):
-        return True
-    return any(path == d or (d.endswith("/") and path.startswith(d)) for d in DOC_PATHS if "<" not in d)
+def archive_paths() -> list[str]:
+    """還沒進 git 的階段封存：有同名資料夾的 tasks/<tag>.md，連同 tasks/<tag>/。"""
+    if not TASKS_DIR.is_dir():
+        return []
+    paths = []
+    for folder in sorted(p for p in TASKS_DIR.iterdir() if p.is_dir()):
+        board = TASKS_DIR / f"{folder.name}.md"
+        if board.exists():
+            paths += [board.relative_to(ROOT).as_posix(), folder.relative_to(ROOT).as_posix()]
+    if not paths:
+        return []
+    untracked = run("git", "ls-files", "--others", "--", *paths)
+    return paths if untracked else []
 
 
 def commit(message: str) -> None:
     require_on_base()
     changed = changed_paths()
-    paths = [p for p in changed if is_doc(p)]
+    paths = [p for p in changed if any(p == d or (d.endswith("/") and p.startswith(d)) for d in DOC_PATHS)]
     others = [p for p in changed if p not in paths]
-    if not paths:
+    archives = archive_paths()
+    if not paths and not archives:
         raise FlowError("沒有任何文件修改")
     if has_remote():
         run("git", "pull", "--ff-only", "origin", BASE_BRANCH)
-    run("git", "add", "--", *paths)
+    if paths:
+        run("git", "add", "--", *paths)
+    if archives:
+        run("git", "add", "-f", "--", *archives)
+    paths += archives
     message = message.removeprefix("docs:").strip()
     run("git", "commit", "-m", f"docs: {message}", "--", *paths)
     if has_remote():

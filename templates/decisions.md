@@ -10,7 +10,7 @@
 - 背景：為什麼要決定（1–2 行）
 - 選項：A. … ／ B. …
 - 建議：A，理由一行
-- 提出：architect（DESIGN-01）
+- 提出：architect（todo-design）
 -->
 
 ## 已決定

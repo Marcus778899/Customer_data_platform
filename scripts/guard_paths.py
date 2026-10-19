@@ -12,10 +12,6 @@ import json
 import sys
 from pathlib import Path
 
-for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
-    if hasattr(_s, "reconfigure"):
-        _s.reconfigure(encoding="utf-8", errors="replace")
-
 from task import card_acceptance_paths
 
 ROOT = Path(__file__).resolve().parent.parent

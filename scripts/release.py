@@ -3,6 +3,7 @@
 用法：
     release.py open <vX.Y.Z>     # 檢查：任務都已合併、UAT 甲方驗收清單全勾且寫了 PASS → 開 develop→main 的 PR
     release.py finish <vX.Y.Z>   # CI 綠才合併（merge commit）→ 在 main 打 tag → 建 GitHub release
+                                 # → 封存布告欄與派工單到 tasks/<vX.Y.Z>（board.py archive）並提交到 develop
 
 main 更新後，.github/workflows/sync_branch.yml 會把 main 同步回 develop。
 exit code：0 成功；1 條件不符或指令失敗
@@ -23,6 +24,8 @@ from _common import (
     require_on_base,
     run,
 )
+from board import BoardError, archive
+from docs import commit as commit_docs
 from pr import check_ci
 
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
@@ -90,6 +93,11 @@ def finish_release(version: str) -> None:
     run("git", "push", "origin", version)
     run("gh", "release", "create", version, "--verify-tag", "--generate-notes", "--title", version)
     print(f"{version} 已合併到 {RELEASE_BRANCH} 並打 tag；develop 會由 sync_branch workflow 同步")
+    try:
+        archive(version)
+        commit_docs(f"封存 {version} 布告欄與派工單")
+    except (BoardError, FlowError) as e:
+        raise FlowError(f"發版已完成，但封存沒做完：{e}\n處理後執行 board.py archive {version}（已封存就略過）與 docs.py commit") from e
 
 
 def main() -> None:

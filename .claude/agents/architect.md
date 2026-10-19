@@ -24,14 +24,14 @@ memory: project
 - `docs/design/<功能>.md`：照 `templates/design.md`，上限 60 行
 - `docs/contracts/<功能>.md`：照 `templates/contract.md`，前後端唯一的真相；根目錄 `contracts/` 只放流程 schema
 - 骨架：模組、函式簽名、型別，本體留空（例：`raise NotImplementedError`）
-- 檔案分工：每個檔案只歸一個 worker；跨界檔案（CORS、共用型別、Makefile、`.env.example`、lockfile）也要指定；有 UI 時，設計 token 檔的位置（前端會直接載入的路徑）歸 designer
+- 檔案分工：每個檔案只歸一個 worker；跨界檔案（CORS、共用型別、Makefile、`.env.example`、lockfile）也要指定；有 UI 時，設計 token 檔的位置（前端會直接載入的路徑）與 `docs/ui/` 歸 designer
 - 不定畫面、樣式、文案（那是 designer 的）；你定資料與介面
-- 派工順序：哪些可平行（前端對契約 mock）、哪些相依；跨前後端最後要有整合單
+- 派工順序：哪些可平行（前端對契約 mock）、哪些相依；跨前後端最後要有整合單；每張單給有意義的 task_id（`<功能>-<動作>`，例 `todo-create-api`），manager 直接沿用
 - 新設定：寫進 `.env.example`，文件只寫變數名稱
 - 驗收測試目錄：前後端各一個（例：`api/tests/acceptance/`、`web/tests/acceptance/`），qa 寫、worker 不可改；`make check` 要跑到它。worker 自己的單元測試放別的目錄
 
 骨架寫完跑一次 `make check`，確認既有檢查沒被弄壞。最後一則訊息給 manager：一段摘要、「待決定」清單、「需調查」清單。
-甲方要決定的事不要自己定暫定值；外部資料查不到就列「需調查」，不要猜。
+決策分級見 CLAUDE.md：四類以外的技術細節自己決定，寫進設計的「自行決定」表；四類之內不要自己定暫定值。外部資料查不到就列「需調查」，不要猜。
 
 ## Code review（PR）
 
