@@ -55,7 +55,6 @@ import tools.jackson.databind.json.JsonMapper;
 class DeliveryPipelineAcceptanceTest {
 
     private static final Duration WAIT = Duration.ofSeconds(20);
-    private static final String TENANT = "01JTESTTENANT0000000000001";
 
     @Autowired MockMvc mvc;
     @Autowired JsonMapper json;
@@ -232,12 +231,11 @@ class DeliveryPipelineAcceptanceTest {
 
     private void insertRawOutbox(String key, String effectType, String payloadJson) {
         jdbc.update(
-                "insert into effect_outbox(idempotency_key, tenant_id, enrollment_id, journey_id,"
+                "insert into effect_outbox(idempotency_key, enrollment_id, journey_id,"
                         + " journey_version, node_id, visit_seq, effect_index, effect_type, payload,"
                         + " status, available_at, publish_count, created_at)"
-                        + " values (?, ?, ?, ?, 1, 'send_1', 3, 0, ?, ?::jsonb, 'PENDING', ?, 0, ?)",
+                        + " values (?, ?, ?, 1, 'send_1', 3, 0, ?, ?::jsonb, 'PENDING', ?, 0, ?)",
                 key,
-                TENANT,
                 "enr_" + key,
                 "jrn_" + key,
                 effectType,
@@ -283,7 +281,7 @@ class DeliveryPipelineAcceptanceTest {
 
         Map<String, Object> t =
                 jdbc.queryForMap("select * from delivery_task where idempotency_key = ?", s.key());
-        assertThat(t.get("tenant_id")).isEqualTo(TENANT);
+        assertThat(t).doesNotContainKey("tenant_id");
         assertThat(t.get("enrollment_id")).isEqualTo(s.enrollmentId());
         assertThat(t.get("journey_id")).isEqualTo(s.journeyId());
         assertThat(t.get("journey_version")).isEqualTo(1);

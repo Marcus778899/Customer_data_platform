@@ -454,13 +454,12 @@ class JourneyEngineAcceptanceTest {
 
         Map<String, Object> row =
                 jdbc.queryForMap(
-                        "select status, current_node_id, journey_version, tenant_id, next_wake_at"
+                        "select status, current_node_id, journey_version, next_wake_at"
                                 + " from enrollment_record where enrollment_id = ?",
                         eid);
         assertThat(row.get("status")).isEqualTo("WAITING");
         assertThat(row.get("current_node_id")).isEqualTo("wait_1");
         assertThat(row.get("journey_version")).isEqualTo(1);
-        assertThat(row.get("tenant_id")).isEqualTo("01JTESTTENANT0000000000001");
         assertThat(((java.sql.Timestamp) row.get("next_wake_at")).toInstant())
                 .isEqualTo(clock.instant().plus(Duration.ofHours(1)));
         assertThat(outboxCount(eid)).isZero();

@@ -52,8 +52,6 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(EngineTestSupport.class)
 class EnrollmentQueryAcceptanceTest {
 
-    private static final String TENANT = "01JTESTTENANT0000000000001";
-    private static final String OTHER_TENANT = "01JOTHERTENANT000000000001";
     private static final String ADMIN = "Bearer test-admin-key";
     private static final String INGEST = "Bearer test-ingest-key";
     private static final Instant T0 = Instant.parse("2026-10-18T02:00:00Z");
@@ -198,11 +196,10 @@ class EnrollmentQueryAcceptanceTest {
 
     private void seedJourney(String journeyId, int version, String name, String namePrefix) {
         jdbc.update(
-                "insert into journey_definition(journey_id, tenant_id, version, name, status, settings,"
+                "insert into journey_definition(journey_id, version, name, status, settings,"
                         + " entry_node, nodes, created_at, published_at)"
-                        + " values (?,?,?,?,'ACTIVE','{}'::jsonb,'start_1',?::jsonb,?,?)",
+                        + " values (?,?,?,'ACTIVE','{}'::jsonb,'start_1',?::jsonb,?,?)",
                 journeyId,
-                TENANT,
                 version,
                 name,
                 js(nodes(namePrefix)),
@@ -219,7 +216,6 @@ class EnrollmentQueryAcceptanceTest {
     /** 可調欄位的 Enrollment 種子。 */
     private final class Enr {
         String id = ulid();
-        String tenant = TENANT;
         final String journeyId;
         int version = 1;
         final String profile;
@@ -247,11 +243,6 @@ class EnrollmentQueryAcceptanceTest {
         Enr at(Instant i) {
             enrolledAt = i;
             updatedAt = i;
-            return this;
-        }
-
-        Enr tenant(String x) {
-            tenant = x;
             return this;
         }
 
@@ -289,12 +280,11 @@ class EnrollmentQueryAcceptanceTest {
 
         String save() {
             jdbc.update(
-                    "insert into enrollment_record(enrollment_id, tenant_id, journey_id, journey_version,"
+                    "insert into enrollment_record(enrollment_id, journey_id, journey_version,"
                             + " profile_id, status, current_node_id, wake_type, next_wake_at, trigger_snapshot,"
                             + " variables, enrolled_at, updated_at, terminated_at, termination_reason)"
-                            + " values (?,?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?,?,?,?)",
+                            + " values (?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?,?,?,?)",
                     id,
-                    tenant,
                     journeyId,
                     version,
                     profile,
@@ -341,12 +331,11 @@ class EnrollmentQueryAcceptanceTest {
             String reason,
             Map<String, Object> evaluated) {
         jdbc.update(
-                "insert into node_trace(enrollment_id, seq, tenant_id, node_id, node_type, entered_at,"
+                "insert into node_trace(enrollment_id, seq, node_id, node_type, entered_at,"
                         + " exited_at, out_port, decision_reason, evaluated)"
-                        + " values (?,?,?,?,?,?,?,?,?,?::jsonb)",
+                        + " values (?,?,?,?,?,?,?,?,?::jsonb)",
                 eid,
                 seq,
-                TENANT,
                 nodeId,
                 nodeType,
                 ts(entered),
@@ -364,15 +353,13 @@ class EnrollmentQueryAcceptanceTest {
             String status,
             String skipReason,
             String deliveryId,
-            Instant attemptedAt,
-            String tenant) {
+            Instant attemptedAt) {
         jdbc.update(
-                "insert into delivery_task(idempotency_key, tenant_id, enrollment_id, journey_id,"
+                "insert into delivery_task(idempotency_key, enrollment_id, journey_id,"
                         + " journey_version, node_id, visit_seq, template_id, channel_id, channel_type,"
                         + " message_type, status, skip_reason, delivery_id, attempted_at, created_at,"
-                        + " updated_at) values (?,?,?,'j',1,?,?,'tpl_a','ch_a','MOCK',null,?,?,?,?,?,?)",
+                        + " updated_at) values (?,?,'j',1,?,?,'tpl_a','ch_a','MOCK',null,?,?,?,?,?,?)",
                 key,
-                tenant,
                 eid,
                 nodeId,
                 visitSeq,
@@ -450,19 +437,6 @@ class EnrollmentQueryAcceptanceTest {
         assertThat(page.get("items").isArray()).isTrue();
         assertThat(page.get("items")).isEmpty();
         assertThat(page.get("next_cursor").isNull()).isTrue();
-    }
-
-    @Test
-    void list_otherTenantRowsAreInvisible() throws Exception {
-        String jid = newJourney("j");
-        String profile = ulid();
-        String foreign = new Enr(jid, profile).tenant(OTHER_TENANT).save();
-        String mine = new Enr(jid, profile).save();
-
-        assertThat(field(getOk("/api/v1/enrollments?q=" + profile).get("items"), "enrollment_id"))
-                .containsExactly(mine);
-        assertThat(getOk("/api/v1/enrollments?q=" + foreign).get("items")).isEmpty();
-        assertProblem(get("/api/v1/enrollments/" + foreign), 404, "ENROLLMENT_NOT_FOUND");
     }
 
     @Test
@@ -705,10 +679,8 @@ class EnrollmentQueryAcceptanceTest {
         seedTrace(eid, 3, "send_1", "SendMessageNode", T0, T0, "sent", "r", Map.of());
         for (int i = 0; i < 55; i++) {
             seedDelivery(
-                    eid, eid + ":send_1:3:" + i, "send_1", 3, "SENT", null, "msg-" + i, T0.plusSeconds(i), TENANT);
+                    eid, eid + ":send_1:3:" + i, "send_1", 3, "SENT", null, "msg-" + i, T0.plusSeconds(i));
         }
-        // 他租戶同 enrollment_id 的紀錄不可混入
-        seedDelivery(eid, "foreign-key-1", "send_1", 3, "SENT", null, "x", T0.plusSeconds(500), OTHER_TENANT);
 
         JsonNode d = getOk("/api/v1/enrollments/" + eid);
         JsonNode hist = d.get("delivery_history");
@@ -733,7 +705,7 @@ class EnrollmentQueryAcceptanceTest {
     void detail_exactly50Deliveries_hasNoNextCursor() throws Exception {
         String eid = new Enr(newJourney("j"), ulid()).save();
         for (int i = 0; i < 50; i++) {
-            seedDelivery(eid, eid + ":k:" + i, "send_1", 3, "SENT", null, "m" + i, T0.plusSeconds(i), TENANT);
+            seedDelivery(eid, eid + ":k:" + i, "send_1", 3, "SENT", null, "m" + i, T0.plusSeconds(i));
         }
         JsonNode d = getOk("/api/v1/enrollments/" + eid);
         assertThat(d.get("delivery_history")).hasSize(50);
@@ -744,7 +716,7 @@ class EnrollmentQueryAcceptanceTest {
     void deliveries_paginateWithLimit_defaultIs50_coverAllOnce() throws Exception {
         String eid = new Enr(newJourney("j"), ulid()).save();
         for (int i = 0; i < 55; i++) {
-            seedDelivery(eid, eid + ":k:" + i, "send_1", 3, "SENT", null, "m" + i, T0.plusSeconds(i), TENANT);
+            seedDelivery(eid, eid + ":k:" + i, "send_1", 3, "SENT", null, "m" + i, T0.plusSeconds(i));
         }
         JsonNode dflt = getOk("/api/v1/enrollments/" + eid + "/deliveries");
         assertThat(dflt.get("items")).hasSize(50);
@@ -775,9 +747,9 @@ class EnrollmentQueryAcceptanceTest {
     void deliveries_entryFields_andStatusMapping() throws Exception {
         String eid = new Enr(newJourney("j"), ulid()).save();
         seedTrace(eid, 3, "send_1", "SendMessageNode", T0, T0, "sent", "r", Map.of());
-        seedDelivery(eid, eid + ":sent", "send_1", 3, "SENT", null, "mock-msg-1", T0.plusSeconds(3), TENANT);
-        seedDelivery(eid, eid + ":skip", "wait_1", 2, "SKIPPED", "CONSENT", null, T0.plusSeconds(2), TENANT);
-        seedDelivery(eid, eid + ":pend", "send_1", 3, "PENDING", null, null, T0.plusSeconds(1), TENANT);
+        seedDelivery(eid, eid + ":sent", "send_1", 3, "SENT", null, "mock-msg-1", T0.plusSeconds(3));
+        seedDelivery(eid, eid + ":skip", "wait_1", 2, "SKIPPED", "CONSENT", null, T0.plusSeconds(2));
+        seedDelivery(eid, eid + ":pend", "send_1", 3, "PENDING", null, null, T0.plusSeconds(1));
 
         JsonNode items = getOk("/api/v1/enrollments/" + eid + "/deliveries").get("items");
         assertThat(items).hasSize(3);
@@ -982,7 +954,7 @@ class EnrollmentQueryAcceptanceTest {
     void masking_doesNotApplyToSummaryOrDeliveries() throws Exception {
         String profile = ulid();
         String eid = new Enr(newJourney("j"), profile).save();
-        seedDelivery(eid, eid + ":k", "send_1", 3, "SENT", null, "msg-plain", T0, TENANT);
+        seedDelivery(eid, eid + ":k", "send_1", 3, "SENT", null, "msg-plain", T0);
         JsonNode item = getOk("/api/v1/enrollments?q=" + profile).get("items").get(0);
         assertThat(item.get("profile_id").asString()).isEqualTo(profile);
         assertThat(item.get("enrollment_id").asString()).isEqualTo(eid);

@@ -282,12 +282,11 @@ class DeliveryResilienceAcceptanceTest {
 
     private void insertRawOutbox(String key, String effectType, String payloadJson) {
         jdbc.update(
-                "insert into effect_outbox(idempotency_key, tenant_id, enrollment_id, journey_id,"
+                "insert into effect_outbox(idempotency_key, enrollment_id, journey_id,"
                         + " journey_version, node_id, visit_seq, effect_index, effect_type, payload,"
                         + " status, available_at, publish_count, created_at)"
-                        + " values (?, ?, ?, ?, 1, 'send_1', 3, 0, ?, ?::jsonb, 'PENDING', ?, 0, ?)",
+                        + " values (?, ?, ?, 1, 'send_1', 3, 0, ?, ?::jsonb, 'PENDING', ?, 0, ?)",
                 key,
-                "01JTESTTENANT0000000000001",
                 "enr_" + key,
                 "jrn_" + key,
                 effectType,
