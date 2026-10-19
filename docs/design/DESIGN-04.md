@@ -1,6 +1,6 @@
 # 設計：客製資料整合以 PostgreSQL 與核心解耦（DESIGN-04，只出方案）
 
-- 依據：D-037、D-051、D-052、D-053、D-055、D-058、D-059（後三者待決定）；spec README「識別碼」「多租戶」；spec 01 §3～§7、§9；spec 06 §7～§8；spec 07 §2、§6、§11、§12；DESIGN-03 做法 #1、#4、#5，`profiles.md` §1～§2、`auth.md` §2；研究 `docs/research/line-and-vendors.md`（下稱「研究」）
+- 依據：D-037、D-051、D-052、D-053、D-055、D-058、D-059、D-063（皆已定案）；spec README「識別碼」「租戶」；spec 01 §3～§7、§9；spec 06 §7～§8；spec 07 §2、§6、§11、§12；DESIGN-03 做法 #1、#4、#5，`profiles.md` §1～§2、`auth.md` §2；研究 `docs/research/line-and-vendors.md`（下稱「研究」）
 - 現況：唯一入口 `POST /v1/events` → `EventValidator.validate` → `EventIngestionService.ingest` → `EventStore.insertIfAbsent` → `EventDispatcher` 輪詢扇出；沒有出口
 - 標記：「推論」= 研究或本文推得、官方文件未寫；「查無，需確認」= 官方文件找不到
 
@@ -42,7 +42,7 @@
 | 9 | 回填 | `backfill = true` → 寫入但不建 Enrollment（仍可喚醒既有等待，同 spec 01 §6 遲到規則）；未標但遲到 > 24h 已由現有 `LATE` 處理 |
 | 10 | 回報與清理 | view `landing.batch_summary`（每個 `batch_id` 各狀態筆數、`occurred_at` 範圍）給送件方判斷成敗；`APPLIED`／`DUPLICATE` 列超過保留期由核心刪除，`REJECTED`／`CONFLICT` 保留到重送 |
 | 11 | schema 演進 | 收件區只加可為 null 的欄位；要破壞相容時開新表（`event_import_v2`）並行一段期間；客戶自訂屬性都在 JSONB，不需改表 |
-| 12 | `tenant_id` 例外 | spec README「`tenantId` 所有實體必帶」管的是核心實體；收件區的表與 §4 的 `outbound` view 是**介面**（待吸收的送件、對外唯讀投影），不是實體，**不帶** `tenant_id`——送件方不該知道租戶。由它產生的核心實體（`event`、`profile`、`profile_identifier`、§4 匯出快照表）照帶，值一律 `CDP_TENANT_ID`（DESIGN-03 做法 #1），規則仍成立。DESIGN-03 會在做法 #1 註明此例外。回到多租戶時：每個送件帳號屬於一個租戶（由 `source_id` 推導），出件 view 依讀取帳號的租戶過濾 |
+| 12 | 不帶 `tenant_id` | 全系統不帶 `tenant_id`（D-063，DESIGN-03 做法 #1）：收件區的表、§4 的 `outbound` view 與匯出表、由收件區產生的核心實體（`event`、`profile`、`profile_identifier`）都沒有這欄，送件方也不必知道租戶。回到多租戶時須先加回欄位並回填（D-063），再讓每個送件帳號屬於一個租戶（由 `source_id` 推導）、吸收時補租戶值、出件 view 依讀取帳號的租戶過濾 |
 
 ## §3 第三方轉接器入口（D-053）
 
@@ -66,7 +66,7 @@
 
 | # | 項目 | 設計 |
 |---|---|---|
-| 1 | 匯出 = 靜態快照 | 每次匯出以 `SegmentEngine.materialize`（spec 06 §8）存成核心表 `audience_export`（`export_id`、`segment_id`、`segment_version`、`destination_id`、`status`、筆數、`external_ref`）＋`audience_export_member`（`export_id`、`profile_id`、`id_type`、`id_scope`、`id_value`、`match`），皆帶 `tenant_id`；三種出口讀同一份，可複盤「當時給了誰」（spec 06 §7）；② 是這兩張表的 view |
+| 1 | 匯出 = 靜態快照 | 每次匯出以 `SegmentEngine.materialize`（spec 06 §8）存成核心表 `audience_export`（`export_id`、`segment_id`、`segment_version`、`destination_id`、`status`、筆數、`external_ref`）＋`audience_export_member`（`export_id`、`profile_id`、`id_type`、`id_scope`、`id_value`、`match`），不帶 `tenant_id`（D-063）；三種出口讀同一份，可複盤「當時給了誰」（spec 06 §7）；② 是這兩張表的 view |
 | 2 | 目的地 | 核心表 `destination`：`destination_id`、`kind`（`CSV`／`LINE_AUDIENCE`／之後各廠商）、`id_types`（依優先序）、`format`（例：手機輸出 `+886…` 或 `09…`）；憑證不進表，只在環境變數 |
 | 3 | 狀態 | `PENDING` → `READY`（快照完成）→ `PUSHING` → `DONE`／`FAILED`；推送走既有 outbox → RabbitMQ → 冪等 consumer（D-006、spec 05），以 `export_id`＋分段序號冪等，失敗重試同 D-024 |
 | 4 | 對應不到 | 客戶沒有目的地要的任何識別碼 → `match = UNMATCHED`，畫面與匯出摘要顯示對應率；不猜、不用其他識別碼替代 |
@@ -89,7 +89,7 @@
 | 攝取建空白客戶也經 `ProfileWriter`（做法 #4 已是），不放 Controller | 依識別碼查客戶（spec 01 §5 `ProfileStore.resolve`，§2 #5）；v0.2.0 仍要求 `profile_id` |
 | `profile_identifier` 主鍵維持「一個識別碼只屬一位客戶」（已是），收件區衝突判定靠它 | `profile_identifier.id_scope`（加可 null 欄位，不動主鍵；記 LINE userId 屬哪個 provider）、`PLATFORM_ID` 類型（擴 CHECK） |
 | 前端顯示 `IdentifierType` 遇到未知值要能顯示原值，不假設只有五種 | `backfill` 對應的 `dispatch_outcome` 新值（要改 V4 的 CHECK）；匯出快照表與 `outbound` view |
-| 核心表與 schema 不對 `PUBLIC` 授權；新 DB 角色一律在 Flyway `afterMigrate` 管；做法 #1 註明 §2 #12 的例外 | 保留期清理、LISTEN/NOTIFY、送件指南與 dbt 範例 |
+| 核心表與 schema 不對 `PUBLIC` 授權；新 DB 角色一律在 Flyway `afterMigrate` 管 | 保留期清理、LISTEN/NOTIFY、送件指南與 dbt 範例 |
 
 ## §6 版本與單數
 
