@@ -21,7 +21,8 @@
 | `mock_channel_message` | Mock 通道已送出的訊息（驗收計數） | 本檔 §10 | V2 | v0.1.0 |
 | `app_user` | 登入使用者與角色（公司層級，無 `tenant_id`） | `docs/contracts/auth.md`、本檔 §12 | V5 | v0.2.0 |
 | `profile`、`profile_identifier` | 最小 ProfileStore（`04` §8）與客戶搜尋 | `docs/contracts/profiles.md`、本檔 §12 | V6 | v0.2.0 |
-| `journey` | 旅程生命週期與草稿（版本仍在 `journey_definition`） | `docs/contracts/journeys.md`、本檔 §12 | V7 | v0.2.0 第二版 |
+| `journey` | 旅程生命週期與草稿（版本仍在 `journey_definition`） | `docs/contracts/journeys.md`、本檔 §12 | V7 | v0.3.0（D-055） |
+| `journey_review` | 旅程送審與審核紀錄（D-056） | `docs/contracts/journeys.md` §3.2、本檔 §12 | V7 | v0.3.0（D-055） |
 | `field_definition` | 資料字典 | `06` §1 | — | **未定義**，Phase 3 |
 | `event_definition` | 事件字典 | `06` §1 | — | **未定義**，Phase 3 |
 
@@ -357,7 +358,7 @@ PRIMARY KEY (tenant_id, event_id)
 | V4 | `V4__event_dispatch_outcome_strict.sql` | §11：回填 `dispatch_outcome`，CHECK 改雙向 |
 | V5 | `V5__app_user.sql` | §12：`app_user`（不動既有表） |
 | V6 | `V6__profile_store.sql` | §12：`profile`、`profile_identifier`、自既有 Enrollment 與事件回填空白客戶、`enrollment_record` 兩個瀏覽索引 |
-| V7 | `V7__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.2.0 第二版） |
+| V7 | `V7__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
 
 ### 鐵則
 
@@ -450,6 +451,7 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 | `profile` | `tenant_id`、`profile_id`、`attributes` JSONB（預設 `{}`）、`created_at`、`updated_at` | PK `(tenant_id, profile_id)`；`ck_profile_attributes_size`：`octet_length(attributes::text) <= 32768` |
 | `profile_identifier` | `tenant_id`、`id_type`、`id_value`（已正規化，`profiles.md` §1.1）、`profile_id`、`created_at` | PK `(tenant_id, id_type, id_value)`（一個識別碼只屬於一位客戶）；`ix_profile_identifier_profile (tenant_id, profile_id)`；`ck_profile_identifier_type`（五種 `IdentifierType`）；`ck_profile_identifier_norm`：`EMAIL` = `lower(btrim(id_value))` 且含 `@`、`PHONE` 符合 `^\+[1-9][0-9]{6,14}$`、其他 = `btrim(id_value)` 且 1–200 字 |
 | `journey` | `tenant_id`、`journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (tenant_id, updated_at DESC, journey_id DESC)`；V7 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
+| `journey_review` | `tenant_id`、`review_id`、`journey_id`、`action`（`PUBLISH`；D-060 選 2B 時加 `STOP`）、`status`（`PENDING`／`APPROVED`／`REJECTED`／`WITHDRAWN`）、`revision` INT（可 null，金鑰直接發佈的紀錄）、`base_version` INT（可 null）、`note`、`submitted_by`（可 null）、`submitted_at`、`decided_by`（可 null）、`decided_at`、`reason`、`version` INT（可 null） | PK `(tenant_id, review_id)`；`uq_journey_review_pending (tenant_id, journey_id) WHERE status = 'PENDING'`；`ix_journey_review_journey (tenant_id, journey_id, submitted_at DESC, review_id DESC)`；`ck_journey_review_reject_reason`：`status <> 'REJECTED' OR reason IS NOT NULL`；只 `INSERT` 與 `PENDING` → 終態的條件式 `UPDATE`，不刪除；V7 回填不建紀錄 |
 | `journey_definition.layout` | JSONB，可 null | 版本不可變，`layout` 隨版本一起寫入 |
 | `enrollment_record.trigger_event_id` | TEXT，可 null | `uq_enrollment_trigger (tenant_id, journey_id, trigger_event_id) WHERE trigger_event_id IS NOT NULL`；V7 以 `trigger_snapshot->>'event_id'` 回填（`02` §6「落地」） |
 | `enrollment_record` 瀏覽索引（V6） | — | `ix_enrollment_recent (tenant_id, enrolled_at DESC, enrollment_id DESC)`（`/enrollments` 省略 `q`）；`ix_enrollment_journey_recent (tenant_id, journey_id, enrolled_at DESC, enrollment_id DESC)`（帶 `journey_id`；節點統計 `journeys.md` §5 也用它） |

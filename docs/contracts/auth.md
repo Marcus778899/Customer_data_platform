@@ -31,9 +31,11 @@
 |---|---|---|---|---|
 | `POST /api/v1/events`、`/events/batch`（journey-engine §3.2） | ✓ | | | |
 | `PUT /api/v1/profiles/{id}`（profiles §2） | ✓ | | | ✓（僅管理金鑰；session 不可） |
-| `GET /api/v1/enrollments*`（journey-engine §4）、`GET /api/v1/profiles*`（profiles §3）、`GET /api/v1/journeys*`（journeys §2） | | ✓ | ✓ | ✓ |
-| `POST /api/v1/journeys`（journey-engine §3.1）、journeys §3 全部寫入 | | | ✓ | ✓ |
-| §4 `/api/v1/users*` | | | | ✓ |
+| `GET /api/v1/enrollments*`（journey-engine §4）、`GET /api/v1/profiles*`（profiles §3）、`GET /api/v1/journeys*`（journeys §2；第二版含草稿與審核紀錄） | | ✓ | ✓ | ✓ |
+| `POST /api/v1/journeys`（journey-engine §3.1） | | | | ✓（僅管理金鑰；session 不可，D-056 發佈須經審核） |
+| journeys §3 草稿寫入、`draft/validate`、`draft/submit`（送審）；§3.5 停止（D-060 建議 2A，見 journeys §3.3 第 2 列） | | | ✓ | ✓ |
+| journeys §3.2 `withdraw`（撤回送審） | | | ✓（僅自己送審的） | ✓ |
+| journeys §3.2 `approve`（核准）、`reject`（退回） | | | | ✓（session；不可核准自己送審的，D-060 建議 1A，見 journeys §3.3 第 1 列） || §4 `/api/v1/users*` | | | | ✓ |
 | §3 `/api/v1/auth/*` | | session（不分角色） | | |
 
 - 不需認證：`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`；其他 `/api/**` 未列者：一律 `403`（已認證）／`401`（未認證）

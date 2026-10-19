@@ -167,7 +167,7 @@
 | `code` | string | 下表其一 |
 | `detail` | string | 人可讀說明；5xx 不含內部訊息 |
 | `request_id` | string | 同回應標頭 `X-Request-Id`，供回報 |
-| `errors` | `{ field, message }[]` | 僅 `400`；`journeys.md` §3 的 `publish` 每筆另帶 `rule`、`node_id`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
+| `errors` | `{ field, message }[]` | 僅 `400`；`journeys.md` §3、§3.2 的驗證錯誤每筆另帶 `rule`、`node_id`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
 
 | HTTP | `code` | 何時 | 前端處理 |
 |---|---|---|---|
@@ -181,6 +181,9 @@
 | `404` | `PROFILE_NOT_FOUND`／`USER_NOT_FOUND`／`DRAFT_NOT_FOUND` | v0.2.0 起：`profiles.md`、`auth.md` §4、`journeys.md` §3 | 這筆資料不存在 |
 | `409` | `IDENTIFIER_CONFLICT`／`EMAIL_TAKEN`／`LAST_ADMIN` | v0.2.0：`profiles.md` §2、`auth.md` §4 | 顯示衝突，不重試 |
 | `409` | `DRAFT_CONFLICT`／`DRAFT_REQUIRED`／`JOURNEY_ABORTED`／`JOURNEY_NOT_PUBLISHED` | 第二版：`journeys.md` §3 | `DRAFT_CONFLICT`：重新載入草稿 |
+| `409` | `DRAFT_IN_REVIEW`／`REVIEW_PENDING`／`REVIEW_NOT_PENDING` | 第二版：`journeys.md` §3.2 審核 | `REVIEW_NOT_PENDING`：重新載入審核紀錄 |
+| `403` | `SELF_APPROVAL_FORBIDDEN` | 第二版：核准自己送審的（`journeys.md` §3.3，D-060） | 請另一位管理員核准 |
+| `404` | `REVIEW_NOT_FOUND` | 第二版：`journeys.md` §3.2 | 這筆資料不存在 |
 | `429` | `LOGIN_RATE_LIMITED` | v0.2.0：登入失敗達上限（`auth.md` §3）；回應帶 `Retry-After` | 顯示稍後再試，不自動重試 |
 | `405` | `METHOD_NOT_ALLOWED` | 路由存在、方法不符；回應帶 `Allow` 標頭 | — |
 | `406` | `NOT_ACCEPTABLE` | `Accept` 不接受 `application/json` | — |

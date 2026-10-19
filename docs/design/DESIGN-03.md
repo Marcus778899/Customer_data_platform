@@ -1,14 +1,12 @@
 # 設計：v0.2.0 登入與角色、客戶、分支引擎、畫布與 relay 改寫（DESIGN-03，單一租戶改版）
 - 契約：`docs/contracts/auth.md`、`profiles.md`、`journeys.md`（新）；`journey-engine.md`（§4 瀏覽、§4.5 圖形軌跡、§5 新錯誤碼）；表見 spec 07 §12；G3、喚醒見 spec 02 §4、§6「落地」；SplitTest、驗證、global_exit 見 spec 03；停止見 spec 05 §5「落地」；外部 review 見 #72（D-036～D-038）；代管單一租戶與整合入口見 D-051、D-052、DESIGN-04；`J`、`T` 同 DESIGN-01
 
-## 拆版提案（D-055；單數 = 「派工順序」表的單號數，qa 單與 a／b 各算一張，不含 UI-03）
+## 拆版（D-055 定案 A；單數 = 「派工順序」表的單號數，qa 單與 a／b 各算一張，不含 UI-03）
 | 方案 | 第一版（v0.2.0） | 第二版（v0.3.0） | 單數 |
 |---|---|---|---|
-| **A（建議）** | relay／迴圈改寫＋壓測、使用者登入與角色、ProfileStore＋客戶搜尋＋客戶頁、外框分頁＋受眾佔位、旅程列表（唯讀）、最近 Enrollment 瀏覽（D-030）、圖形軌跡（直線旅程） | 旅程生命週期（草稿、發佈、停止）、畫布（D-018）、分支節點＋goal／global_exit、G1、G3、分支與循環軌跡、節點統計 | 12＋8 |
-| B | A 第一版＋生命週期＋畫布（只有 v0.1.0 五種節點） | 分支節點＋G1＋G3＋分支軌跡 | 15＋5 |
-| C | 全部一版 | — | 20 |
-- 驗收：A 第一版 = 三種角色依 `auth.md` §2 矩陣放行／拒絕、停用與改角色下一請求生效、不可移除最後一位 `ADMIN`、四種方式搜到客戶並開圖形軌跡、relay 新情境（下表）全綠、壓測報告；第二版 = 場景一縮減版（D-046）、同 `cart_id` 5 次只建 1 個、以畫布建出場景一並發佈、v1 等待中發佈 v2 不受影響
-- 算法：A 第一版 12 = 批 1～4（BE-05、QA-02、FE-02、QA-03、BE-06、QA-04、FE-03、QA-05a、BE-07、QA-05b、QA-06、INT-02），第二版 8 = 「二」列；B 把 BE-08、QA-07、FE-04 移到第一版。前版 14＋8 中的多租戶底座單（舊 BE-06〔RLS、雙池〕＋QA-04a）因 D-051 刪除。A、B 都讓計劃書 Phase 2 起順延一版號（受眾變 v0.5.0，牽動 D-034）；A 另把畫布移到 v0.3.0（牽動 D-018）。建議 A：先讓登入、客戶查詢與 relay 可用；畫布等分支節點一起做，設定表單不必做兩次
+| **A（定案）** | relay／迴圈改寫＋壓測、使用者登入與角色、ProfileStore＋客戶搜尋＋客戶頁、外框分頁＋受眾佔位、旅程列表（唯讀）、最近 Enrollment 瀏覽（D-030）、圖形軌跡（直線旅程） | 旅程生命週期（草稿、送審與審核〔D-056〕、停止）、畫布（D-018）、分支節點＋goal／global_exit、G1、G3、分支與循環軌跡、節點統計 | 12＋9 |
+- 驗收：A 第一版 = 三種角色依 `auth.md` §2 矩陣放行／拒絕、停用與改角色下一請求生效、不可移除最後一位 `ADMIN`、四種方式搜到客戶並開圖形軌跡、relay 新情境（下表）全綠、壓測報告；第二版 = 場景一縮減版（D-046）、同 `cart_id` 5 次只建 1 個、以畫布建出場景一、送審後由另一位管理員核准上線（退回附原因、改草稿再送審；送審中草稿鎖定）、v1 等待中核准 v2 不受影響
+- 算法：A 第一版 12 = 批 1～4（BE-05、QA-02、FE-02、QA-03、BE-06、QA-04、FE-03、QA-05a、BE-07、QA-05b、QA-06、INT-02），第二版 9 = 「二」列（審核 D-056 併入 BE-08＋QA-07，前端另開 FE-06）（未採的 B、C 為 16＋5、21）。前版 14＋8 中的多租戶底座單（舊 BE-06〔RLS、雙池〕＋QA-04a）因 D-051 刪除。A、B 都讓計劃書 Phase 2 起順延一版號（受眾變 v0.5.0，牽動 D-034）；A 另把畫布移到 v0.3.0（牽動 D-018）。v0.2.0 沒有審核：列表 `review_status` 一律 `null`、不顯示「待審核」，`POST /journeys` 只收管理金鑰（`auth.md` §2），故 v0.2.0 不會有未經審核的使用者發佈
 ## 做法
 | # | 決策 | 理由 |
 |---|---|---|
@@ -21,6 +19,7 @@
 | 7 | 第二版生命週期（`journeys.md` §3）：`journey` 表管狀態與草稿、`journey_definition` 仍是不可變版本；`JourneyService.validate` 抽成 `JourneyGraphValidator`（規則 7 改 SCC 檢查；`Issue` 帶規則編號與節點）；Schema 層加 `com.networknt:json-schema-validator` 3.0.8（Apache-2.0，依賴 Jackson 3）驗 `journey-definition.schema.json`，不覆寫 Boot BOM 的 Jackson，跑不起來就維持 Java 規則（需調查 1）；POST `/journeys` 同步 `journey` 列（`journeys.md` §3.1）；`findActiveEventSources` 改以 `journey.status = ACTIVE` 的 `latest_version`；`JourneyStatusKillSwitch` 改讀 `journey.status`；停止 = 一個交易設 `ABORTED`＋`OutboxStore.cancelPendingByJourney`，`JourneyStopSweeper`（第四個迴圈）分批把 Enrollment 轉 `ABORTED` 並寫軌跡 | 版本不可變才能綁定；停止不卡 relay（#72 E） |
 | 8 | 第二版分支（`journeys.md` §4）：`engine.node.builtin` 加 `WaitForEventNode`、`ConditionNode`（純函式 `engine.node.condition.ConditionEvaluator`）、`SplitTestNode`、`MergeNode`、`ExitNode`、`GoalNode`；`DefaultEnrollmentAdvancer` 步驟 3 呼叫 `engine.runtime.SettingsEvaluator`（goal／global_exit）、步驟 4 依 `requirements()` 以 `ProfileStore.getFields` 預查；`AdvanceLoop` 對 `EVENT` 等待送 `Timeout`；`EventDispatcher` 每個事件在建立之後：`findWaitingForEvent` → `signal(EventArrived)`、`findOpenByProfile` → goal／exit 事件條件；`StateStore` 加 `lockById`、`findOpenByProfile`；進入終態時 `save` 同交易 `cancelPendingByEnrollment`；`decision_reason` 不引用屬性值，值放 `evaluated` | 節點維持純函式（spec 04） |
 | 9 | 第二版 G1／G3：`TriggerSnapshotFactory` 依 spec 02 §5 截斷、`profile_snapshot` 只放 Condition 與 global_exit 引用的欄位；重入在 `EngineJourneyRuntime.start`（spec 02 §6「落地」，`trigger_event_id` 取 `TriggerSnapshot.eventId`，介面不變） | 派發冪等與 G3 分開 |
+| 10 | 第二版審核（D-056；`journeys.md` §3.2、§3.3）：`com.cdp.journey` 加 `JourneyReviewService`（送審、核准、退回、撤回）與 `JourneyReviewStore`（JDBC，表 `journey_review`）；核准 = 一個交易：`journey` 列 `FOR UPDATE` → 條件式 `UPDATE journey_review … WHERE status = 'PENDING'`（0 列 → `REVIEW_NOT_PENDING`）→ `JourneyGraphValidator` 重驗 → 建 `journey_definition` 版本並清草稿；D-060 的三條規則只在 `ReviewPolicy` 一個類別實作（對應 §3.3 三列），甲方選 B 只改它與契約 §3.3；停止同交易把 `PENDING` 轉 `WITHDRAWN` | 審核內容 = 送審 `revision`（草稿鎖定）；差異集中一處 |
 ## relay 與迴圈（#72、#44；不需 migration）
 | 項目 | 設計 |
 |---|---|
@@ -46,10 +45,11 @@
 | 2 | FE-03＋QA-05a | frontend／qa | 旅程列表、Enrollment 瀏覽、客戶搜尋→客戶頁→圖形軌跡 | FE-02 | `web/src/`、`web/package.json`、`package-lock.json` | `customer/`、`trace-graph/` |
 | 3 | BE-07＋QA-05b | backend／qa | V6、`profiles.md`、`journeys.md` §2、`/enrollments` 瀏覽 | BE-06 | `J/profile/`、`J/journey/`、`J/query/`、`J/ingest/EventIngestionService`、`J/persistence/JdbcProfileStore`、`V6__profile_store.sql` | `profile/`、`journey/` |
 | 4 | QA-06、INT-02 | qa／frontend | 壓測（含 `Makefile` 的 `perf`、`docs/perf/`）；整合與 demo-seed 端到端 | 1～3 | 依單 | — |
-| 二 | BE-08＋QA-07、FE-04 → BE-09＋QA-08、FE-05 → BE-10、INT-03 | | 做法 #7 → #8 → #9；FE-04 畫布對 `journeys.md` §3 mock | 第一版 | `V7__journey_lifecycle.sql` 歸 BE-08 | `journey/`、`engine/`、`canvas/` |
+| 二 | BE-08＋QA-07、FE-04、FE-06 → BE-09＋QA-08、FE-05 → BE-10、INT-03 | | 做法 #7＋#10 → #8 → #9；FE-04 畫布、FE-06 審核畫面（送審、待審清單、核准／退回、紀錄）皆對 `journeys.md` §3 mock，FE-06 接在 FE-04 之後（同為 `web/src/`） | 第一版 | `V7__journey_lifecycle.sql` 歸 BE-08 | `journey/`、`engine/`、`canvas/`、`review/` |
 
 ## 待甲方決定／需要調查
-- 待決定：D-055 拆版（上表）、D-056 角色（`auth.md` §2）、D-057 帳號開通（`auth.md` §4）。D-042（每租戶金鑰）不再需要，D-019 維持。已定案的影響：D-045 → `auth.md` §3 限速、上表兩變數、BE-06；D-047 → 上表 relay 六變數；D-046、D-048、D-050 已反映於驗收與契約；D-049 外框不再有工作區切換
+- 待決定：D-060 審核細節（依建議 1A、2A 設計，差異只在 `journeys.md` §3.3、做法 #10 `ReviewPolicy`）；新（請 manager 編號）：管理金鑰直接建立版本是否免審（`journeys.md` §3.3 第 3 列，建議保留給維運並留紀錄）
+- 已定案的影響：D-055 → 上表與「二」列；D-056 → `auth.md` §2、`journeys.md` §3.2、做法 #10、FE-06；D-057 → `auth.md` §4；D-045 → `auth.md` §3 限速、上表兩變數、BE-06；D-047 → 上表 relay 六變數；D-046、D-048、D-050 已反映於驗收與契約；D-049 外框不再有工作區切換；D-019 維持單一金鑰
 - 需調查：1 `json-schema-validator` 3.0.8 依賴 Jackson 3.2.1，與 Boot 4.1.1 BOM 管的 Jackson 能否並用——BE-08 開工時實測，不行則維持 Java 規則（不需甲方決定）
 
 ## 風險
