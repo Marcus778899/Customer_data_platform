@@ -71,6 +71,7 @@
 | 2026-10-19 | D-062 | v0.2.0 | v0.2.0 加唯讀旅程頁（標頭、版本切換、節點圖），併進 FE-03＋QA-05a |
 | 2026-10-19 | D-063 | v0.2.0 | v0.2.0 從 schema 移除 tenant_id，廢除 CDP_TENANT_ID |
 | 2026-10-19 | D-064 | v0.2.0 | CDP_TENANT_ID 暫留 .env，REFACTOR-01 合併後再刪 |
+| 2026-10-19 | D-065 | v0.2.0 | 保留範本更新，補回編碼修正與決策版本欄 |
 
 ## 任務狀態
 
@@ -83,12 +84,13 @@
 | FIX-09 | backend | done | 0 | PR #84 |
 | DESIGN-04 | architect | done | 1 | PR #83 |
 | CHORE-09 | backend | done | 0 | PR #86 |
-| tenant-id-drop | backend | in-progress | 0 |  |
-| app-shell-login | frontend | in-progress | 0 |  |
+| tenant-id-drop | backend | qa | 0 |  |
+| app-shell-login | frontend | qa | 0 |  |
+| scripts-fix-restore | backend | done | 0 | PR #90 |
 
 ## 卡住／待甲方決定
 
-- D-065 已定案；布告欄決策表等 scripts-fix-restore 合併（補回版本欄）後再加 D-065
+- （無）
 
 ## 注意事項（踩過的坑）
 
