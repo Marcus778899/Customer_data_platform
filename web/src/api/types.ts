@@ -86,3 +86,12 @@ export interface EnrollmentDetail extends EnrollmentSummary {
   as_of: string
   masked_paths: string[]
 }
+
+// 型別對應 docs/contracts/auth.md §3
+export type Role = 'VIEWER' | 'EDITOR' | 'ADMIN'
+export interface CurrentUser {
+  user_id: string
+  email: string
+  display_name: string
+  role: Role
+}

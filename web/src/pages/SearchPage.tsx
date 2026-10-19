@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { ApiError, listEnrollments } from '../api/client'
 import type { EnrollmentSummary, Page } from '../api/types'
-import { Badge, ErrorBox, Loading, Time, Topbar } from '../components/ui'
+import { Badge, ErrorBox, Loading, Time } from '../components/ui'
 import { ENROLLMENT_STATUS } from '../format'
 import { lastNavigationWasPop, navigate, type Loc } from '../router'
 import { useFetch } from '../useFetch'
@@ -77,8 +77,7 @@ export function SearchPage({ loc }: { loc: Loc }) {
   }
 
   return (
-    <div className="app">
-      <Topbar />
+    <>
       <header>
         <h1>客戶旅程軌跡</h1>
         <p className="muted">唯讀。查某位客戶走到哪、為什麼沒收到訊息。</p>
@@ -142,7 +141,7 @@ export function SearchPage({ loc }: { loc: Loc }) {
           )}
         </section>
       )}
-    </div>
+    </>
   )
 }
 
@@ -176,6 +175,8 @@ function SearchForm({
           onChange={(e) => setQInput(e.target.value)}
         />
       </div>
+      {/* 狀態篩選只在已有查詢條件時出現（沒有條件時無可篩選；也避免空白頁出現與導覽無關的下拉） */}
+      {q && (
       <div className="field field-status">
         <label htmlFor="status">狀態</label>
         <select id="status" value={statusInput} onChange={(e) => setStatusInput(e.target.value)}>
@@ -186,6 +187,7 @@ function SearchForm({
           ))}
         </select>
       </div>
+      )}
       <button className="btn" type="submit" aria-disabled={busy}>
         {busy ? '查詢中…' : '查詢'}
       </button>
