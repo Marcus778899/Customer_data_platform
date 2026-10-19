@@ -123,11 +123,11 @@ NodeResult execute(NodeContext context);
 
 推進迴圈的 `StateStore.lockDue(now, limit)` **必須跨租戶掃描**——它的工作就是找出「所有到期的 Enrollment」，沒有 `tenantId` 可帶。RLS 開著時這個查詢回傳空集合，計時器一則都推不動。
 
-因此有一個帶 `BYPASSRLS` 的 `NOLOGIN` role（v0.2.0 以 `V5__tenancy_rls.sql` 建立，role 設計依 `docs/design/INIT-01.md` R2、`docs/design/DESIGN-03.md`）。應用程式用同一個登入帳號（環境變數 `CDP_DB_APP_USER`：`NOINHERIT`、非 superuser、非表擁有者）開兩個連線池，各自在**連線初始化**時 `SET ROLE`：
+因此有一個跨租戶的 `NOLOGIN` role `journey_engine`（v0.2.0 以 `V5__tenancy_rls.sql` 建立，role 設計依 `docs/design/INIT-01.md` R2、`docs/design/DESIGN-03.md`）。它**不**帶 `BYPASSRLS`（建立需 superuser），而是由每張 RLS 表的 policy `engine_all`（`TO journey_engine USING (true)`）放行，見 `07` §2、§12。應用程式用同一個登入帳號（環境變數 `CDP_DB_APP_USER`：`NOINHERIT`、非 superuser、非表擁有者）開兩個連線池，各自在**連線初始化**時 `SET ROLE`：
 
 | 元件 | 連線池 → role |
 |---|---|
-| 旅程推進迴圈、事件派發、outbox relay、發送 consumer、旅程停止的背景清理 | 引擎池 → `journey_engine`（BYPASSRLS） |
+| 旅程推進迴圈、事件派發、outbox relay、發送 consumer、旅程停止的背景清理 | 引擎池 → `journey_engine`（`engine_all` policy 放行全部租戶） |
 | API 層、客服查詢、客戶搜尋、其他一切 | 應用池 → `cdp_app`（受 RLS 保護；每個交易開頭 `set_config('app.tenant_id', …, true)`，未設定 = 讀不到任何列） |
 | Flyway migration | 表擁有者帳號（`POSTGRES_USER`），應用程式執行期不用 |
 
@@ -171,7 +171,7 @@ NodeResult execute(NodeContext context);
 |---|---|---|
 | ~~1~~ | ~~`settings.goal` 與 `GoalNode` 誰優先~~ **已裁決**：`goal` 持續評估、優先於一切節點；`GoalNode` 降為顯式標記 | `03` §3、`02` §3、`04` §6 |
 | ~~2~~ | ~~5 分鐘仲裁窗的觸發時機~~ **已裁決**：配額充足直接放行零延遲，reserve 失敗才進窗排隊 | `05` §3②、§4 |
-| ~~3~~ | ~~`lockDue` 跨租戶掃描 vs RLS~~ **已裁決**：`journey_engine` NOLOGIN + BYPASSRLS role，見共通約定 | `README`、`04` §7 |
+| ~~3~~ | ~~`lockDue` 跨租戶掃描 vs RLS~~ **已裁決**：`journey_engine` NOLOGIN role＋每表 `engine_all` policy（v0.2.0 起不用 BYPASSRLS，DESIGN-03），見共通約定 | `README`、`04` §7 |
 | ~~4~~ | ~~Redis 不可用時 kill switch 讀不到~~ **已裁決**：降級查 Postgres 的 `journey.status`，不放行 | `05` §5、`plan` 7.2.1 |
 | ~~5~~ | ~~遲到事件能否喚醒既有 Enrollment~~ **已裁決**：門檻只約束「建立新 Enrollment」，喚醒照做 | `01` §6、`02` §4 |
 | ~~6~~ | ~~`journey-definition.schema.json` 尚未產出~~ **已完成**：schema 涵蓋全部 22 種節點型別，三層分工寫進 `03` §6，三個場景 fixture 與驗收測試皆已通過 | `03` §6 |

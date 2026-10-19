@@ -38,7 +38,19 @@
 | GET | `/api/v1/journeys/{journey_id}/versions/{version}` | — | `200` `JourneyVersion` | `404` `JOURNEY_NOT_FOUND`（旅程或版本不存在） |
 
 - 圖形軌跡：前端以 `EnrollmentDetail` 的 `journey_id`＋`journey_version` 取 `JourneyVersion` 畫圖，疊上 `trace`（推導規則見 `journey-engine.md` §4.5）
-- 第一版 `has_draft` 一律 `false`、`status` 只會是 `ACTIVE`（旅程仍以 journey-engine §3.1 建立）
+- 第一版沒有 `journey` 表（V7 屬第二版），`JourneySummary`／`JourneyDetail` 由 `journey_definition`（spec 07 §3）推導；第二版改讀 `journey` 表（spec 07 §12），欄位語意不變：
+
+| 欄位 | 第一版推導（每個 `journey_id` 取 `version` 最大的一列 = 最新列） | 第二版 |
+|---|---|---|
+| `name` `description` | 最新列 | 最新版本（`latest_version`）；`DRAFT` 取草稿 |
+| `status` | 最新列的 `status`（v0.1.0 建立的一律 `ACTIVE`） | `journey.status` |
+| `latest_version` | `max(version)` | `journey.latest_version` |
+| `published_at` | 最新列的 `published_at` | 最新版本的 `published_at` |
+| `updated_at` | 最新列的 `created_at` | `journey.updated_at`（建立、存草稿、發佈、停止、§3.1 同步時更新） |
+| `has_draft` | 一律 `false` | `journey.draft` 不為 `null` |
+| `versions` | 該 `journey_id` 全部列 | 同左 |
+
+- `q`、`status` 篩選與排序都套在推導後的值上
 
 ## §3 草稿與發佈（第二版）
 
@@ -51,9 +63,24 @@
 | POST | `/api/v1/journeys/{journey_id}/draft/validate` | — | `200` `ValidationReport`（不改資料） | `404` |
 | POST | `/api/v1/journeys/{journey_id}/publish` | `{ "revision" }` | `201` `{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；草稿清除 | `400` `VALIDATION_FAILED`（`errors` 同 `ValidationReport.errors`）、`404`、`409` `DRAFT_CONFLICT`／`JOURNEY_ABORTED` |
 
-- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`user_id` \| null；金鑰呼叫為 `null`）
-- `ValidationReport`：`valid` bool、`errors` `{ field, message }[]`、`warnings` `{ field, message }[]`；`field` 為 JSON 路徑（`definition.nodes[3].outputs.yes`）；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
+- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`{ "user_id", "display_name" }` \| null；後端帶出使用者目前的顯示名稱，不需呼叫 `/members`；金鑰呼叫為 `null`）
+- `ValidationReport`：`valid` bool、`errors` `Issue[]`、`warnings` `Issue[]`；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
+- `Issue`：`field` string（JSON 路徑，例 `definition.nodes[3].outputs.yes`）、`message` string（繁體中文一句，可直接顯示）、`rule` int \| null（spec 03 §6 規則編號；該表沒有編號的檢查，例 §4 的 `config` 必填，為 `null`）、`node_id` string \| null（錯誤所在節點；`settings`、`name` 等不屬於單一節點者為 `null`；規則 7 每個違規的迴圈一筆，取迴圈中在 `nodes` 陣列最前的節點，`message` 列出迴圈全部節點 id）
+- `publish` 的 `400` `VALIDATION_FAILED`：`errors` 每筆同 `Issue`（journey-engine §5 的 `{ field, message }` 再加 `rule`、`node_id`）
 - 名稱與描述只能經草稿發佈修改（`name` 屬於版本）
+
+### §3.1 旅程列的同步（第二版）
+
+journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-seed），在建立版本的同一交易內更新 `journey` 列：
+
+| 該旅程的狀態 | 效果 |
+|---|---|
+| 新旅程（省略 `journey_id`） | 插入 `journey`：`status` = `ACTIVE`、`latest_version` = 1 |
+| `DRAFT` | 建立版本 1，`status` → `ACTIVE`、`latest_version` = 1；草稿保留 |
+| `ACTIVE` | `latest_version` = 新版本號 |
+| `ABORTED` | `409` `JOURNEY_ABORTED`，不建版本 |
+
+- 以上都把 `updated_at` 設為現在；草稿與 `revision` 不變（之後發佈草稿會成為再下一版）
 
 ### §3.5 停止 `POST /api/v1/journeys/{journey_id}/stop`
 

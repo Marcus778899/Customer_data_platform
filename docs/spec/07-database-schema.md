@@ -72,7 +72,7 @@
 
 `journey_engine` role 與 RLS、policy 同一個 migration 於 v0.2.0 上線（`docs/design/INIT-01.md` R2；做法見本檔 §12、`README`「RLS 的唯一例外」）。
 
-v0.2.0 起的規則：**每張帶 `tenant_id` 的表**（平台表 `tenant`、`tenant_membership`、`tenant_api_key` 除外）都要在建表的同一支 migration 裡 `ENABLE` ＋ `FORCE ROW LEVEL SECURITY` ＋ policy `tenant_isolation`（`USING` 與 `WITH CHECK` 皆為 `tenant_id = current_setting('app.tenant_id', true)`）。驗收測試以系統目錄檢查「有 `tenant_id` 欄位卻沒有 forced RLS 與 policy 的表」為零（§12）。
+v0.2.0 起的規則：**每張帶 `tenant_id` 的表**（平台表 `tenant`、`tenant_membership`、`tenant_api_key` 除外）都要在建表的同一支 migration 裡 `ENABLE` ＋ `FORCE ROW LEVEL SECURITY` ＋ 兩條 policy：`tenant_isolation`（`USING` 與 `WITH CHECK` 皆為 `tenant_id = current_setting('app.tenant_id', true)`）與 `engine_all`（`TO journey_engine USING (true) WITH CHECK (true)`，§12「role 與連線」）。驗收測試以系統目錄檢查「有 `tenant_id` 欄位卻缺 forced RLS 或缺這兩條 policy 的表」為零（§12）。
 
 ### 命名
 
@@ -461,9 +461,10 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 |---|---|---|
 | 表擁有者（`POSTGRES_USER`） | 跑 Flyway | 擁有全部表；執行期不用 |
 | `cdp_app` | `NOLOGIN` | 全部表 `SELECT/INSERT/UPDATE/DELETE`；受 RLS（`FORCE`） |
-| `journey_engine` | `NOLOGIN BYPASSRLS` | 同上，不受 RLS |
+| `journey_engine` | `NOLOGIN`（**不**帶 `BYPASSRLS`） | 同上；受 RLS，但每張 RLS 表的 `engine_all` policy 放行全部列（§2），等同跨租戶 |
 | 登入帳號 `CDP_DB_APP_USER` | `LOGIN NOINHERIT`，`cdp_app` 與 `journey_engine` 的成員 | 自身無任何表權限；未 `SET ROLE` 的連線什麼都讀不到。帳號與密碼由 Flyway `afterMigrate` callback 以 `CDP_DB_APP_PASSWORD` 建立或更新（密碼不進 migration） |
 
+- 不用 `BYPASSRLS`：PG 18 只有 superuser 能建帶 `BYPASSRLS` 的 role（`CREATEROLE` 不足），受管 PG 不一定給 superuser（`docs/research/v0.2.0-design-questions.md` Q1）。Flyway 帳號只需 `CREATEROLE`（建兩個 `NOLOGIN` role 與登入帳號）；漏寫 `engine_all` = 引擎讀不到該表（fail-closed，驗收的目錄檢查會抓到）
 - V5 以 `ALTER DEFAULT PRIVILEGES` 讓擁有者之後建的表自動授權給兩個 role；RLS 仍須每支 migration 自己開（§2）
 - `cdp_app` 每個交易開頭由交易管理器執行 `set_config('app.tenant_id', <租戶>, true)`（交易結束即失效，連線池重用不殘留）；不在交易內的查詢讀不到列、寫入被 `WITH CHECK` 擋下（fail-closed）
 

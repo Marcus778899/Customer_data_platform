@@ -21,8 +21,9 @@
 
 ### §1.1 CSRF（session 的寫入請求）
 
-- session 呼叫非 `GET` 的 API（`/auth/login`、`/auth/logout` 除外）須帶標頭 `X-XSRF-TOKEN`，值 = cookie `XSRF-TOKEN`（`Path=/api`、非 HttpOnly、`Secure`、`SameSite=Strict`）
-- 後端在登入成功與 `GET /api/v1/auth/me` 的回應設定／更新 `XSRF-TOKEN`；缺或不符 → `403` `CSRF_INVALID`（前端重呼 `/auth/me` 取新值後重試一次）
+- session 呼叫非 `GET` 的 API（`/auth/login`、`/auth/logout` 除外）須帶標頭 `X-XSRF-TOKEN`，值 = cookie `XSRF-TOKEN`（`Path=/`、非 HttpOnly、`Secure`、`SameSite=Strict`）；前端每次送出前讀 cookie 當下的值，不快取
+- 登入、登出成功會使舊值失效（回應可能清除該 cookie）；前端登入成功後先呼叫 `GET /api/v1/auth/me`，其回應一定帶新的 `XSRF-TOKEN`；其他回應也可能更新它
+- 缺或不符 → `403` `CSRF_INVALID`（前端重呼 `/auth/me` 取新值後重試一次）
 - Bearer 請求不檢查 CSRF
 
 ## §2 角色矩陣（`✓` = 可用；角色由上到下包含：`TENANT_ADMIN` ⊇ `EDITOR` ⊇ `VIEWER`）

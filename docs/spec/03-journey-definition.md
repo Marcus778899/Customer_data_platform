@@ -427,7 +427,7 @@
 
 ## 6. 圖驗證規則
 
-> **落地（`docs/design/DESIGN-03.md`）**：本版三層都由後端 Java 執行（Schema 層的驗證器見 DESIGN-01 需調查 1，未定案前以 Java 規則實作同等檢查）；草稿存檔只驗結構，`validate`／`publish` 跑全部適用規則。本版不檢查規則 10、11（無模板表）。畫布座標放在定義之外的 `layout`（`docs/contracts/journeys.md` §1），引擎不讀。
+> **落地（`docs/design/DESIGN-03.md`）**：本版三層都由後端 Java 執行（Schema 層用 `com.networknt:json-schema-validator`，版本與不相容時的退路見 DESIGN-03 做法 #7）；草稿存檔只驗結構，`validate`／`publish` 跑全部適用規則。本版不檢查規則 10、11（無模板表）。畫布座標放在定義之外的 `layout`（`docs/contracts/journeys.md` §1），引擎不讀。
 
 發布（`DRAFT` → `PENDING_APPROVAL`）前必須全數通過：
 

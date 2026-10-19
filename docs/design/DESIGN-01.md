@@ -46,5 +46,5 @@
 
 ## 待甲方決定／需要調查／風險
 - 待決定：D-019～D-025 已定案
-- 需調查：1 Jackson 3（Boot 4）可用的 JSON Schema 驗證器與版本，決定 v0.2.0 起是否以 `event.schema.json`／`journey-definition.schema.json` 驗證（INIT-01 需調查 2 已結案：Testcontainers 2.0.5 免繞法）
+- 需調查：1 ~~Jackson 3（Boot 4）可用的 JSON Schema 驗證器與版本~~ 已結案，見 DESIGN-03 做法 #7（只用於 `journey-definition.schema.json`）（INIT-01 需調查 2 已結案：Testcontainers 2.0.5 免繞法）
 - 風險：cookie 固定 `Secure`，非 localhost 的 HTTP 部署無法登入 → 部署走 HTTPS；登入無限速 → v0.2.0 以後（見「後續實作項」）

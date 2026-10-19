@@ -56,7 +56,7 @@
 - Request：spec 03 §2 頂層結構去掉 `tenant_id`、`version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
 - 規則：`entry_node` 指向唯一的 `StartNode`；`StartNode.outputs.next` 指向 `EventSourceNode`（可為陣列）；每個 `outputs` 目標都存在；無迴圈；每條路徑終於 `EndNode`；`EventSourceNode.config.event_name` 必填、`event_filter`／`profile_filter` 須為 `null` 或省略；`WaitDelayNode.config.duration` 為正的 Duration；`SendMessageNode.config` 需 `template_id`、`channel_id`，`outputs` 需 `sent`（`skipped` 可省略）；`node.name` 可省略
 - 成功 `201`：`{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；同 `journey_id` 再送 = 新版本，進行中的 Enrollment 不受影響
-- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）
+- 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）；v0.2.0 第二版起另有 `409` `JOURNEY_ABORTED`（旅程已停止），旅程列的同步見 `journeys.md` §3.1
 
 ### §3.2 事件攝取 `POST /api/v1/events`、`POST /api/v1/events/batch`
 
@@ -151,6 +151,7 @@
 |---|---|
 | 走過的節點 | `trace[].node_id` 的集合；同一節點多次 = 多筆（循環），依 `seq` 列出每次的 `entered_at`／`exited_at`／`out_port`／`decision_reason` |
 | 走過的連線 | 對每個 `out_port` 不為 `null` 的 `trace[i]`：`nodes[trace[i].node_id].outputs[out_port]`；與 `trace[i+1].node_id` 不一致時不畫（定義與軌跡對不上，不推測）。`StartNode` 不寫軌跡：`entry_node` → `trace[0].node_id` 視為已走過 |
+| 第幾次經過（visit） | 後端不提供，前端自行計算：`trace[i]` 的 visit = 1 ＋ `seq` 比它小且 `node_id` 相同的筆數（`trace` 是完整軌跡，算得出來）。這不是冪等鍵的 `visitSeq`（後者 = `seq`） |
 | 目前位置 | `status` 非終態：`exited_at` 為 `null` 的那筆（= `current_node_id`）；終態：最後一筆，以 `status` 表示結束方式 |
 | 每步時間與原因 | `TraceEntry` 原值（`evaluated` 已遮罩，`masked_paths` 同 §4.4） |
 
@@ -166,7 +167,7 @@
 | `code` | string | 下表其一 |
 | `detail` | string | 人可讀說明；5xx 不含內部訊息 |
 | `request_id` | string | 同回應標頭 `X-Request-Id`，供回報 |
-| `errors` | `{ field, message }[]` | 僅 `400`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
+| `errors` | `{ field, message }[]` | 僅 `400`；`journeys.md` §3 的 `publish` 每筆另帶 `rule`、`node_id`；`field` 為 JSON 路徑（`identity.profile_id`、`events[3].occurred_at`、`cursor`） |
 
 | HTTP | `code` | 何時 | 前端處理 |
 |---|---|---|---|
@@ -193,7 +194,7 @@
 
 ## §6 範例
 
-`POST /api/v1/auth/login` body `{ "username": "…", "password": "…" }` → `204`（帳密錯 → `401` `INVALID_CREDENTIALS`）；以下 §4 範例皆帶 `CDP_SESSION` cookie
+`POST /api/v1/auth/login` body `{ "email": "…", "password": "…" }` → `204`（帳密錯 → `401` `INVALID_CREDENTIALS`；欄位與回應見 `tenancy-auth.md` §3、§6；BE-07 合併前仍是 §1.2 的 `username`）；以下 §4 範例皆帶 `CDP_SESSION` cookie（v0.2.0 另帶 `X-Tenant-Id`）
 
 `GET /api/v1/enrollments?q=01JCXYZPROFILE00000000001&status=WAITING,COMPLETED` → `200`
 
