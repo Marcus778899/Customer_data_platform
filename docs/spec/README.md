@@ -103,7 +103,6 @@ NodeResult execute(NodeContext context);
 
 | 欄位 | 型別 | 說明 |
 |---|---|---|
-| `tenantId` | `String` (ULID) | **所有實體必帶**，所有查詢必過濾；例外：D-052 整合介面表（`docs/design/DESIGN-03.md` 做法 #1） |
 | `profileId` | `String` (ULID) | 客戶單一視圖識別碼 |
 | 其餘 id | `String` (ULID) | 排序友善、可讀性優於 UUID |
 
@@ -114,16 +113,21 @@ NodeResult execute(NodeContext context);
 - **禁止 `Instant.now()` / `LocalDate.now()` 等直接取時間**。一律注入 `java.time.Clock`（計劃書 7.5 ②）
 - 期間表示用 ISO-8601 Duration（`P3D`、`PT1H`）
 
-### 多租戶
+### 租戶（單一租戶，D-051、D-063）
 
-> **D-051（2026-10-19）起產品為單一租戶**：本節與下一小節（RLS、`journey_engine`、雙連線池）移出 v0.2.0、不排期，保留為回到多租戶時的做法；各表 `tenant_id` 欄位照舊保留（`docs/design/DESIGN-03.md` 做法 #1）。
+一套環境一家公司：實體、資料表、介面與 API 都**不帶** `tenantId`／`tenant_id`（V5 移除既有欄位，`07` §8）。
 
-- 回到多租戶時：資料庫層開啟 **PostgreSQL Row Level Security**，以 session 變數 `app.tenant_id` 為準
-- 應用層仍要帶 `tenantId`，RLS 是最後一道防線不是唯一一道
+#### 回到多租戶時的做法（不排期）
+
+本節與下一小節（RLS、`journey_engine`、雙連線池）保留為回到多租戶時的做法，順序不可對調：
+
+1. 新 migration 為每張表加回 `tenant_id` 並回填所有歷史資料，重建含它的 PK（`event`）與索引（D-063）；`04`～`06` 介面加回 `tenantId` 參數
+2. 資料庫層開啟 **PostgreSQL Row Level Security**，以 session 變數 `app.tenant_id` 為準（`07` §2）
+3. 應用層所有查詢帶 `tenantId`，RLS 是最後一道防線不是唯一一道
 
 #### RLS 的唯一例外：`journey_engine`
 
-推進迴圈的 `StateStore.lockDue(now, limit)` **必須跨租戶掃描**——它的工作就是找出「所有到期的 Enrollment」，沒有 `tenantId` 可帶。RLS 開著時這個查詢回傳空集合，計時器一則都推不動。
+（回到多租戶後）推進迴圈的 `StateStore.lockDue(now, limit)` **必須跨租戶掃描**——它的工作就是找出「所有到期的 Enrollment」，沒有 `tenantId` 可帶。RLS 開著時這個查詢回傳空集合，計時器一則都推不動。
 
 因此有一個跨租戶的 `NOLOGIN` role `journey_engine`（role 設計依 `docs/design/INIT-01.md` R2）。它**不**帶 `BYPASSRLS`（PG 18 建立需 superuser，`docs/research/v0.2.0-design-questions.md` Q1），而是由每張 RLS 表的 policy `engine_all`（`TO journey_engine USING (true)`）放行，見 `07` §2。應用程式用同一個登入帳號（環境變數 `CDP_DB_APP_USER`：`NOINHERIT`、非 superuser、非表擁有者）開兩個連線池，各自在**連線初始化**時 `SET ROLE`：
 
@@ -173,7 +177,7 @@ NodeResult execute(NodeContext context);
 |---|---|---|
 | ~~1~~ | ~~`settings.goal` 與 `GoalNode` 誰優先~~ **已裁決**：`goal` 持續評估、優先於一切節點；`GoalNode` 降為顯式標記 | `03` §3、`02` §3、`04` §6 |
 | ~~2~~ | ~~5 分鐘仲裁窗的觸發時機~~ **已裁決**：配額充足直接放行零延遲，reserve 失敗才進窗排隊 | `05` §3②、§4 |
-| ~~3~~ | ~~`lockDue` 跨租戶掃描 vs RLS~~ **已裁決**：`journey_engine` NOLOGIN role＋每表 `engine_all` policy（不用 BYPASSRLS；D-051 後不排期），見共通約定 | `README`、`04` §7 |
+| ~~3~~ | ~~`lockDue` 跨租戶掃描 vs RLS~~ **已裁決**：`journey_engine` NOLOGIN role＋每表 `engine_all` policy（不用 BYPASSRLS；D-051、D-063 後不排期），見共通約定 | `README`、`04` §7 |
 | ~~4~~ | ~~Redis 不可用時 kill switch 讀不到~~ **已裁決**：降級查 Postgres 的 `journey.status`，不放行 | `05` §5、`plan` 7.2.1 |
 | ~~5~~ | ~~遲到事件能否喚醒既有 Enrollment~~ **已裁決**：門檻只約束「建立新 Enrollment」，喚醒照做 | `01` §6、`02` §4 |
 | ~~6~~ | ~~`journey-definition.schema.json` 尚未產出~~ **已完成**：schema 涵蓋全部 22 種節點型別，三層分工寫進 `03` §6，三個場景 fixture 與驗收測試皆已通過 | `03` §6 |

@@ -28,7 +28,7 @@
 ## 設定（寫進 .env.example 的單負責，這裡不寫值）
 | 變數 | 用途 | 機密 |
 |---|---|---|
-| `CDP_TENANT_ID`；`POSTGRES_HOST`、`RABBITMQ_HOST`；`ENGINE_POLL_INTERVAL`、`ENGINE_BATCH_SIZE`、`OUTBOX_RELAY_POLL_INTERVAL`、`OUTBOX_RELAY_BATCH_SIZE`；`ENGINE_DISPATCH_MAX_ATTEMPTS`（次數）、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`；`OUTBOX_RELAY_RETRY_DELAY`；`DELIVERY_REQUEUE_DELAY` | 單租戶 tenant_id（ULID）；後端連線主機；推進迴圈＋事件派發、relay 的輪詢間隔與每批筆數；派發重試上限與指數退避（spec 07 §11）；relay 失敗後該列延後（做法 #4）；consumer 暫時性 DB 例外重排前等待（例外分流表）；Duration 皆 ISO 8601 | 否 |
+| `CDP_TENANT_ID`（D-063 廢除，REFACTOR-01 刪除）；`POSTGRES_HOST`、`RABBITMQ_HOST`；`ENGINE_POLL_INTERVAL`、`ENGINE_BATCH_SIZE`、`OUTBOX_RELAY_POLL_INTERVAL`、`OUTBOX_RELAY_BATCH_SIZE`；`ENGINE_DISPATCH_MAX_ATTEMPTS`（次數）、`ENGINE_DISPATCH_BACKOFF_INITIAL`、`ENGINE_DISPATCH_BACKOFF_MAX`；`OUTBOX_RELAY_RETRY_DELAY`；`DELIVERY_REQUEUE_DELAY` | 單租戶 tenant_id（ULID）；後端連線主機；推進迴圈＋事件派發、relay 的輪詢間隔與每批筆數；派發重試上限與指數退避（spec 07 §11）；relay 失敗後該列延後（做法 #4）；consumer 暫時性 DB 例外重排前等待（例外分流表）；Duration 皆 ISO 8601 | 否 |
 | `CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`、`CDP_SUPPORT_PASSWORD`（`CHANGE_ME`，隨機產生）；`CDP_SUPPORT_USERNAME`、`CDP_SESSION_IDLE_TIMEOUT`（ISO Duration）；`CDP_TRACE_PLAIN_KEYS`（逗號分隔；`-` = 全遮，契約 §4.4） | 契約 §1.1、§1.2、§4.4 | 前三個是 |
 
 ## 檔案分工（`J` = `api/src/main/java/com/cdp`，`T` = `api/src/test/java/com/cdp`）

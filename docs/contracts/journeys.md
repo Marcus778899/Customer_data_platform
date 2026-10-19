@@ -53,7 +53,7 @@
 | GET | `/api/v1/journeys/{journey_id}/versions/{version}` | — | `200` `JourneyVersion` | `404` `JOURNEY_NOT_FOUND`（旅程或版本不存在） |
 
 - 圖形軌跡：前端以 `EnrollmentDetail` 的 `journey_id`＋`journey_version` 取 `JourneyVersion` 畫圖，疊上 `trace`（推導規則見 `journey-engine.md` §4.5）
-- 第一版沒有 `journey` 表（V7 屬第二版），`JourneySummary`／`JourneyDetail` 由 `journey_definition`（spec 07 §3）推導；第二版改讀 `journey` 表（spec 07 §12），欄位語意不變：
+- 第一版沒有 `journey` 表（V8 屬第二版），`JourneySummary`／`JourneyDetail` 由 `journey_definition`（spec 07 §3）推導；第二版改讀 `journey` 表（spec 07 §12），欄位語意不變：
 
 | 欄位 | 第一版推導（每個 `journey_id` 取 `version` 最大的一列 = 最新列） | 第二版 |
 |---|---|---|

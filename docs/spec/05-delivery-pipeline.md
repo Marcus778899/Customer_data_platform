@@ -131,7 +131,7 @@ record ConsentState(
 |---|---|
 | 作用域 | **租戶層**，跨所有旅程。不是單一旅程內的節流 |
 | 計數基準 | **入列即扣配額（reserve）**，不是等到 `SENT` 才計 |
-| 儲存 | Redis 計數器，key 為 `{tenantId}:{profileId}:{channel}:{window}` |
+| 儲存 | Redis 計數器，key 為 `{profileId}:{channel}:{window}` |
 | 一致性 | 以 Redis 為準；Redis 不可用時 **fail-closed（擋下）** |
 
 > **fail-closed 是刻意的**：計數器掛掉時寧可少發，不可能因為基礎設施故障而對客戶連發十則。
@@ -227,11 +227,11 @@ record ConsentState(
 ### 執行動作
 
 ```java
-void killJourney(String tenantId, String journeyId, String reason) {
+void killJourney(String journeyId, String reason) {
     1. journey.status = ABORTED                    // 立刻擋下新進入
-    2. killSwitch.set(tenantId, journeyId)         // Redis，管線每階段都會讀
+    2. killSwitch.set(journeyId)         // Redis，管線每階段都會讀
     3. effectExecutor.cancelPendingByJourney(...)  // 取消 outbox 中待送訊息
-    4. timer.cancelAll(tenantId, journeyId)        // 取消所有計時器
+    4. timer.cancelAll(journeyId)        // 取消所有計時器
     5. stateStore 批次轉 ABORTED，記 terminationReason
     6. 寫稽核日誌
 }
@@ -243,7 +243,7 @@ void killJourney(String tenantId, String journeyId, String reason) {
 
 管線每個階段開始前都要重讀 kill switch，判定來源依序：
 
-1. **Redis**（`killSwitch:{tenantId}:{journeyId}`）——快取，正常路徑，微秒級
+1. **Redis**（`killSwitch:{journeyId}`）——快取，正常路徑，微秒級
 2. **Postgres**（`journey.status = ABORTED`、租戶停用旗標）——**Redis 讀取失敗時降級查它，不是直接放行**
 
 > **為什麼不能只有 Redis**：頻率上限在 Redis 不可用時是 fail-closed（擋下行銷型），但**交易型不受頻率上限約束、會繼續送**。
@@ -312,7 +312,7 @@ public interface ChannelAdapter {
     Set<ContentFormat> supportedFormats();
 
     /** 解析收件人；回傳 empty 表示此客戶在該通道沒有可用地址 */
-    Optional<Recipient> resolveRecipient(String tenantId, String profileId);
+    Optional<Recipient> resolveRecipient(String profileId);
 
     /** 實際送出。必須是冪等的：同一 idempotencyKey 重送不得產生兩則訊息 */
     SendResult send(SendRequest request);
@@ -327,7 +327,7 @@ public interface ChannelAdapter {
 
 ```java
 record SendRequest(
-    String tenantId, String channelId, String idempotencyKey,
+    String channelId, String idempotencyKey,
     Recipient recipient, RenderedContent content,
     MessageType messageType, Instant deadline
 ) {}
@@ -365,7 +365,7 @@ record SendResult(
 
 ```java
 record MessageTemplate(
-    String templateId, String tenantId,
+    String templateId,
     String groupId,               // 訊息內容群組：同一則訊息的各通道版本
     String channelType,
     MessageType messageType,      // G9

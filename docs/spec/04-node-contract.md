@@ -67,7 +67,6 @@ record DataRequirements(
 ```java
 record NodeContext(
     // ---- 身分與定位 ----
-    String              tenantId,
     String              enrollmentId,
     String              profileId,
     String              nodeId,
@@ -227,26 +226,26 @@ sealed interface Effect {
 
 ```java
 public interface JourneyRuntime {
-    EnrollmentState start(String tenantId, String journeyId, int version, String sourceNodeId,
+    EnrollmentState start(String journeyId, int version, String sourceNodeId,
                           String profileId, TriggerSnapshot trigger, String dedupKey);  // sourceNodeId：命中的 Source 節點
 
-    void signal(String tenantId, String enrollmentId, WakeSignal signal);
+    void signal(String enrollmentId, WakeSignal signal);
 
-    void cancel(String tenantId, String enrollmentId, String reason);   // G10
+    void cancel(String enrollmentId, String reason);   // G10
 
-    void cancelAll(String tenantId, String journeyId, String reason);   // G10 旅程層
+    void cancelAll(String journeyId, String reason);   // G10 旅程層
 
-    Optional<EnrollmentState> get(String tenantId, String enrollmentId);
+    Optional<EnrollmentState> get(String enrollmentId);
 }
 ```
 
 ```java
 public interface StateStore {
     EnrollmentState create(EnrollmentState state) throws DuplicateEnrollmentException;
-    Optional<EnrollmentState> findById(String tenantId, String enrollmentId);
+    Optional<EnrollmentState> findById(String enrollmentId);
     List<EnrollmentState> lockDue(Instant now, int limit);
-    List<EnrollmentState> findWaitingForEvent(String tenantId, String profileId, String eventName);
-    Optional<EnrollmentTrace> findOpenTrace(String tenantId, String enrollmentId);  // 等待節點喚醒時沿用其 seq
+    List<EnrollmentState> findWaitingForEvent(String profileId, String eventName);
+    Optional<EnrollmentTrace> findOpenTrace(String enrollmentId);  // 等待節點喚醒時沿用其 seq
     void save(EnrollmentState state, EnrollmentTrace trace, List<Effect> effects);  // 單一交易
 }
 ```
@@ -255,15 +254,15 @@ public interface StateStore {
 public interface Timer {
     void schedule(String enrollmentId, Instant wakeAt);
     void cancel(String enrollmentId);
-    void cancelAll(String tenantId, String journeyId);
+    void cancelAll(String journeyId);
 }
 ```
 
 ```java
 public interface EffectExecutor {
-    void execute(String tenantId, String enrollmentId, Effect effect);
-    void cancelPending(String tenantId, String enrollmentId);           // G10
-    void cancelPendingByJourney(String tenantId, String journeyId);     // G10
+    void execute(String enrollmentId, Effect effect);
+    void cancelPending(String enrollmentId);           // G10
+    void cancelPendingByJourney(String journeyId);     // G10
 }
 ```
 
@@ -285,22 +284,22 @@ public interface EffectExecutor {
 
 ```java
 public interface ProfileStore {
-    String resolve(String tenantId, EventIdentity identity);
-    Map<String,Object> getFields(String tenantId, String profileId, Set<String> fields);
-    void applyOperations(String tenantId, String profileId, List<ProfileOperation> ops);
+    String resolve(EventIdentity identity);
+    Map<String,Object> getFields(String profileId, Set<String> fields);
+    void applyOperations(String profileId, List<ProfileOperation> ops);
 }
 
 public interface SegmentEngine {
-    boolean isMember(String tenantId, String profileId, String segmentId);
-    Map<String,Boolean> isMemberBatch(String tenantId, String profileId, Set<String> segmentIds);
-    Object evaluate(String tenantId, String profileId, BehaviorQuery query);
-    Stream<String> materialize(String tenantId, String segmentId);
-    long estimateCount(String tenantId, ConditionTree tree);
+    boolean isMember(String profileId, String segmentId);
+    Map<String,Boolean> isMemberBatch(String profileId, Set<String> segmentIds);
+    Object evaluate(String profileId, BehaviorQuery query);
+    Stream<String> materialize(String segmentId);
+    long estimateCount(ConditionTree tree);
 }
 
 public interface EventStream {
     void publish(NormalizedEvent event);
-    void subscribe(String tenantId, EventHandler handler);
+    void subscribe(EventHandler handler);
 }
 
 // ChannelAdapter 見 05-delivery-pipeline.md

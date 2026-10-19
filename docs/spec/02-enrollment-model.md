@@ -24,7 +24,6 @@ Enrollment 是「某個客戶走某條旅程的某一次」，是整個引擎的
 ```java
 record EnrollmentState(
     String              enrollmentId,      // ULID
-    String              tenantId,
     String              journeyId,
     int                 journeyVersion,    // 建立當下綁定，終生不變
     String              profileId,
@@ -212,7 +211,7 @@ record TriggerSnapshot(
 
 ```sql
 CREATE UNIQUE INDEX uq_enrollment_dedup
-  ON enrollment (tenant_id, journey_id, profile_id, dedup_key)
+  ON enrollment (journey_id, profile_id, dedup_key)
   WHERE dedup_key IS NOT NULL;
 ```
 
@@ -236,8 +235,8 @@ CREATE UNIQUE INDEX uq_enrollment_dedup
 | 項目 | 規則 |
 |---|---|
 | 預設模式 | `settings.reentry` 省略 = `UNLIMITED`（與 v0.1.0 行為相同） |
-| 事件重派發的冪等 | 與 G3 分開：`enrollment_record.trigger_event_id` ＋ 唯一索引 `(tenant_id, journey_id, trigger_event_id)`。同一事件重試只會建一個 Enrollment，不論 `mode`。v0.1.0 以 `dedup_key = event_id` 承擔這件事，第二版起 `dedup_key` 只放 G3 的值 |
-| 冷卻期檢查 | `COOLDOWN`、`DEDUP_KEY_WITH_COOLDOWN` 在建立的交易內先取 `pg_advisory_xact_lock`（鍵 = `tenant_id`＋`journey_id`＋`profile_id`），再查「最近一次 `terminated_at` ＋ 冷卻期 > 現在」或「有未結束的 Enrollment」→ 不建立；同一客戶併發觸發因此不會各自通過檢查 |
+| 事件重派發的冪等 | 與 G3 分開：`enrollment_record.trigger_event_id` ＋ 唯一索引 `(journey_id, trigger_event_id)`。同一事件重試只會建一個 Enrollment，不論 `mode`。v0.1.0 以 `dedup_key = event_id` 承擔這件事，第二版起 `dedup_key` 只放 G3 的值 |
+| 冷卻期檢查 | `COOLDOWN`、`DEDUP_KEY_WITH_COOLDOWN` 在建立的交易內先取 `pg_advisory_xact_lock`（鍵 = `journey_id`＋`profile_id`），再查「最近一次 `terminated_at` ＋ 冷卻期 > 現在」或「有未結束的 Enrollment」→ 不建立；同一客戶併發觸發因此不會各自通過檢查 |
 | `DEDUP_KEY_WITH_COOLDOWN` | 同一個去重鍵永遠只進一次（唯一約束）；冷卻期擋的是「不同去重鍵」在冷卻期內再進入 |
 | 被擋下 | 不是錯誤；事件照常標 `DISPATCHED`，記 INFO 日誌（不寫軌跡，因為沒有 Enrollment） |
 
@@ -307,7 +306,6 @@ record EnrollmentTrace(
 ```sql
 CREATE TABLE enrollment (
     enrollment_id      TEXT PRIMARY KEY,
-    tenant_id          TEXT NOT NULL,
     journey_id         TEXT NOT NULL,
     journey_version    INT  NOT NULL,
     profile_id         TEXT NOT NULL,
@@ -333,7 +331,7 @@ CREATE TABLE enrollment (
 
 -- G3 去重
 CREATE UNIQUE INDEX uq_enrollment_dedup
-  ON enrollment (tenant_id, journey_id, profile_id, dedup_key)
+  ON enrollment (journey_id, profile_id, dedup_key)
   WHERE dedup_key IS NOT NULL;
 
 -- 計時器掃描（只掃 WAITING，避免全表）
@@ -343,15 +341,15 @@ CREATE INDEX ix_enrollment_wake
 
 -- 事件喚醒比對（必須含 profile_id：查的是「這位客戶在等這個事件」）
 CREATE INDEX ix_enrollment_wake_event
-  ON enrollment (tenant_id, profile_id, wake_event_name)
+  ON enrollment (profile_id, wake_event_name)
   WHERE status = 'WAITING' AND wake_event_name IS NOT NULL;
 
 -- 全域退出 / 緊急停止時依旅程批次操作
 CREATE INDEX ix_enrollment_journey_active
-  ON enrollment (tenant_id, journey_id)
+  ON enrollment (journey_id)
   WHERE terminated_at IS NULL;
 
--- D-051 起單一租戶：RLS 不排期，回到多租戶時才加，且須與 policy 同一支 migration（07 §2）
+-- D-051 起單一租戶、D-063 起不帶 tenant_id：RLS 不排期；回到多租戶時先加回欄位並回填，再與 policy 同一支 migration 上（07 §2）
 -- ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY;
 ```
 

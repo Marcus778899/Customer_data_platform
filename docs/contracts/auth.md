@@ -4,7 +4,7 @@
 
 - Base URL、JSON 慣例、時間、`X-Request-Id`、錯誤格式：同 `journey-engine.md` §1、§5
 - 跨域：不開 CORS（同源經 proxy）
-- 單一租戶（D-051）：一套環境 = 一家公司；沒有工作區、沒有租戶標頭；`tenant_id` 同 `journey-engine.md` §1（請求 body 帶了一律忽略）
+- 單一租戶（D-051）：一套環境 = 一家公司；沒有工作區、沒有租戶標頭；沒有 `tenant_id`，同 `journey-engine.md` §1
 
 ## §1 憑證
 

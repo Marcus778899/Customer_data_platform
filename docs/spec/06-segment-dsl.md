@@ -14,7 +14,6 @@
 ```java
 record FieldDefinition(
     String   fieldKey,          // member_tier
-    String   tenantId,
     String   displayName,       // 會員等級
     DataType dataType,
     FieldSource source,         // IMPORTED / EVENT_DERIVED / COMPUTED
@@ -50,7 +49,6 @@ Ingestion 收到新欄位 / 新事件
 ```java
 record EventDefinition(
     String eventName,           // order_completed
-    String tenantId,
     String displayName,         // 完成訂單
     Map<String, FieldDefinition> properties,
     long   observedCount,       // 近 30 天觀察到的次數，供 UI 排序
@@ -220,7 +218,7 @@ sealed interface TimeWindow {
 
 ```java
 record Segment(
-    String segmentId, String tenantId, String name, String description,
+    String segmentId, String name, String description,
     SegmentType type,           // DYNAMIC / STATIC
     int version,                // 條件變更 → 新版本
     ConditionTree tree,         // DYNAMIC 用
@@ -256,11 +254,11 @@ record Segment(
 
 ```java
 public interface SegmentEngine {
-    boolean isMember(String tenantId, String profileId, String segmentId);           // 即時
-    Map<String,Boolean> isMemberBatch(String tenantId, String profileId, Set<String> ids);
-    Object evaluate(String tenantId, String profileId, BehaviorQuery query);
-    Stream<String> materialize(String tenantId, String segmentId);                    // 批次
-    long estimateCount(String tenantId, ConditionTree tree);                          // 預估
+    boolean isMember(String profileId, String segmentId);           // 即時
+    Map<String,Boolean> isMemberBatch(String profileId, Set<String> ids);
+    Object evaluate(String profileId, BehaviorQuery query);
+    Stream<String> materialize(String segmentId);                    // 批次
+    long estimateCount(ConditionTree tree);                          // 預估
 }
 ```
 
@@ -309,7 +307,7 @@ public interface SegmentEngine {
 ```java
 record SegmentTemplate(
     String templateId,
-    String tenantId,            // null = 平台內建
+    boolean builtIn,            // true = 平台內建（原以 tenantId = null 表示，D-063）
     String name, String category, String description,
     ConditionTree tree,                       // 含參數佔位符
     List<TemplateParameter> parameters,       // 規則 ④

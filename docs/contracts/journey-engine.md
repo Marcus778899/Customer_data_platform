@@ -7,7 +7,8 @@
 ## §1 通用
 
 - Base URL：前端一律用相對路徑 `/api`（dev server 轉給後端，見 `web/vite.config.ts`）；後端 port 為環境變數 `API_PORT`
-- Auth：§1.1（D-013）；`tenant_id` 一律取環境變數 `CDP_TENANT_ID`，請求 body 帶 `tenant_id` 會被忽略（v0.2.0 單一租戶仍適用，D-051）
+- Auth：§1.1（D-013）
+- 沒有租戶欄位（D-051、D-063）：請求 body 帶 `tenant_id` 一律忽略、不回錯，回應不含 `tenant_id`；REFACTOR-01 合併前後端仍在內部寫入舊欄位，對外行為相同
 - 跨域：不開 CORS（同源經 proxy）
 - JSON 欄位 `snake_case`；時間為 ISO-8601 UTC（`2026-10-18T02:00:00Z`）；期間為 ISO-8601 Duration（`PT1H`）；ID 為 ULID 字串
 - 所有時間都取自後端注入的 `Clock`（含 `received_at`、`as_of`）：正式環境 = 系統時間；測試快轉時 = 模擬時間，同一筆回應不會混用兩種時間
@@ -53,7 +54,7 @@
 
 ### §3.1 建立旅程版本 `POST /api/v1/journeys`
 
-- Request：spec 03 §2 頂層結構去掉 `tenant_id`、`version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
+- Request：spec 03 §2 頂層結構去掉 `version`、`status`：`journey_id`（省略 = 新旅程，後端產生）、`name`（必填）、`description`、`settings`（物件，v0.1.0 不評估）、`entry_node`、`nodes[]`（`id` `type` `name` `config` `outputs`，見 spec 03 §4）
 - 規則：`entry_node` 指向唯一的 `StartNode`；`StartNode.outputs.next` 指向 `EventSourceNode`（可為陣列）；每個 `outputs` 目標都存在；無迴圈；每條路徑終於 `EndNode`；`EventSourceNode.config.event_name` 必填、`event_filter`／`profile_filter` 須為 `null` 或省略；`WaitDelayNode.config.duration` 為正的 Duration；`SendMessageNode.config` 需 `template_id`、`channel_id`，`outputs` 需 `sent`（`skipped` 可省略）；`node.name` 可省略
 - 成功 `201`：`{ "journey_id", "version", "status": "ACTIVE", "published_at" }`；同 `journey_id` 再送 = 新版本，進行中的 Enrollment 不受影響
 - 錯誤：`400` `VALIDATION_FAILED`（含 `journey_id` 不是 ULID）；`404` `JOURNEY_NOT_FOUND`（帶了 `journey_id` 但該旅程不存在；要建新旅程請省略 `journey_id`）；v0.2.0 第二版起另有 `409` `JOURNEY_ABORTED`（旅程已停止）與 `403` `ADMIN_KEY_JOURNEY_CREATE_DISABLED`（D-061，`journeys.md` §3.3 第 3 列），旅程列的同步見 `journeys.md` §3.1

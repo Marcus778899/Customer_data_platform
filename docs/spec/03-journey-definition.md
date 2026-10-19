@@ -24,7 +24,6 @@
 ```json
 {
   "journey_id": "01JCXYZJOURNEY0000000001",
-  "tenant_id":  "01JCXYZ0000TENANT0000000001",
   "version":    3,
   "name":       "棄單挽回",
   "description": "加入購物車未結帳的挽回流程",
@@ -475,7 +474,6 @@
 ```json
 {
   "journey_id": "01JCXYZJOURNEY0000000001",
-  "tenant_id":  "01JCXYZ0000TENANT0000000001",
   "version": 1,
   "name": "棄單挽回",
   "status": "ACTIVE",
