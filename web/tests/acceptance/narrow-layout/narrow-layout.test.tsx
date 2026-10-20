@@ -187,7 +187,7 @@ describe('DOM 結構（說明文字在 table.stack 的單一 caption 內）', ()
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const u = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
-        if (u.pathname.endsWith('/auth/me')) return json({ username: 'support' })
+        if (u.pathname.endsWith('/auth/me')) return json({ user_id: '01JD0USER0000000000000001', email: 'amy.chen@example.com', display_name: '陳小美', role: 'EDITOR' })
         if (u.pathname.endsWith('/enrollments')) return json({ items: [row], next_cursor: null })
         return json({}, 404)
       }),

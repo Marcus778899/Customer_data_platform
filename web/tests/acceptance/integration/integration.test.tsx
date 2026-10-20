@@ -9,7 +9,7 @@
  *   - 所有 fetch 第二參數帶 `credentials: 'same-origin'`（或 'include'），路徑為相對的 `/api/v1/...`。
  *   - 403：ErrorBox 文案含「沒有權限」，且該 role=alert 區塊內沒有任何按鈕（無「重試」）。
  *   - 其他錯誤（5xx 等）顯示 problem+json 的 request_id（或回應標頭 X-Request-Id）。
- *   - 頁首顯示 /me 的 username（列表與詳情都有）。
+ *   - 外框顯示 /auth/me 的 display_name「已登入：姓名」（列表與詳情都有）。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -17,6 +17,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../../../src/App'
+import { AMY, logoutControl } from '../shell/helpers'
 
 const EID = '01JCXYZENROLL000000000001'
 const PID = '01JCXYZPROFILE00000000001'
@@ -56,7 +57,7 @@ const detail = (over: Record<string, unknown> = {}) => ({
 
 function install(extra: Record<string, Handler> = {}, authed = true) {
   const routes: Record<string, Handler> = {
-    'GET /api/v1/auth/me': () => (authed ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+    'GET /api/v1/auth/me': () => (authed ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
     'POST /api/v1/auth/logout': () => empty(),
     ...extra,
   }
@@ -104,8 +105,8 @@ describe('不載入 mock，打真實端點', () => {
     await user.click(within(await screen.findByRole('table')).getAllByRole('link')[0])
     await user.click(await screen.findByRole('button', { name: '載入更早紀錄' }))
     await waitFor(() => expect(screen.getByRole('table').textContent).toContain('tpl_2'))
-    await user.click(screen.getByRole('button', { name: '登出' }))
-    await screen.findByLabelText('帳號')
+    await user.click(logoutControl())
+    await screen.findByLabelText('Email')
     const paths = new Set(calls.map((c) => c.url.pathname))
     for (const p of [
       '/api/v1/auth/me',
@@ -126,7 +127,7 @@ describe('不載入 mock，打真實端點', () => {
     install({ 'POST /api/v1/auth/login': () => empty() }, false)
     const user = userEvent.setup()
     start('/login')
-    await user.type(await screen.findByLabelText('帳號'), 'u')
+    await user.type(await screen.findByLabelText('Email'), 'u@example.com')
     await user.type(screen.getByLabelText('密碼'), 'p')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(lastCall('POST', '/api/v1/auth/login')).toBeTruthy())
@@ -137,23 +138,23 @@ describe('不載入 mock，打真實端點', () => {
 })
 
 describe('登入、401、登出、頁首', () => {
-  it('頁首顯示 /me 的 username（列表與詳情）', async () => {
+  it('外框顯示 /auth/me 的 display_name（列表與詳情）', async () => {
     install({
-      'GET /api/v1/auth/me': () => json({ username: 'agent_chen' }),
+      'GET /api/v1/auth/me': () => json({ ...AMY, display_name: '陳客服' }),
       [`GET /api/v1/enrollments/${EID}`]: () => json(detail()),
     })
     start('/')
-    await screen.findByText('agent_chen')
+    await waitFor(() => expect(document.body.textContent).toContain('已登入：陳客服'))
     cleanup()
     start(`/enrollments/${EID}`)
     await h1()
-    expect(screen.getByText('agent_chen')).toBeTruthy()
+    expect(document.body.textContent).toContain('已登入：陳客服')
   })
 
   it('列表查詢中 session 過期（401）導回 /login，登入後回原頁含 ?q=', async () => {
     let loggedIn = true
     install({
-      'GET /api/v1/auth/me': () => (loggedIn ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+      'GET /api/v1/auth/me': () => (loggedIn ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
       'GET /api/v1/enrollments': () =>
         loggedIn ? json({ items: [summary()], next_cursor: null }) : problem(401, 'UNAUTHENTICATED'),
       'POST /api/v1/auth/login': () => {
@@ -167,7 +168,7 @@ describe('登入、401、登出、頁首', () => {
     await screen.findByRole('table')
     loggedIn = false // 後端重啟或逾時
     await user.click(screen.getByRole('button', { name: '查詢' }))
-    await user.type(await screen.findByLabelText('帳號'), 'support01')
+    await user.type(await screen.findByLabelText('Email'), 'amy.chen@example.com')
     expect(window.location.pathname).toBe('/login')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
@@ -179,7 +180,7 @@ describe('登入、401、登出、頁首', () => {
   it('詳情頁載入更早紀錄時 401：導回登入，登入後回該詳情頁', async () => {
     let loggedIn = true
     install({
-      'GET /api/v1/auth/me': () => (loggedIn ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+      'GET /api/v1/auth/me': () => (loggedIn ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
       [`GET /api/v1/enrollments/${EID}`]: () => (loggedIn ? json(withMore()) : problem(401, 'UNAUTHENTICATED')),
       [`GET /api/v1/enrollments/${EID}/deliveries`]: () => problem(401, 'UNAUTHENTICATED'),
       'POST /api/v1/auth/login': () => {
@@ -192,7 +193,7 @@ describe('登入、401、登出、頁首', () => {
     const more = await screen.findByRole('button', { name: '載入更早紀錄' })
     loggedIn = false
     await user.click(more)
-    await user.type(await screen.findByLabelText('帳號'), 'support01')
+    await user.type(await screen.findByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await h1()
@@ -202,7 +203,7 @@ describe('登入、401、登出、頁首', () => {
   it('登出後 session 失效：回 /login，重新進站仍在登入頁；再登入回首頁', async () => {
     let loggedIn = true
     install({
-      'GET /api/v1/auth/me': () => (loggedIn ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+      'GET /api/v1/auth/me': () => (loggedIn ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
       'POST /api/v1/auth/logout': () => {
         loggedIn = false
         return empty()
@@ -214,16 +215,16 @@ describe('登入、401、登出、頁首', () => {
     })
     const user = userEvent.setup()
     start('/')
-    await screen.findByText('support01')
-    await user.click(screen.getByRole('button', { name: '登出' }))
-    await screen.findByLabelText('帳號')
+    await waitFor(() => expect(document.body.textContent).toContain('已登入：陳小美'))
+    await user.click(logoutControl())
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
-    expect(screen.queryByText('support01')).toBeNull()
+    expect(document.body.textContent).not.toContain('已登入：陳小美')
     cleanup()
     start('/')
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
-    await user.type(screen.getByLabelText('帳號'), 'support01')
+    await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByLabelText('客戶 ID 或 Enrollment ID')

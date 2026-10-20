@@ -14,6 +14,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../../../src/App'
+import { AMY, logoutControl } from '../shell/helpers'
 
 process.env.TZ = 'Asia/Taipei' // 本地時區 = UTC+8，用來驗證 D-016
 
@@ -59,7 +60,7 @@ function detail(over: Record<string, unknown> = {}) {
 
 function setup(extra: Record<string, Handler> = {}, authed = true) {
   const routes: Record<string, Handler> = {
-    'GET /api/v1/auth/me': () => (authed ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+    'GET /api/v1/auth/me': () => (authed ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
     'POST /api/v1/auth/logout': () => empty(),
     ...extra,
   }
@@ -81,10 +82,10 @@ beforeEach(() => { vi.unstubAllGlobals() })
 afterEach(() => { cleanup() })
 
 describe('登入頁', () => {
-  it('未登入（/me 401）導向 /login，顯示帳號、密碼欄位，密碼欄有 autocomplete', async () => {
+  it('未登入（/me 401）導向 /login，顯示 Email、密碼欄位，密碼欄有 autocomplete', async () => {
     setup({}, false)
     start('/')
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
     expect(screen.getByLabelText('密碼')).toHaveProperty('type', 'password')
     expect(screen.getByLabelText('密碼').getAttribute('autocomplete')).toBeTruthy()
@@ -93,35 +94,36 @@ describe('登入頁', () => {
   it('深層連結遇 401 導向登入，登入成功（204）後回原頁', async () => {
     let loggedIn = false
     setup({
-      'GET /api/v1/auth/me': () => (loggedIn ? json({ username: 'support01' }) : problem(401, 'UNAUTHENTICATED')),
+      'GET /api/v1/auth/me': () => (loggedIn ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
       [`GET /api/v1/enrollments/${EID}`]: () => (loggedIn ? json(detail()) : problem(401, 'UNAUTHENTICATED')),
       'POST /api/v1/auth/login': () => { loggedIn = true; return empty() },
     })
     const user = userEvent.setup()
     start(`/enrollments/${EID}`)
-    await user.type(await screen.findByLabelText('帳號'), 'support01')
+    await user.type(await screen.findByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await h1()
     expect(window.location.pathname).toBe(`/enrollments/${EID}`)
-    expect(JSON.parse(lastCall('POST', '/api/v1/auth/login')!.body!)).toEqual({ username: 'support01', password: 'pw' })
+    expect(JSON.parse(lastCall('POST', '/api/v1/auth/login')!.body!)).toEqual({ email: 'amy.chen@example.com', password: 'pw' })
   })
 
-  it('401 只顯示「帳號或密碼不正確」（role=alert），400 顯示「請輸入帳號與密碼」，5xx 附 request_id', async () => {
+  it('401 只顯示「Email 或密碼不正確。」（role=alert），400 於欄位下顯示「請輸入 Email。」「請輸入密碼。」（非 alert），5xx 附 request_id', async () => {
     let mode = 401
     setup({ 'POST /api/v1/auth/login': () => (mode === 401 ? problem(401, 'INVALID_CREDENTIALS') : mode === 400 ? problem(400, 'VALIDATION_FAILED') : problem(500, 'INTERNAL_ERROR', 'REQ-LOGIN-500')) }, false)
     const user = userEvent.setup()
     start('/login')
-    await user.type(await screen.findByLabelText('帳號'), 'a')
+    await user.type(await screen.findByLabelText('Email'), 'a')
     await user.type(screen.getByLabelText('密碼'), 'b')
     await user.click(screen.getByRole('button', { name: '登入' }))
     const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('帳號或密碼不正確')
-    expect(screen.getByLabelText('帳號').getAttribute('aria-describedby')).toBeTruthy()
+    expect(alert.textContent).toContain('Email 或密碼不正確。')
+    expect(screen.getByLabelText('Email').getAttribute('aria-describedby')).toBeTruthy()
     mode = 400
+    await user.clear(screen.getByLabelText('Email'))
     await user.click(screen.getByRole('button', { name: '登入' }))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('請輸入帳號與密碼'))
-    expect(screen.getByRole('alert').textContent).not.toContain('帳號或密碼不正確')
+    await waitFor(() => expect(document.body.textContent).toContain('請輸入 Email。'))
+    expect(document.body.textContent).not.toContain('Email 或密碼不正確。')
     mode = 500
     await user.type(screen.getByLabelText('密碼'), 'b')
     await user.click(screen.getByRole('button', { name: '登入' }))
@@ -134,17 +136,17 @@ describe('登入頁', () => {
     start('/')
     await user.type(await screen.findByLabelText('客戶 ID 或 Enrollment ID'), PID)
     await user.click(screen.getByRole('button', { name: '查詢' }))
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
   })
 
-  it('頁首顯示帳號與「登出」；登出 POST /auth/logout 後回登入頁', async () => {
+  it('外框帳號區顯示「已登入：姓名」與「登出」；登出 POST /auth/logout 後回登入頁', async () => {
     setup()
     const user = userEvent.setup()
     start('/')
-    await screen.findByText('support01')
-    await user.click(screen.getByRole('button', { name: '登出' }))
-    await screen.findByLabelText('帳號')
+    await waitFor(() => expect(document.body.textContent).toContain('已登入：陳小美'))
+    await user.click(logoutControl())
+    await screen.findByLabelText('Email')
     expect(lastCall('POST', '/api/v1/auth/logout')).toBeTruthy()
     expect(window.location.pathname).toBe('/login')
   })

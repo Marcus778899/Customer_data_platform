@@ -20,7 +20,7 @@ describe('main.tsx 不載入 mock', () => {
     document.body.innerHTML = '<div id="root"></div>'
     window.history.pushState({}, '', '/')
     await import('../../../src/main')
-    await screen.findByLabelText('帳號')
+    await screen.findByLabelText('Email')
     expect(globalThis.fetch).toBe(fn) // mock 若被安裝會換掉 fetch
     const [path, init] = fn.mock.calls[0] as unknown as [string, RequestInit | undefined]
     expect(path).toBe('/api/v1/auth/me')

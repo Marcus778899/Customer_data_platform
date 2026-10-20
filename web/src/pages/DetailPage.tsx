@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNo
 import { ApiError, getEnrollment, listDeliveries } from '../api/client'
 import type { Delivery, EnrollmentDetail, TraceEntry } from '../api/types'
 import { KeyValues } from '../components/KeyValues'
-import { Badge, ErrorBox, Loading, RequestId, Time, Topbar, UtcContext } from '../components/ui'
+import { Badge, ErrorBox, Loading, RequestId, Time, UtcContext } from '../components/ui'
 import { DELIVERY_STATUS, ENROLLMENT_STATUS, TERMINAL, utcOffsetLabel } from '../format'
 import { navigate } from '../router'
 import { useFetch } from '../useFetch'
@@ -30,8 +30,7 @@ export function DetailPage({ id }: { id: string }) {
   }
 
   return (
-    <div className="app">
-      <Topbar />
+    <>
       <p>
         <a href="/" onClick={back}>
           &larr; 回到列表
@@ -51,7 +50,7 @@ export function DetailPage({ id }: { id: string }) {
           />
         </UtcContext.Provider>
       )}
-    </div>
+    </>
   )
 }
 

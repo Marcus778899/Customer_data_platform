@@ -1,5 +1,4 @@
 import { createContext, useContext, type ReactNode } from 'react'
-import { useAuth } from '../auth'
 import { formatLocal, type Tone } from '../format'
 import { ApiError } from '../api/client'
 
@@ -20,23 +19,6 @@ export function Time({ iso, seconds = false }: { iso: string; seconds?: boolean 
       </time>
       {showUtc && <span className="muted mono">（UTC {iso}）</span>}
     </>
-  )
-}
-
-export function Topbar() {
-  const { username, logout } = useAuth()
-  return (
-    <div className="topbar">
-      <strong>客戶旅程軌跡</strong>
-      <div className="who">
-        <span className="muted">
-          已登入：<span className="mono">{username}</span>
-        </span>
-        <button className="btn secondary" type="button" onClick={logout}>
-          登出
-        </button>
-      </div>
-    </div>
   )
 }
 
