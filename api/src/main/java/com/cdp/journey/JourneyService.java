@@ -135,7 +135,7 @@ public class JourneyService {
         // 各節點設定與出口
         JourneyDefinition draft =
                 new JourneyDefinition(
-                        null,
+                        request.journeyId(),
                         0,
                         request.name(),
                         request.description(),

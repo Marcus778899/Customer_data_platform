@@ -54,6 +54,9 @@ class JourneyServiceTest {
                 }
             };
 
+    private final java.util.concurrent.atomic.AtomicReference<String> validatedJourneyId =
+            new java.util.concurrent.atomic.AtomicReference<>();
+
     private final JourneyService service =
             new JourneyService(
                     store,
@@ -63,9 +66,42 @@ class JourneyServiceTest {
                                     new EventSourceNode(),
                                     new WaitDelayNode(),
                                     new SendMessageNode(),
-                                    new EndNode())),
+                                    new SpyEndNode(validatedJourneyId))),
                     new UlidGenerator(clock),
                     clock);
+
+    /** 包 EndNode，記下 validate 收到的 definition.journeyId。 */
+    private static final class SpyEndNode implements com.cdp.engine.node.JourneyNode {
+        private final EndNode delegate = new EndNode();
+        private final java.util.concurrent.atomic.AtomicReference<String> sink;
+
+        SpyEndNode(java.util.concurrent.atomic.AtomicReference<String> sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public String type() {
+            return delegate.type();
+        }
+
+        @Override
+        public com.cdp.engine.node.DataRequirements requirements(
+                com.cdp.engine.node.NodeConfig config) {
+            return delegate.requirements(config);
+        }
+
+        @Override
+        public com.cdp.engine.node.NodeResult execute(com.cdp.engine.node.NodeContext context) {
+            return delegate.execute(context);
+        }
+
+        @Override
+        public com.cdp.engine.node.ValidationResult validate(
+                com.cdp.engine.node.NodeConfig config, JourneyDefinition journey) {
+            sink.set(journey.journeyId());
+            return delegate.validate(config, journey);
+        }
+    }
 
     private static JourneyNodeDefinition n(
             String id, String type, Map<String, Object> config, Map<String, Object> outs) {
@@ -93,6 +129,21 @@ class JourneyServiceTest {
                                 Map.of("template_id", "t", "channel_id", "c"),
                                 Map.of("sent", "end")),
                         n("end", "EndNode", Map.of(), Map.of())));
+    }
+
+    @Test
+    void suppliedJourneyIdReachesNodeValidation() {
+        String id = "01HZZZZZZZZZZZZZZZZZZZZZZZ";
+        var req = request("m");
+        var withId =
+                new CreateJourneyRequest(
+                        id, req.name(), req.description(), req.settings(), req.entryNode(), req.nodes());
+        try {
+            service.create(withId);
+        } catch (ApiException ignored) {
+            // 本測試只關心 validate 收到的 journeyId
+        }
+        assertThat(validatedJourneyId.get()).isEqualTo(id);
     }
 
     @Test
