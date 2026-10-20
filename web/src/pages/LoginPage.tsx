@@ -125,8 +125,8 @@ export function LoginPage({ expired, onLoggedIn }: Props) {
             <p>
               <strong>登入失敗次數過多，這個 Email 暫時無法登入。</strong>
               {/* 畫面上的倒數每秒更新但不朗讀；讀屏只朗讀開始時的這一次 */}
-              <span aria-hidden="true">請在 {countdownText(remaining)} 後再試。</span>
-              <span className="sr">請在 {countdownText(lock.first)} 後再試。</span> 不論密碼是否正確，鎖定期間都無法登入。
+              <span aria-hidden="true">請在 {countdownText(remaining)}後再試。</span>
+              <span className="sr">請在 {countdownText(lock.first)}後再試。</span> 不論密碼是否正確，鎖定期間都無法登入。
             </p>
           </div>
         )}

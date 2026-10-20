@@ -175,8 +175,7 @@ function SearchForm({
           onChange={(e) => setQInput(e.target.value)}
         />
       </div>
-      {/* 狀態篩選只在已有查詢條件時出現（沒有條件時無可篩選；也避免空白頁出現與導覽無關的下拉） */}
-      {q && (
+      {/* 狀態篩選永遠顯示（D-015） */}
       <div className="field field-status">
         <label htmlFor="status">狀態</label>
         <select id="status" value={statusInput} onChange={(e) => setStatusInput(e.target.value)}>
@@ -187,7 +186,6 @@ function SearchForm({
           ))}
         </select>
       </div>
-      )}
       <button className="btn" type="submit" aria-disabled={busy}>
         {busy ? '查詢中…' : '查詢'}
       </button>
