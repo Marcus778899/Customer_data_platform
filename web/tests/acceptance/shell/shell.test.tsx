@@ -36,7 +36,17 @@ describe('外框：導覽與帳號區', () => {
     const items = within(nav).getAllByRole('link').map((a) => a.textContent?.trim())
     expect(items).toEqual(['旅程', '客戶', '受眾規劃中'])
     expect(text()).not.toMatch(/工作區|租戶|workspace/i)
-    expect(screen.queryByRole('combobox')).toBeNull()
+    // 只檢查導覽／外框內；頁面內容（例如查詢頁的狀態下拉）不在此限
+    for (const n of screen.getAllByRole('navigation', { name: /主要導覽/ })) expect(within(n).queryByRole('combobox')).toBeNull()
+    for (const h of document.querySelectorAll('header, aside')) expect(within(h as HTMLElement).queryByRole('combobox')).toBeNull()
+  })
+
+  it('回歸（D-015）：`/` 沒有 ?q= 時查詢頁仍有「狀態」篩選下拉（含全部狀態選項）', async () => {
+    await shell(undefined, undefined, '/')
+    expect(window.location.search).toBe('')
+    const sel = await screen.findByLabelText('狀態')
+    expect(sel.tagName).toBe('SELECT')
+    expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(1)
   })
 
   it('產品名「客戶旅程平台」顯示在外框（側欄與窄螢幕頂列）', async () => {

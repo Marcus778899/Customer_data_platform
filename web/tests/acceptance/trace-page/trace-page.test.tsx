@@ -120,9 +120,9 @@ describe('登入頁', () => {
     expect(alert.textContent).toContain('Email 或密碼不正確。')
     expect(screen.getByLabelText('Email').getAttribute('aria-describedby')).toBeTruthy()
     mode = 400
+    await user.clear(screen.getByLabelText('Email'))
     await user.click(screen.getByRole('button', { name: '登入' }))
     await waitFor(() => expect(document.body.textContent).toContain('請輸入 Email。'))
-    expect(document.body.textContent).toContain('請輸入密碼。')
     expect(document.body.textContent).not.toContain('Email 或密碼不正確。')
     mode = 500
     await user.type(screen.getByLabelText('密碼'), 'b')

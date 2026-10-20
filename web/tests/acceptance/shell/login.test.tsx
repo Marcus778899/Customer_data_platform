@@ -8,7 +8,7 @@
 import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { announced, mockApi, noContent, problem, resetEnv, start, teardown, text, user } from './helpers'
+import { announced, json, mockApi, noContent, problem, resetEnv, start, teardown, text, user } from './helpers'
 
 beforeEach(resetEnv)
 afterEach(teardown)
@@ -268,7 +268,10 @@ describe('登入：429 LOGIN_RATE_LIMITED（D-045）', () => {
 })
 
 describe('登入：逾時導回（401 UNAUTHENTICATED）', () => {
-  const expire = () => problem(401, 'UNAUTHENTICATED')
+  // 登入成功後資料請求改回成功（不依賴瞬間狀態）；每個測試開始時重設為逾時
+  let expired = true
+  beforeEach(() => { expired = true })
+  const expire = () => (expired ? problem(401, 'UNAUTHENTICATED') : json({ items: [], next_cursor: null }))
   const expiring = {
     'GET /api/v1/enrollments': expire,
     'GET /api/v1/journeys': expire,
@@ -285,11 +288,14 @@ describe('登入：逾時導回（401 UNAUTHENTICATED）', () => {
     expect(status?.textContent).toContain('登入後會回到原本的頁面。')
     expect(screen.queryByRole('alert')).toBeNull()
     api.me = null
+    expired = false
     const u = userEvent.setup()
     await fill(u, 'amy.chen@example.com', 'correct-horse-battery')
     await u.click(loginBtn())
-    await waitFor(() => expect(window.location.search).toContain('q=abc'))
-    expect(window.location.pathname).toBe('/')
+    await waitFor(() => expect(window.location.pathname).toBe('/'))
+    await waitFor(() => expect(window.location.search).toBe('?q=abc'))
+    await screen.findAllByRole('navigation', { name: /主要導覽/ })
+    expect(window.location.pathname + window.location.search).toBe('/?q=abc')
   })
 
   it('直接開 /login 不顯示逾時提示', async () => {
