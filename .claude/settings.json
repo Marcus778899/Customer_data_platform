@@ -22,13 +22,17 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py:*)",
-      "Bash(python3 -m http.server:*)"
+      "Bash(python3 -m http.server:*)",
+      "Bash(docker compose:*)",
+      "Bash(python3 scripts/release.py open:*)",
+      "Bash(python3 scripts/check_env.py setup)"
     ],
     "ask": [
       "Bash(python3 scripts/init_project.py:*)",
-      "Bash(python3 scripts/release.py:*)",
       "Bash(python3 scripts/pr.py approve:*)",
-      "Bash(python3 scripts/pr.py unblock:*)"
+      "Bash(python3 scripts/pr.py unblock:*)",
+      "Bash(python3 scripts/release.py finish:*)",
+      "Bash(dangerouslyDisableSandbox:true)"
     ],
     "deny": [
       "Bash(git push:*)",
@@ -43,7 +47,10 @@
       "Bash(gh release edit:*)",
       "Bash(gh release upload:*)",
       "Bash(gh repo:*)",
-      "Read(**/.env)"
+      "Read(**/.env)",
+      "Edit(/scripts/**)",
+      "Edit(/contracts/**)",
+      "Edit(/CLAUDE.md)"
     ]
   },
   "hooks": {
@@ -56,11 +63,20 @@
             "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/guard_paths.py\""
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/guard_bash.py\""
+          }
+        ]
       }
     ],
     "SubagentStop": [
       {
-        "matcher": "backend|frontend",
+        "matcher": "backend|frontend|architect|designer",
         "hooks": [
           {
             "type": "command",
@@ -69,5 +85,46 @@
         ]
       }
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": false,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [
+      "python3 scripts/init_project.py *",
+      "docker compose *"
+    ],
+    "filesystem": {
+      "allowWrite": [
+        "~/.npm",
+        "~/.cache",
+        "~/Library/Caches",
+        "~/go",
+        "~/.m2",
+        "~/.gradle"
+      ],
+      "denyWrite": [
+        "./scripts",
+        "./contracts",
+        "./CLAUDE.md"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "registry.npmjs.org",
+        "proxy.golang.org",
+        "sum.golang.org",
+        "repo.maven.apache.org",
+        "repo1.maven.org",
+        "plugins.gradle.org",
+        "services.gradle.org"
+      ],
+      "allowLocalBinding": true
+    }
   }
 }

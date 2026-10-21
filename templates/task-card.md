@@ -7,6 +7,7 @@
 
 - **類型**：feat / fix / chore / docs / refactor / test
 - **負責**：backend / frontend / architect / designer
+- **通道**：full（預設，可省略）／fast（小修改：不先寫驗收測試、不用 architect review；超出條件程式會自動升級）
 - **目標**：一句話
 - **背景**：最多 5 行，只寫派工單以外看不到的事；契約與決策用引用（見 docs/contracts/x.md §2、D-003），不要重講
 - **設計依據**：契約與設計文件路徑
@@ -14,8 +15,8 @@
 - **負責檔案**：只能改這些（相對 repo 根目錄）
   - `path/to/file.py`
 - **禁區**：不可改的檔案或行為
-- **驗收測試**：qa 先寫、worker 不可改的目錄（見設計文件）；docs／chore 寫「無」
-  - `path/to/acceptance/`
+- **驗收測試**：qa 先寫、worker 不可改的目錄：驗收測試目錄（見設計文件）底下這張單自己的子目錄；docs／chore 寫「無」
+  - `path/to/acceptance/<task_id>/`
 - **驗收條件**：
   - [ ] 條件一
 - **驗證指令**：`make check`

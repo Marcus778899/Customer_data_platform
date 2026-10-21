@@ -4,8 +4,9 @@
     validate_report.py reports/<task_id>.json   # 手動驗證
     （無參數）                                  # SubagentStop hook：從 stdin 讀 hook JSON
 
-hook 模式只檢查 worker（WORKER_TYPES）；architect、qa 等角色直接放行。
-回報路徑取自 worker 最後一則訊息裡的 `reports/<task_id>.json`。
+hook 模式檢查 worker（WORKER_TYPES）與會寫回報的設計角色（DESIGN_TYPES）；qa 等角色直接放行。
+回報路徑取自最後一則訊息裡的 `reports/<task_id>.json`。worker 一定要附；architect、designer 只在
+做派工單時才寫回報（review、仲裁不寫），所以訊息裡有回報路徑才驗，免得 pr.py open 才發現格式錯、重新喚起 agent。
 同一個 worker 被退回 MAX_BLOCKS 次後放行，避免無限循環燒額度；壞回報留給 manager／qa 處理。
 
 exit 0 = 通過；exit 2 = 不通過（stderr 的訊息會回饋給 agent，逼它重做）。
@@ -16,13 +17,14 @@ import re
 import sys
 from pathlib import Path
 
-for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows 主控台預設 cp950：中文輸出入統一 UTF-8，不崩潰
     if hasattr(_s, "reconfigure"):
         _s.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "contracts" / "report.schema.json"
 WORKER_TYPES = {"backend", "frontend"}
+DESIGN_TYPES = {"architect", "designer"}
 REPORT_PATH_RE = re.compile(r"reports/[\w.-]+\.json")
 MAX_BLOCKS = 3
 BLOCKS_PATH = ROOT / "reports" / ".hook-blocks.json"
@@ -97,8 +99,10 @@ def check_consistency(report: dict[str, object], path: Path) -> list[str]:
             errors.append("status=done 但 files_changed 是空的")
         if not str(verification.get("tail", "")).strip():
             errors.append("status=done 但沒有附驗證輸出（verification.tail）")
-    if status in ("blocked", "failed") and not report.get("open_questions"):
-        errors.append(f"status={status} 必須在 open_questions 說明卡在哪裡")
+    if report.get("disputes") and status != "blocked":
+        errors.append(f"有 disputes（測試與契約矛盾）時 status 必須是 blocked，實際是 {status}")
+    if status in ("blocked", "failed") and not (report.get("open_questions") or report.get("disputes")):
+        errors.append(f"status={status} 必須在 open_questions 說明卡在哪裡（測試與契約矛盾就填 disputes）")
     return errors
 
 
@@ -121,7 +125,7 @@ def _last_assistant_text(transcript: Path) -> str:
 def _report_path_from_hook(payload: dict) -> Path | None:
     """回傳要驗證的回報路徑；None 表示這個 subagent 不需要驗證。"""
     agent_type = payload.get("agent_type")
-    if agent_type is not None and agent_type not in WORKER_TYPES:
+    if agent_type is not None and agent_type not in WORKER_TYPES | DESIGN_TYPES:
         return None
 
     message = payload.get("last_assistant_message") or ""
@@ -132,11 +136,12 @@ def _report_path_from_hook(payload: dict) -> Path | None:
 
     match = REPORT_PATH_RE.search(message)
     if match is None:
-        if agent_type is None:
-            # 拿不到角色資訊時無法分辨是不是 worker，沒提到回報檔就放行
+        if agent_type is None or agent_type in DESIGN_TYPES:
+            # 設計角色這次不是做派工單；拿不到角色資訊時無法分辨是不是 worker：沒提到回報檔就放行
             return None
         raise ReportError("最後一則訊息必須包含回報檔路徑 reports/<task_id>.json")
-    return Path(payload.get("cwd") or ROOT) / match.group(0)
+    # reports/ 永遠在主目錄；hook 的 cwd 可能是 worker 的 worktree
+    return ROOT / match.group(0)
 
 
 def _count_block(agent_id: str) -> int:

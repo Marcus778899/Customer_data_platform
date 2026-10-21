@@ -3,6 +3,7 @@ name: researcher
 description: 研究員。查外部資料（套件、API 文件、做法比較），整理成精簡摘要。不做決策、不寫程式。
 tools: Read, Grep, Glob, WebSearch, WebFetch, Write
 model: haiku
+maxTurns: 40
 ---
 
 只回答派工訊息裡的問題，產出 `docs/research/<主題>.md`（只能寫這個目錄）：

@@ -4,10 +4,9 @@
 用法：
     board.py scope "<本輪目標>" "<不做>"
     board.py task set <task_id> <status> [--owner <agent>] [--evidence "<驗收證據>"]
-    board.py decision add <D-編號> "<一行摘要>" [--version vX.Y.Z]   # 細節寫在 docs/decisions.md；
-                                                    # 未指定版本取「目標與範圍」本輪的版本號
+    board.py decision add <D-編號> "<一行摘要>"     # 細節寫在 docs/decisions.md
     board.py blocker add|clear "<卡點>"
-    board.py archive <tag>                          # 階段完成：BOARD.md → tasks/<tag>.md，派工單、meta、回報 → tasks/<tag>/
+    board.py archive <tag>                          # 階段完成：BOARD.md → tasks/<tag>.md，派工單、meta、回報、證據 → tasks/<tag>/
     board.py check
 
 archive：release.py finish 會自動做；版本以外的里程碑（主題）手動用，之後 docs.py commit。
@@ -15,29 +14,21 @@ archive：release.py finish 會自動做；版本以外的里程碑（主題）�
 
 status：todo / in-progress / qa / qa-fail / review / blocked / done（done = PR 已合併）
 - done 必須附 --evidence
-- qa-fail 會讓「嘗試」+1；達 MAX_ATTEMPTS 時 exit 3，提醒 manager 停下來上報甲方
+- 「嘗試」= pr.py 記錄的 qa 失敗次數（派工單的 meta），只是顯示；要不要找甲方由 pr.py 判斷（仲裁會退還次數，這裡不另外計）
 
-exit code：0 成功；1 參數或格式錯誤；3 重試達上限
+exit code：0 成功；1 參數或格式錯誤
 """
 
 import argparse
 import json
-import os
 import re
 import shutil
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
-for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows cp950 主控台：統一 UTF-8，不崩潰
-    if hasattr(_s, "reconfigure"):
-        _s.reconfigure(encoding="utf-8", errors="replace")
+from _common import REPORTS_DIR, ROOT, TASKS_DIR, FlowError, check_integrity
 
-from _common import REPORTS_DIR, ROOT, TASKS_DIR
-
-BOARD_PATH = Path(os.environ.get("BOARD_FILE") or ROOT / "BOARD.md")  # BOARD_FILE：測試用
-MAX_ATTEMPTS = 3
-VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
+BOARD_PATH = ROOT / "BOARD.md"
 ARCHIVE_TAG_RE = re.compile(r"^[A-Za-z0-9][\w.-]*$")
 PREVIOUS_PREFIX = "> 上一階段："
 STATUSES = ("todo", "in-progress", "qa", "qa-fail", "review", "blocked", "done")
@@ -115,8 +106,9 @@ def set_task(task_id: str, status: str, owner: str | None, evidence: str | None)
         owner = owner or old_owner
         attempts = int(old_attempts or 0)
 
-    if status == "qa-fail":
-        attempts += 1
+    meta_path = TASKS_DIR / f"{task_id}.meta.json"
+    if meta_path.is_file():
+        attempts = json.loads(meta_path.read_text(encoding="utf-8")).get("qa_fails", 0)
 
     new_row = _row([
         _cell(task_id),
@@ -140,31 +132,15 @@ def set_scope(goal: str, exclude: str) -> None:
     _commit(lines)
 
 
-def _current_version(lines: list[str]) -> str:
-    """「目標與範圍」的「本輪：」第一個版本號。"""
-    start, end = _section_range(lines, "scope")
-    for i in range(start, end):
-        if lines[i].startswith("- 本輪"):
-            m = re.search(r"v\d+\.\d+\.\d+", lines[i])
-            if m:
-                return m.group(0)
-    raise BoardError("「目標與範圍」的「本輪」找不到版本號（vX.Y.Z），請用 --version 指定")
-
-
-def add_decision(decision_id: str, summary: str, version: str | None = None) -> None:
+def add_decision(decision_id: str, summary: str) -> None:
     if not DECISION_ID_RE.match(decision_id):
         raise BoardError(f"決策編號格式要是 D-001，實際是 {decision_id!r}")
-    if version is not None and not VERSION_RE.match(version):
-        raise BoardError(f"版本格式要是 v0.1.0，實際是 {version!r}")
     lines = _read()
     rows = _table_rows(lines, "decisions")
-    if _split_row(lines[rows[0]]) != ["日期", "編號", "版本", "決策"]:
-        raise BoardError("決策表表頭不是「日期｜編號｜版本｜決策」")
     if any(_split_row(lines[i])[1] == decision_id for i in rows[2:]):
         raise BoardError(f"{decision_id} 已在布告欄上")
-    version = version or _current_version(lines)
     today = datetime.now(timezone.utc).date().isoformat()
-    lines.insert(rows[-1] + 1, _row([today, decision_id, version, _cell(summary)]))
+    lines.insert(rows[-1] + 1, _row([today, decision_id, _cell(summary)]))
     _commit(lines)
 
 
@@ -190,7 +166,7 @@ def update_blocker(text: str, clear: bool) -> None:
 
 
 def archive(tag: str) -> None:
-    """階段完成：整份布告欄封存成 tasks/<tag>.md，該階段的派工單、meta、回報搬進 tasks/<tag>/。"""
+    """階段完成：整份布告欄封存成 tasks/<tag>.md，該階段的派工單、meta、回報與 qa／review／仲裁證據搬進 tasks/<tag>/。"""
     if not ARCHIVE_TAG_RE.match(tag):
         raise BoardError(f"封存名稱只能用英數、. _ -（例：v0.2.0），實際是 {tag!r}")
     board_copy = TASKS_DIR / f"{tag}.md"
@@ -213,11 +189,17 @@ def archive(tag: str) -> None:
             (TASKS_DIR / f"{task_id}.md", f"{task_id}.md"),
             (path, path.name),
             (REPORTS_DIR / f"{task_id}.json", f"{task_id}.report.json"),
+            *((REPORTS_DIR / f"{task_id}.{kind}.md", f"{task_id}.{kind}.md") for kind in ("qa", "review", "ruling")),
         ):
             if src.exists():
                 shutil.move(src, folder / name)
     for path in TASKS_DIR.glob("release-*.json"):
         shutil.move(path, folder / path.name)
+    # agent 用 Write 寫的回報常缺結尾換行，專案的 pre-commit（end-of-file-fixer）會改檔並中止封存提交：進 git 前先補
+    for path in folder.iterdir():
+        text = path.read_text(encoding="utf-8")
+        if text and not text.endswith("\n"):
+            path.write_text(text + "\n", encoding="utf-8")
     (REPORTS_DIR / ".hook-blocks.json").unlink(missing_ok=True)
 
     lines = _read()
@@ -258,8 +240,6 @@ def check() -> list[str]:
                 problems.append(f"{task_id}：未知狀態 {status!r}")
             if status == "done" and not evidence:
                 problems.append(f"{task_id}：done 但沒有驗收證據")
-            if status not in ("done", "blocked") and attempts.isdigit() and int(attempts) >= MAX_ATTEMPTS:
-                problems.append(f"{task_id}：qa FAIL 已 {attempts} 次，應標 blocked 並上報甲方")
     return problems
 
 
@@ -282,7 +262,6 @@ def main() -> None:
     decision_add = decision.add_parser("add")
     decision_add.add_argument("decision_id")
     decision_add.add_argument("summary")
-    decision_add.add_argument("--version")
 
     blocker = sub.add_parser("blocker")
     blocker.add_argument("action", choices=("add", "clear"))
@@ -295,15 +274,17 @@ def main() -> None:
     args = parser.parse_args()
     exit_code = 0
     try:
+        check_integrity()
+    except FlowError as e:
+        print(f"錯誤：{e}", file=sys.stderr)
+        sys.exit(1)
+    try:
         if args.area == "task":
-            attempts = set_task(args.task_id, args.status, args.owner, args.evidence)
-            if attempts >= MAX_ATTEMPTS and args.status == "qa-fail":
-                print(f"{args.task_id} qa FAIL 已 {attempts} 次：停止重派，標 blocked 並上報甲方", file=sys.stderr)
-                exit_code = 3
+            set_task(args.task_id, args.status, args.owner, args.evidence)
         elif args.area == "scope":
             set_scope(args.goal, args.exclude)
         elif args.area == "decision":
-            add_decision(args.decision_id, args.summary, args.version)
+            add_decision(args.decision_id, args.summary)
         elif args.area == "blocker":
             update_blocker(args.text, args.action == "clear")
         elif args.area == "archive":
