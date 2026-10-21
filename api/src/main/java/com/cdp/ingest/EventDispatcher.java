@@ -68,18 +68,18 @@ public class EventDispatcher {
         for (UndispatchedEvent row : batch) {
             NormalizedEvent event = row.event();
             if (event == null) {
-                events.recordFailure(row.tenantId(), row.eventId(), row.parseError());
-                events.markDispatched(row.tenantId(), row.eventId(), now, EXHAUSTED);
+                events.recordFailure(row.eventId(), row.parseError());
+                events.markDispatched(row.eventId(), now, EXHAUSTED);
                 log.error("event row unparsable, giving up event_id={}", row.eventId());
                 continue;
             }
             if (isLate(event)) {
-                events.markDispatched(event.tenantId(), event.eventId(), now, "LATE");
+                events.markDispatched(event.eventId(), now, "LATE");
                 continue;
             }
             RuntimeException failure = dispatch(event);
             if (failure == null) {
-                events.markDispatched(event.tenantId(), event.eventId(), now, "DISPATCHED");
+                events.markDispatched(event.eventId(), now, "DISPATCHED");
             } else {
                 onFailure(event, failure, now);
             }
@@ -90,15 +90,14 @@ public class EventDispatcher {
     private void onFailure(NormalizedEvent event, RuntimeException failure, Instant now) {
         int attempts =
                 events.recordFailure(
-                        event.tenantId(),
                         event.eventId(),
                         failure.getClass().getSimpleName() + ": " + failure.getMessage());
         if (attempts >= dispatchProperties.maxAttempts()) {
-            events.markDispatched(event.tenantId(), event.eventId(), now, EXHAUSTED);
+            events.markDispatched(event.eventId(), now, EXHAUSTED);
             log.error(
                     "dispatch exhausted after {} attempts event_id={}", attempts, event.eventId());
         } else {
-            events.scheduleRetry(event.tenantId(), event.eventId(), now.plus(backoff(attempts)));
+            events.scheduleRetry(event.eventId(), now.plus(backoff(attempts)));
         }
     }
 
@@ -123,12 +122,11 @@ public class EventDispatcher {
     /** 回傳 null 表示全部綁定成功（或無綁定）；否則為第一個失敗。 */
     private RuntimeException dispatch(NormalizedEvent event) {
         List<EventSourceBinding> bindings =
-                journeys.findActiveEventSources(event.tenantId(), event.name());
+                journeys.findActiveEventSources(event.name());
         RuntimeException first = null;
         for (EventSourceBinding binding : bindings) {
             try {
                 runtime.start(
-                        event.tenantId(),
                         binding.journeyId(),
                         binding.version(),
                         binding.sourceNodeId(),

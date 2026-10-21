@@ -13,7 +13,6 @@ import com.cdp.engine.model.WakeSignal;
 public interface JourneyRuntime {
 
     EnrollmentState start(
-            String tenantId,
             String journeyId,
             int version,
             String sourceNodeId,
@@ -21,11 +20,11 @@ public interface JourneyRuntime {
             TriggerSnapshot trigger,
             String dedupKey);
 
-    void signal(String tenantId, String enrollmentId, WakeSignal signal);
+    void signal(String enrollmentId, WakeSignal signal);
 
-    void cancel(String tenantId, String enrollmentId, String reason);
+    void cancel(String enrollmentId, String reason);
 
-    void cancelAll(String tenantId, String journeyId, String reason);
+    void cancelAll(String journeyId, String reason);
 
-    Optional<EnrollmentState> get(String tenantId, String enrollmentId);
+    Optional<EnrollmentState> get(String enrollmentId);
 }

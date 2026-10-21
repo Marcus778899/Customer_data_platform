@@ -38,7 +38,7 @@ public class JdbcStateStore implements StateStore {
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
     private static final TypeReference<List<DeliveryRecord>> HISTORY = new TypeReference<>() {};
     private static final String ENROLLMENT_COLUMNS =
-            "enrollment_id, tenant_id, journey_id, journey_version, profile_id, status,"
+            "enrollment_id, journey_id, journey_version, profile_id, status,"
                     + " current_node_id, wake_type, next_wake_at, wake_event_name, wake_event_filter,"
                     + " trigger_snapshot, dedup_key, variables, delivery_history, enrolled_at,"
                     + " updated_at, terminated_at, termination_reason";
@@ -59,17 +59,16 @@ public class JdbcStateStore implements StateStore {
     public EnrollmentState create(EnrollmentState s) throws DuplicateEnrollmentException {
         int rows =
                 jdbc.sql(
-                                "insert into enrollment_record (enrollment_id, tenant_id, journey_id,"
+                                "insert into enrollment_record (enrollment_id, journey_id,"
                                         + " journey_version, profile_id, status, current_node_id,"
                                         + " trigger_snapshot, dedup_key, variables, delivery_history,"
                                         + " enrolled_at, updated_at)"
-                                        + " values (:id, :tenant, :journey, :version, :profile, :status,"
+                                        + " values (:id, :journey, :version, :profile, :status,"
                                         + " :node, cast(:trigger as jsonb), :dedup, cast(:vars as jsonb),"
                                         + " cast(:history as jsonb), :enrolledAt, :updatedAt)"
-                                        + " on conflict (tenant_id, journey_id, profile_id, dedup_key)"
+                                        + " on conflict (journey_id, profile_id, dedup_key)"
                                         + " where dedup_key is not null do nothing")
                         .param("id", s.enrollmentId())
-                        .param("tenant", s.tenantId())
                         .param("journey", s.journeyId())
                         .param("version", s.journeyVersion())
                         .param("profile", s.profileId())
@@ -85,10 +84,8 @@ public class JdbcStateStore implements StateStore {
         if (rows == 0) {
             String existing =
                     jdbc.sql(
-                                    "select enrollment_id from enrollment_record where tenant_id = :tenant"
-                                            + " and journey_id = :journey and profile_id = :profile"
+                                    "select enrollment_id from enrollment_record where journey_id = :journey and profile_id = :profile"
                                             + " and dedup_key = :dedup")
-                            .param("tenant", s.tenantId())
                             .param("journey", s.journeyId())
                             .param("profile", s.profileId())
                             .param("dedup", s.dedupKey())
@@ -100,11 +97,10 @@ public class JdbcStateStore implements StateStore {
     }
 
     @Override
-    public Optional<EnrollmentState> findById(String tenantId, String enrollmentId) {
+    public Optional<EnrollmentState> findById(String enrollmentId) {
         return jdbc.sql(
                         "select " + ENROLLMENT_COLUMNS + " from enrollment_record"
-                                + " where tenant_id = :tenant and enrollment_id = :id")
-                .param("tenant", tenantId)
+                                + " where enrollment_id = :id")
                 .param("id", enrollmentId)
                 .query((rs, n) -> map(rs))
                 .optional();
@@ -125,13 +121,12 @@ public class JdbcStateStore implements StateStore {
 
     @Override
     public List<EnrollmentState> findWaitingForEvent(
-            String tenantId, String profileId, String eventName) {
+            String profileId, String eventName) {
         return jdbc.sql(
                         "select " + ENROLLMENT_COLUMNS + " from enrollment_record"
-                                + " where tenant_id = :tenant and profile_id = :profile"
+                                + " where profile_id = :profile"
                                 + " and wake_event_name = :name and wake_type = 'EVENT'"
                                 + " and status = 'WAITING' order by enrolled_at, enrollment_id")
-                .param("tenant", tenantId)
                 .param("profile", profileId)
                 .param("name", eventName)
                 .query((rs, n) -> map(rs))
@@ -139,13 +134,12 @@ public class JdbcStateStore implements StateStore {
     }
 
     @Override
-    public Optional<EnrollmentTrace> findOpenTrace(String tenantId, String enrollmentId) {
+    public Optional<EnrollmentTrace> findOpenTrace(String enrollmentId) {
         return jdbc.sql(
                         "select enrollment_id, seq, node_id, node_type, entered_at, exited_at, out_port,"
                                 + " decision_reason, evaluated from node_trace"
-                                + " where tenant_id = :tenant and enrollment_id = :id"
+                                + " where enrollment_id = :id"
                                 + " and exited_at is null order by seq desc limit 1")
-                .param("tenant", tenantId)
                 .param("id", enrollmentId)
                 .query(
                         (rs, n) ->
@@ -190,7 +184,7 @@ public class JdbcStateStore implements StateStore {
                                         + " variables = cast(:vars as jsonb), updated_at = :updatedAt,"
                                         + " terminated_at = :terminatedAt,"
                                         + " termination_reason = :reason"
-                                        + " where tenant_id = :tenant and enrollment_id = :id")
+                                        + " where enrollment_id = :id")
                         .param("status", s.status().name())
                         .param("node", s.currentNodeId())
                         .param("wakeType", wakeType)
@@ -200,7 +194,6 @@ public class JdbcStateStore implements StateStore {
                         .param("updatedAt", ts(s.updatedAt()))
                         .param("terminatedAt", ts(s.terminatedAt()))
                         .param("reason", s.terminationReason())
-                        .param("tenant", s.tenantId())
                         .param("id", s.enrollmentId())
                         .update();
         if (updated != 1) {
@@ -229,9 +222,9 @@ public class JdbcStateStore implements StateStore {
 
         // 軌跡：等待列進入時寫一列，喚醒離開時以同 seq 補完一次；已離開的列不得再改（07 §5）
         jdbc.sql(
-                        "insert into node_trace (enrollment_id, seq, tenant_id, node_id, node_type,"
+                        "insert into node_trace (enrollment_id, seq, node_id, node_type,"
                                 + " entered_at, exited_at, out_port, decision_reason, evaluated)"
-                                + " values (:id, :seq, :tenant, :node, :type, :entered, :exited, :port,"
+                                + " values (:id, :seq, :node, :type, :entered, :exited, :port,"
                                 + " :reason, cast(:evaluated as jsonb))"
                                 + " on conflict (enrollment_id, seq) do update set"
                                 + " exited_at = excluded.exited_at, out_port = excluded.out_port,"
@@ -240,7 +233,6 @@ public class JdbcStateStore implements StateStore {
                                 + " where node_trace.exited_at is null")
                 .param("id", trace.enrollmentId())
                 .param("seq", seq)
-                .param("tenant", s.tenantId())
                 .param("node", trace.nodeId())
                 .param("type", trace.nodeType())
                 .param("entered", ts(trace.enteredAt()))
@@ -257,7 +249,6 @@ public class JdbcStateStore implements StateStore {
                 entries.add(
                         new OutboxEntry(
                                 effect.idempotencyKey(),
-                                s.tenantId(),
                                 s.enrollmentId(),
                                 s.journeyId(),
                                 s.journeyVersion(),
@@ -304,7 +295,6 @@ public class JdbcStateStore implements StateStore {
         }
         return new EnrollmentState(
                 rs.getString("enrollment_id"),
-                rs.getString("tenant_id"),
                 rs.getString("journey_id"),
                 rs.getInt("journey_version"),
                 rs.getString("profile_id"),

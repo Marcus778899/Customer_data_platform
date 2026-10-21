@@ -23,7 +23,6 @@ server:
         # 測試走 http，Secure cookie 不會被測試用戶端送回
         secure: false
 cdp:
-  tenant-id: 01JTESTTENANT0000000000001
   engine:
     poll-interval: PT0.2S
     batch-size: 100

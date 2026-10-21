@@ -32,7 +32,6 @@ class JourneyServiceTest {
                 public JourneyDefinition insertNewVersion(JourneyDefinition d) {
                     return new JourneyDefinition(
                             d.journeyId(),
-                            d.tenantId(),
                             1,
                             d.name(),
                             d.description(),
@@ -45,15 +44,18 @@ class JourneyServiceTest {
                 }
 
                 @Override
-                public Optional<JourneyDefinition> find(String t, String j, int v) {
+                public Optional<JourneyDefinition> find(String j, int v) {
                     return Optional.empty();
                 }
 
                 @Override
-                public List<EventSourceBinding> findActiveEventSources(String t, String e) {
+                public List<EventSourceBinding> findActiveEventSources(String e) {
                     return List.of();
                 }
             };
+
+    private final java.util.concurrent.atomic.AtomicReference<String> validatedJourneyId =
+            new java.util.concurrent.atomic.AtomicReference<>();
 
     private final JourneyService service =
             new JourneyService(
@@ -64,9 +66,42 @@ class JourneyServiceTest {
                                     new EventSourceNode(),
                                     new WaitDelayNode(),
                                     new SendMessageNode(),
-                                    new EndNode())),
+                                    new SpyEndNode(validatedJourneyId))),
                     new UlidGenerator(clock),
                     clock);
+
+    /** 包 EndNode，記下 validate 收到的 definition.journeyId。 */
+    private static final class SpyEndNode implements com.cdp.engine.node.JourneyNode {
+        private final EndNode delegate = new EndNode();
+        private final java.util.concurrent.atomic.AtomicReference<String> sink;
+
+        SpyEndNode(java.util.concurrent.atomic.AtomicReference<String> sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public String type() {
+            return delegate.type();
+        }
+
+        @Override
+        public com.cdp.engine.node.DataRequirements requirements(
+                com.cdp.engine.node.NodeConfig config) {
+            return delegate.requirements(config);
+        }
+
+        @Override
+        public com.cdp.engine.node.NodeResult execute(com.cdp.engine.node.NodeContext context) {
+            return delegate.execute(context);
+        }
+
+        @Override
+        public com.cdp.engine.node.ValidationResult validate(
+                com.cdp.engine.node.NodeConfig config, JourneyDefinition journey) {
+            sink.set(journey.journeyId());
+            return delegate.validate(config, journey);
+        }
+    }
 
     private static JourneyNodeDefinition n(
             String id, String type, Map<String, Object> config, Map<String, Object> outs) {
@@ -97,8 +132,23 @@ class JourneyServiceTest {
     }
 
     @Test
+    void suppliedJourneyIdReachesNodeValidation() {
+        String id = "01HZZZZZZZZZZZZZZZZZZZZZZZ";
+        var req = request("m");
+        var withId =
+                new CreateJourneyRequest(
+                        id, req.name(), req.description(), req.settings(), req.entryNode(), req.nodes());
+        try {
+            service.create(withId);
+        } catch (ApiException ignored) {
+            // 本測試只關心 validate 收到的 journeyId
+        }
+        assertThat(validatedJourneyId.get()).isEqualTo(id);
+    }
+
+    @Test
     void validDefinitionIsActive() {
-        var response = service.create("tenant", request("m"));
+        var response = service.create(request("m"));
         assertThat(response.version()).isEqualTo(1);
         assertThat(response.status()).isEqualTo(JourneyStatus.ACTIVE);
         assertThat(response.journeyId()).hasSize(26);
@@ -106,11 +156,11 @@ class JourneyServiceTest {
 
     @Test
     void cycleAndDanglingTargetsAreRejected() {
-        assertThatThrownBy(() -> service.create("tenant", request("src")))
+        assertThatThrownBy(() -> service.create(request("src")))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())
                 .isEqualTo(ErrorCode.VALIDATION_FAILED);
-        assertThatThrownBy(() -> service.create("tenant", request("ghost")))
+        assertThatThrownBy(() -> service.create(request("ghost")))
                 .isInstanceOf(ApiException.class);
     }
 }

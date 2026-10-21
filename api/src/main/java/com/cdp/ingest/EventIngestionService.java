@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.cdp.common.CdpProperties;
 import com.cdp.common.web.ApiException;
 import com.cdp.common.web.ErrorCode;
 import com.cdp.common.web.FieldError;
@@ -20,14 +19,12 @@ public class EventIngestionService {
 
     private final EventValidator validator;
     private final EventStore store;
-    private final CdpProperties properties;
     private final Clock clock;
 
     public EventIngestionService(
-            EventValidator validator, EventStore store, CdpProperties properties, Clock clock) {
+            EventValidator validator, EventStore store, Clock clock) {
         this.validator = validator;
         this.store = store;
-        this.properties = properties;
         this.clock = clock;
     }
 
@@ -38,11 +35,9 @@ public class EventIngestionService {
         if (!errors.isEmpty()) {
             return new IngestResult(eventId, IngestStatus.REJECTED, errors);
         }
-        // tenant_id 一律取設定，請求帶的忽略（契約 §1）
         NormalizedEvent normalized =
                 new NormalizedEvent(
                         event.eventId(),
-                        properties.tenantId(),
                         event.sourceType(),
                         event.sourceId(),
                         event.name(),

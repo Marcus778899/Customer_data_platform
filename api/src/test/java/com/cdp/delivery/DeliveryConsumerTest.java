@@ -79,7 +79,7 @@ class DeliveryConsumerTest {
                 .thenReturn(
                         Optional.of(
                                 new OutboxEntry(
-                                        "k", "t", "e", "j", 1, "n", 1, 0, "SendMessage",
+                                        "k", "e", "j", 1, "n", 1, 0, "SendMessage",
                                         Map.of(
                                                 "template_id", "tpl",
                                                 "channel_id", "ch",
@@ -91,7 +91,7 @@ class DeliveryConsumerTest {
                         inv -> {
                             DeliveryTask d = captured.getValue();
                             return new DeliveryTask(
-                                    d.idempotencyKey(), d.tenantId(), d.enrollmentId(), d.journeyId(),
+                                    d.idempotencyKey(), d.enrollmentId(), d.journeyId(),
                                     d.journeyVersion(), d.nodeId(), d.visitSeq(), d.templateId(),
                                     d.channelId(), d.channelType(), null, DeliveryTaskStatus.SENT,
                                     null, null, t, t, t);

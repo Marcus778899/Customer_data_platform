@@ -3,7 +3,7 @@ package com.cdp.ingest;
 import java.time.Instant;
 import java.util.List;
 
-/** 表 event。去重鍵 (tenant_id, event_id)（01 §7）。 */
+/** 表 event。去重鍵 event_id（01 §7）。 */
 public interface EventStore {
 
     /** 已存在回 false（DUPLICATE），不丟例外。 */
@@ -16,11 +16,11 @@ public interface EventStore {
     List<UndispatchedEvent> lockUndispatched(int limit, Instant now);
 
     /** outcome：DISPATCHED／LATE／EXHAUSTED。 */
-    void markDispatched(String tenantId, String eventId, Instant dispatchedAt, String outcome);
+    void markDispatched(String eventId, Instant dispatchedAt, String outcome);
 
     /** dispatch_attempts + 1、寫 last_dispatch_error（截斷 1000 字），回傳新的次數。 */
-    int recordFailure(String tenantId, String eventId, String error);
+    int recordFailure(String eventId, String error);
 
     /** 設定下次可派發時間。 */
-    void scheduleRetry(String tenantId, String eventId, Instant nextDispatchAt);
+    void scheduleRetry(String eventId, Instant nextDispatchAt);
 }

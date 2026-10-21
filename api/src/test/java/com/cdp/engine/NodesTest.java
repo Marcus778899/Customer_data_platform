@@ -34,7 +34,6 @@ class NodesTest {
                         Map.of("email", "x@y.z"),
                         Map.of());
         return new NodeContext(
-                "t",
                 "enr",
                 "p",
                 nodeId,

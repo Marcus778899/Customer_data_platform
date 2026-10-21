@@ -9,8 +9,8 @@ public interface JourneyDefinitionStore {
     /** 寫入新版本；version 由實作取 max+1（同 journey_id 併發時以 PK 擋下重試）。 */
     JourneyDefinition insertNewVersion(JourneyDefinition definition);
 
-    Optional<JourneyDefinition> find(String tenantId, String journeyId, int version);
+    Optional<JourneyDefinition> find(String journeyId, int version);
 
     /** 每個 journey_id 只取最新且 ACTIVE 的版本。 */
-    List<EventSourceBinding> findActiveEventSources(String tenantId, String eventName);
+    List<EventSourceBinding> findActiveEventSources(String eventName);
 }
