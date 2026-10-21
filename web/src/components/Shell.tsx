@@ -9,7 +9,7 @@ export const MAIN_ID = 'main-content'
 export type NavKey = 'journeys' | 'customers' | 'audience' | null
 
 const NAV: { key: Exclude<NavKey, null>; to: string; label: string; soon?: boolean }[] = [
-  { key: 'journeys', to: '/', label: '旅程' },
+  { key: 'journeys', to: '/journeys', label: '旅程' },
   { key: 'customers', to: '/customers', label: '客戶' },
   { key: 'audience', to: '/audience', label: '受眾', soon: true },
 ]

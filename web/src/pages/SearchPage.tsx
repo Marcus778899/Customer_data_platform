@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { ApiError, listEnrollments } from '../api/client'
 import type { EnrollmentSummary, Page } from '../api/types'
+import { AppLink } from '../components/AppLink'
 import { Badge, ErrorBox, Loading, Time } from '../components/ui'
 import { ENROLLMENT_STATUS } from '../format'
 import { lastNavigationWasPop, navigate, type Loc } from '../router'
@@ -81,6 +82,9 @@ export function SearchPage({ loc }: { loc: Loc }) {
       <header>
         <h1>客戶旅程軌跡</h1>
         <p className="muted">唯讀。查某位客戶走到哪、為什麼沒收到訊息。</p>
+        <p>
+          <AppLink to="/enrollments">最近的 Enrollment</AppLink>
+        </p>
       </header>
       <SearchForm key={loc.search} q={q} status={status} busy={loading} onSubmit={submit} />
 

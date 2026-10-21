@@ -1,6 +1,17 @@
 // 所有呼叫走相對路徑 /api/v1（dev server 轉給後端，見契約 §1）。
 // session 的寫入請求（非 GET，登入／登出除外）帶 X-XSRF-TOKEN（docs/contracts/auth.md §1.1）。
-import type { CurrentUser, Delivery, EnrollmentDetail, EnrollmentSummary, Page } from './types'
+import type {
+  CurrentUser,
+  Delivery,
+  EnrollmentDetail,
+  EnrollmentSummary,
+  JourneyDetail,
+  JourneySummary,
+  JourneyVersion,
+  Page,
+  ProfileDetail,
+  ProfileSummary,
+} from './types'
 
 export class ApiError extends Error {
   readonly status: number
@@ -103,7 +114,8 @@ async function request<T>(method: string, path: string, opts: Options = {}): Pro
     throw err
   }
   if (res.status === 204) return undefined as T
-  return (await res.json()) as T
+  // clone：同一個回應被重複讀取（例如開發模式下 effect 執行兩次、共用同一個進行中的請求）時不會因 body 已用過而失敗
+  return (await res.clone().json()) as T
 }
 
 const enc = encodeURIComponent
@@ -121,8 +133,25 @@ export const logout = () => request<void>('POST', '/api/v1/auth/logout', { redir
 export const changePassword = (current_password: string, new_password: string) =>
   request<void>('POST', '/api/v1/auth/password', { body: { current_password, new_password } })
 
-export const listEnrollments = (p: { q: string; status?: string; cursor?: string }) =>
-  request<Page<EnrollmentSummary>>('GET', `/api/v1/enrollments${qs({ q: p.q, status: p.status, cursor: p.cursor })}`)
+/** q 省略 = 最近 Enrollment 瀏覽（journey-engine §4） */
+export const listEnrollments = (p: { q?: string; status?: string; journey_id?: string; cursor?: string }) =>
+  request<Page<EnrollmentSummary>>(
+    'GET',
+    `/api/v1/enrollments${qs({ q: p.q, status: p.status, journey_id: p.journey_id, cursor: p.cursor })}`,
+  )
 export const getEnrollment = (id: string) => request<EnrollmentDetail>('GET', `/api/v1/enrollments/${enc(id)}`)
 export const listDeliveries = (id: string, cursor: string) =>
   request<Page<Delivery>>('GET', `/api/v1/enrollments/${enc(id)}/deliveries${qs({ cursor })}`, { pageOn403: false })
+
+export const listJourneys = (p: { q?: string; status?: string; cursor?: string; limit?: number }) =>
+  request<Page<JourneySummary>>('GET', `/api/v1/journeys${qs({ q: p.q, status: p.status, cursor: p.cursor, limit: p.limit })}`)
+export const getJourney = (id: string) => request<JourneyDetail>('GET', `/api/v1/journeys/${enc(id)}`)
+/** 版本定義失敗只影響圖，不切整頁無權限 */
+export const getJourneyVersion = (id: string, version: number) =>
+  request<JourneyVersion>('GET', `/api/v1/journeys/${enc(id)}/versions/${version}`, { pageOn403: false })
+
+export const searchProfiles = (q: string) =>
+  request<{ items: ProfileSummary[] }>('GET', `/api/v1/profiles/search${qs({ q })}`, { pageOn403: false })
+export const getProfile = (id: string) => request<ProfileDetail>('GET', `/api/v1/profiles/${enc(id)}`)
+export const listProfileEnrollments = (id: string, cursor?: string) =>
+  request<Page<EnrollmentSummary>>('GET', `/api/v1/profiles/${enc(id)}/enrollments${qs({ cursor })}`, { pageOn403: false })

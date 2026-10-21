@@ -136,3 +136,78 @@ input[aria-invalid="true"] { border-color: var(--color-danger-fg); border-width:
 }
 @media (prefers-reduced-motion: no-preference) { .skel { animation: pulse 1.2s ease-in-out infinite; } }
 @keyframes pulse { 50% { opacity: .5; } }
+
+/* ---------- v0.2.0 旅程列表、旅程頁、客戶、圖形軌跡（對應設計稿 docs/ui/journey-platform/index.html） ---------- */
+.sec { font-size: var(--text-lg); margin: 0 0 var(--space-3); }
+h2.sec, h3 { font-size: var(--text-lg); }
+td.nw, td.nw a { white-space: nowrap; }
+.check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--touch-target); }
+.check input { width: 20px; height: 20px; min-height: 0; }
+.tap { display: inline-flex; align-items: center; min-height: 32px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-end; margin-bottom: var(--space-4); }
+.toolbar .field { min-width: 220px; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); border: 0; padding: 0; margin: 0; }
+.chips legend { font-size: var(--text-sm); font-weight: 600; padding: 0; margin-bottom: var(--space-2); }
+.chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-text); font-weight: 600; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) var(--panel-width); gap: var(--space-4); align-items: start; }
+.cols.two { grid-template-columns: 340px minmax(0, 1fr); }
+.search-big { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.search-big .field { flex: 1 1 360px; }
+.search-big input { min-height: 48px; font-size: var(--text-md); }
+.search-big .btn { min-height: 48px; align-self: flex-start; }
+.search-big .btn[aria-disabled="true"] { cursor: progress; opacity: .7; }
+table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); color: var(--color-text-muted); margin: 0 0 var(--space-2); padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: var(--space-2); }
+.sw { display: inline-block; width: 28px; height: 14px; border-radius: 3px; background: var(--color-surface); border: 2px solid var(--color-border-strong); }
+.sw.v { border-color: var(--color-trace-visited); }
+.sw.c { border-color: var(--color-trace-current); border-width: 3px; }
+.sw.u { border-style: dashed; border-color: var(--color-trace-unvisited); }
+.graph { position: relative; background-color: var(--color-graph-bg); background-image: radial-gradient(var(--color-graph-dot) 1px, transparent 1px); background-size: 16px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow-x: auto; overflow-y: hidden; margin-bottom: var(--space-2); }
+.graph .inner { position: relative; }
+.graph .react-flow { background: transparent; }
+.graph .react-flow__pane, .graph .react-flow__renderer { cursor: default; }
+.graph .react-flow__edge-path.e { fill: none; stroke: var(--color-edge); stroke-width: 2; }
+.graph .react-flow__edge-path.e.taken { stroke: var(--color-edge-taken); stroke-width: 3.5; }
+.graph .react-flow__edge-path.e.skipped { stroke-dasharray: 6 5; }
+.graph .react-flow__edge-path.e.back { stroke-dasharray: 2 5; stroke-linecap: round; }
+.graph .mk path { fill: var(--color-edge); }
+.graph .mk.taken path { fill: var(--color-edge-taken); }
+.graph .react-flow__handle { opacity: 0; pointer-events: none; }
+.graph .react-flow__node { pointer-events: none; }
+.node { pointer-events: all; width: var(--node-width); height: var(--node-height); text-align: left; font: inherit; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-strong); border-left: 6px solid var(--catc, var(--color-edge)); border-radius: var(--radius-sm); cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
+.node.cat-source { --catc: var(--color-node-source); }
+.node.cat-wait { --catc: var(--color-node-wait); }
+.node.cat-branch { --catc: var(--color-node-branch); }
+.node.cat-send { --catc: var(--color-node-send); }
+.node.cat-action { --catc: var(--color-node-action); }
+.node.cat-end { --catc: var(--color-node-end); }
+.node .n-cat { font-size: var(--text-xs); color: var(--color-text-muted); }
+.node .n-name { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .n-type { font: var(--text-xs) var(--font-mono); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .n-state { font-size: var(--text-xs); font-weight: 700; }
+.node.visited { border-color: var(--color-trace-visited); border-width: 2px; border-left-width: 6px; }
+.node.visited .n-state { color: var(--color-trace-visited); }
+.node.current { border-color: var(--color-trace-current); border-width: 3px; border-left-width: 6px; background: var(--color-warning-bg); }
+.node.current .n-state { color: var(--color-warning-fg); }
+.node.unvisited { border-style: dashed; border-color: var(--color-trace-unvisited); }
+.node.selected { box-shadow: 0 0 0 3px var(--color-focus); }
+.node:focus-visible, .graph:focus-visible { box-shadow: var(--focus-ring); }
+.graph-note { display: none; }
+.react-flow__attribution { font-size: var(--text-xs); }
+
+/* 窄螢幕補充（<= 640px）：連結與篩選鈕達 44px、圖可左右捲動並提示改看文字版 */
+@media (max-width: 640px) {
+  .chip { min-height: 44px; }
+  .tap, .check { min-height: 44px; }
+  .crumbs a { display: inline-flex; align-items: center; min-height: 44px; }
+  .search-big .btn, .search-big input { min-height: 48px; }
+  table.stack td.nw, table.stack td.nw a { white-space: normal; }
+  table.stack td a { min-height: 44px; display: inline-flex; align-items: center; }
+  .graph-note { display: block; }
+  .toolbar .field { min-width: 0; flex: 1 1 100%; }
+  .cols, .cols.two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1100px) { .cols, .cols.two { grid-template-columns: minmax(0, 1fr); } }

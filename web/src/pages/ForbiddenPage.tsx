@@ -11,7 +11,7 @@ export function ForbiddenPage() {
   const viewer = user.role === 'VIEWER'
   return (
     <>
-      <Crumbs items={[{ label: '旅程', to: '/' }, { label: '無權限' }]} />
+      <Crumbs items={[{ label: '旅程', to: '/journeys' }, { label: '無權限' }]} />
       <div className="card msg" role="alert">
         <h1 className="h1-card" tabIndex={-1} ref={h1}>
           你沒有權限使用這個功能
@@ -22,7 +22,7 @@ export function ForbiddenPage() {
         </p>
         <p className="muted">{viewer ? '如需編輯權限，請聯絡管理員。' : '如需調整權限，請聯絡管理員。'}</p>
         <p>
-          <AppLink className="btn secondary" to="/">
+          <AppLink className="btn secondary" to="/journeys">
             回旅程列表
           </AppLink>
         </p>
