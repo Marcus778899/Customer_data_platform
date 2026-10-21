@@ -89,7 +89,9 @@
 | tenant-id-drop | backend | done | 2 | PR #92 |
 | app-shell-login | frontend | done | 1 | PR #91 |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
-| merge-cleanup-resume | backend | blocked | 0 |  |
+| merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
+| relay-loop-rewrite | backend | todo | 0 |  |
+| journey-customer-ui | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
