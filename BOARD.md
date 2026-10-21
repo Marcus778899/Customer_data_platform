@@ -91,13 +91,14 @@
 | app-shell-login | frontend | done | 1 | PR #91 |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
-| relay-loop-rewrite | backend | in-progress | 0 |  |
-| journey-customer-ui | frontend | in-progress | 0 |  |
-| compose-test-setup | architect | todo | 0 |  |
+| relay-loop-rewrite | backend | blocked | 0 |  |
+| journey-customer-ui | frontend | qa | 0 |  |
+| compose-test-setup | architect | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- relay-loop-rewrite：worker 誤改鎖定的驗收測試檔（未 commit），待甲方還原；另有 2 條既有 delivery 驗收 disputes 待仲裁
+- journey-customer-ui：qa 無瀏覽器工具無法實測，待 D-069
 
 ## 注意事項（踩過的坑）
 
