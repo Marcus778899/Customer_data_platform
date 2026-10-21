@@ -92,7 +92,8 @@
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
 | relay-loop-rewrite | backend | in-progress | 0 |  |
-| journey-customer-ui | frontend | todo | 0 |  |
+| journey-customer-ui | frontend | in-progress | 0 |  |
+| compose-test-setup | architect | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
