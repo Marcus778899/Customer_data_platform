@@ -17,9 +17,9 @@
 
 ## 已決定
 
-### D-068 前端第二批等範本修正後再開
-- 決定：A。甲方把「已合併 PR 續做清理」的修正放進範本來源、`update.sh` 帶入後，manager 重跑 `pr.py merge app-shell-login` 補「已合併」標記，再開 `journey-customer-ui`；後端 `relay-loop-rewrite` 照常進行
-- 理由：保留正確紀錄，發版封存不漏單
+### D-068 app-shell-login 的「已合併」標記由甲方手動補
+- 決定：範本不改；甲方手動把 `tasks/app-shell-login.meta.json` 標成 merged、刪本機分支 `feat/app-shell-login`（2026-10-22 已完成），之後開 `journey-customer-ui`。原先「等範本修正後重跑 pr.py merge」作廢
+- 理由：保留正確紀錄，發版封存不漏單；範本維持原樣
 - 影響：`journey-customer-ui` 延後開單
 - 日期：2026-10-22
 

@@ -92,11 +92,11 @@
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
 | relay-loop-rewrite | backend | in-progress | 0 |  |
-| journey-customer-ui | frontend | blocked | 0 |  |
+| journey-customer-ui | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
-- journey-customer-ui：等甲方範本修正後重跑 pr.py merge app-shell-login（D-068）
+- （無）
 
 ## 注意事項（踩過的坑）
 
