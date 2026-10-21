@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-066 合併後本機清理卡住（app-shell-login）
-- 背景：`pr.py merge app-shell-login` 已在 GitHub 合併 PR #91，但刪 `.worktrees/app-shell-login` 時 Permission denied（有程式開著檔案，疑為 qa 遺留的 node／java／chrome），之後的刪本機分支、更新 develop、標記已合併都沒做；重跑 merge 會因 PR 已合併而失敗。本機 develop 落後 origin，第二批開不了單；tenant-id-drop 已過 qa＋review，合併可能遇到同樣情形
-- 選項：A. 甲方關掉遺留程式（或重開機）；開一張 chore 讓 `pr.py merge` 可續做（PR 已合併就跳過、worktree 刪不掉給明確提示），修好後重跑；甲方把修正補進範本來源 ／ B. 這次准許 manager 直接用 git 刪本機分支、更新 develop，不開 chore（「已合併」標記補不上，發版封存可能漏單）
-- 建議：A
-- 提出：manager
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-066 合併後本機清理可續做，舊資料夾一起清
+- 決定：A。開 chore `merge-cleanup-resume`：`pr.py merge` 遇到 PR 已合併就跳過合併、只續做本機清理與「已合併」標記，刪不掉時給明確提示；另提供腳本方式清掉 `.worktrees/` 下 git 已不認得的殘留資料夾（app-shell-login，以及 v0.1.0 的 DESIGN-01、FE-01、INIT-01）。修好後由 manager 重跑；甲方先關掉遺留程式（或重開機），並自行把修正補進範本來源
+- 理由：補上「已合併」標記，發版封存才不會漏單
+- 影響：`scripts/`
+- 日期：2026-10-22
 
 ### D-065 保留範本更新，補回專案修正
 - 決定：A。保留 aa2bfc0 的範本更新（新單號規則、手機通知、決策分級、發版自動封存）；開一張 chore 把編碼修正（PR #86）與決策表「版本」欄（D-054）補回；歸檔改用範本的 `board.py archive`（取代 D-040 的做法）

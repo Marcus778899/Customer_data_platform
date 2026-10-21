@@ -72,6 +72,7 @@
 | 2026-10-19 | D-063 | v0.2.0 | v0.2.0 從 schema 移除 tenant_id，廢除 CDP_TENANT_ID |
 | 2026-10-19 | D-064 | v0.2.0 | CDP_TENANT_ID 暫留 .env，REFACTOR-01 合併後再刪 |
 | 2026-10-19 | D-065 | v0.2.0 | 保留範本更新，補回編碼修正與決策版本欄 |
+| 2026-10-21 | D-066 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
 
 ## 任務狀態
 
@@ -87,10 +88,11 @@
 | tenant-id-drop | backend | done | 2 | PR #92 |
 | app-shell-login | frontend | blocked | 1 |  |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
+| merge-cleanup-resume | backend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
-- D-066 app-shell-login：PR #91 已合併、程式碼已進 develop；舊 pr.py merge 無法續做本機清理（worktree、本機分支、已合併標記），待甲方決定
+- （無）
 
 ## 注意事項（踩過的坑）
 
