@@ -25,8 +25,8 @@ process.env.TZ = 'Asia/Taipei'
 
 /**
  * 唯一寫死的網址：「最近 Enrollment 瀏覽」頁。
- * 假設：`/` 在 v0.2.0 是旅程列表（外框導覽「旅程」），舊的 Enrollment 精確查詢頁（v0.1.0）移到 `/enrollments`，
- * 該頁 `q` 省略 = 瀏覽最近的 Enrollment（journey-engine §4、D-030）。若實作放別處，請 manager 改這一行。
+ * 依 reports/journey-customer-ui.routes.md §1：`/` 維持 v0.1.0 的 Enrollment 精確查詢頁（不變），
+ * `/enrollments` 是新增的「最近 Enrollment 瀏覽」頁（不收 `q`，journey-engine §4、D-030）。其餘網址測試不假設。
  */
 export const ROUTES = { browse: '/enrollments' }
 

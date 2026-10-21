@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * journey-customer-ui：最近 Enrollment 瀏覽（D-030；journey-engine §4 `/enrollments`，`q` 省略 = 瀏覽）。
- * 網址 ROUTES.browse 與「旅程」篩選控制項（label 含「旅程」的 <select>，選項來自 GET /api/v1/journeys）是假設，見 fixtures.tsx。
+ * 網址 ROUTES.browse（= `/enrollments`，routes.md §1）；「旅程」篩選控制項（label 含「旅程」的 <select>，選項來自 GET /api/v1/journeys）是假設，見 fixtures.tsx。
  */
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
