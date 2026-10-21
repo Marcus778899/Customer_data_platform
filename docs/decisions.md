@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-066 合併後本機清理卡住（app-shell-login）
+- 背景：`pr.py merge app-shell-login` 已在 GitHub 合併 PR #91，但刪 `.worktrees/app-shell-login` 時 Permission denied（有程式開著檔案，疑為 qa 遺留的 node／java／chrome），之後的刪本機分支、更新 develop、標記已合併都沒做；重跑 merge 會因 PR 已合併而失敗。本機 develop 落後 origin，第二批開不了單；tenant-id-drop 已過 qa＋review，合併可能遇到同樣情形
+- 選項：A. 甲方關掉遺留程式（或重開機）；開一張 chore 讓 `pr.py merge` 可續做（PR 已合併就跳過、worktree 刪不掉給明確提示），修好後重跑；甲方把修正補進範本來源 ／ B. 這次准許 manager 直接用 git 刪本機分支、更新 develop，不開 chore（「已合併」標記補不上，發版封存可能漏單）
+- 建議：A
+- 提出：manager
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
