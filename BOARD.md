@@ -84,13 +84,13 @@
 | FIX-09 | backend | done | 0 | PR #84 |
 | DESIGN-04 | architect | done | 1 | PR #83 |
 | CHORE-09 | backend | done | 0 | PR #86 |
-| tenant-id-drop | backend | review | 2 |  |
+| tenant-id-drop | backend | done | 2 | PR #92 |
 | app-shell-login | frontend | blocked | 1 |  |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 
 ## 卡住／待甲方決定
 
-- D-066 app-shell-login 已在 GitHub 合併但本機清理卡住，待甲方決定；tenant-id-drop 已過 qa＋review，等 D-066 再合併
+- D-066 app-shell-login：PR #91 已合併、程式碼已進 develop；舊 pr.py merge 無法續做本機清理（worktree、本機分支、已合併標記），待甲方決定
 
 ## 注意事項（踩過的坑）
 
