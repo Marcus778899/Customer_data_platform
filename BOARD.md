@@ -93,7 +93,7 @@
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
 | relay-loop-rewrite | backend | blocked | 0 |  |
 | journey-customer-ui | frontend | qa | 0 |  |
-| compose-test-setup | architect | qa | 0 |  |
+| compose-test-setup | architect | done | 0 | PR #97 |
 
 ## 卡住／待甲方決定
 
