@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-068 app-shell-login 沒有「已合併」標記，擋住前端第二批
+- 背景：PR #91 已在 GitHub 合併，但當時本機清理中斷，系統紀錄沒標「已合併」；`task.py new` 把它當進行中，`journey-customer-ui`（FE-03）的 `web/src/` 與它重疊被拒。現有 `pr.py merge` 對已合併的 PR 會卡在 `gh pr merge`，要靠範本修正（D-067）才能補標記
+- 選項：A. 等你把「已合併 PR 續做清理」的修正放進範本來源、`update.sh` 帶入後，我重跑 `pr.py merge app-shell-login` 補標記，再開前端單；後端 relay-loop-rewrite 照常進行 ／ B. 現在 `task.py cancel app-shell-login` 解除佔用：紀錄會變成「作廢」，發版封存時被略過（布告欄、README 仍記 PR #91），且 cancel 會去關已合併的 PR、刪分支，可能出錯
+- 建議：A，紀錄正確；後端單不受影響，前端只是晚點開
+- 提出：manager（journey-customer-ui）
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定

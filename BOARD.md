@@ -90,12 +90,12 @@
 | app-shell-login | frontend | done | 1 | PR #91 |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
-| relay-loop-rewrite | backend | todo | 0 |  |
-| journey-customer-ui | frontend | todo | 0 |  |
+| relay-loop-rewrite | backend | in-progress | 0 |  |
+| journey-customer-ui | frontend | blocked | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- journey-customer-ui：app-shell-login 沒有已合併標記，待 D-068
 
 ## 注意事項（踩過的坑）
 
