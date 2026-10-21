@@ -10,10 +10,15 @@ spring:
     port: 5672
     username: test
     password: test
+    connection-timeout: PT5S
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
       mandatory: true
+  task:
+    scheduling:
+      pool:
+        size: 4
 server:
   port: 0
   servlet:
@@ -34,8 +39,13 @@ cdp:
     poll-interval: PT0.2S
     batch-size: 100
     retry-delay: PT30S
+    confirm-timeout: PT5S
+    lease: PT30S
+  loop:
+    max-drain: PT10S
   delivery:
     requeue-delay: PT0.2S
+    shutdown-timeout: PT5S
   # 測試專用假憑證（非機密）；驗收測試以此呼叫各角色
   security:
     ingest-api-key: test-ingest-key
