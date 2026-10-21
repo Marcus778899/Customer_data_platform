@@ -74,6 +74,7 @@
 | 2026-10-19 | D-065 | v0.2.0 | 保留範本更新，補回編碼修正與決策版本欄 |
 | 2026-10-21 | D-066 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
 | 2026-10-21 | D-067 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
+| 2026-10-21 | D-068 | 前端第二批等範本修正（續做清理）後再開 |
 
 ## 任務狀態
 
@@ -95,7 +96,7 @@
 
 ## 卡住／待甲方決定
 
-- journey-customer-ui：app-shell-login 沒有已合併標記，待 D-068
+- journey-customer-ui：等甲方範本修正後重跑 pr.py merge app-shell-login（D-068）
 
 ## 注意事項（踩過的坑）
 

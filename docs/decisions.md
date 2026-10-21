@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-068 app-shell-login 沒有「已合併」標記，擋住前端第二批
-- 背景：PR #91 已在 GitHub 合併，但當時本機清理中斷，系統紀錄沒標「已合併」；`task.py new` 把它當進行中，`journey-customer-ui`（FE-03）的 `web/src/` 與它重疊被拒。現有 `pr.py merge` 對已合併的 PR 會卡在 `gh pr merge`，要靠範本修正（D-067）才能補標記
-- 選項：A. 等你把「已合併 PR 續做清理」的修正放進範本來源、`update.sh` 帶入後，我重跑 `pr.py merge app-shell-login` 補標記，再開前端單；後端 relay-loop-rewrite 照常進行 ／ B. 現在 `task.py cancel app-shell-login` 解除佔用：紀錄會變成「作廢」，發版封存時被略過（布告欄、README 仍記 PR #91），且 cancel 會去關已合併的 PR、刪分支，可能出錯
-- 建議：A，紀錄正確；後端單不受影響，前端只是晚點開
-- 提出：manager（journey-customer-ui）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-068 前端第二批等範本修正後再開
+- 決定：A。甲方把「已合併 PR 續做清理」的修正放進範本來源、`update.sh` 帶入後，manager 重跑 `pr.py merge app-shell-login` 補「已合併」標記，再開 `journey-customer-ui`；後端 `relay-loop-rewrite` 照常進行
+- 理由：保留正確紀錄，發版封存不漏單
+- 影響：`journey-customer-ui` 延後開單
+- 日期：2026-10-22
 
 ### D-067 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume
 - 決定：團隊不開單改 `scripts/`、`.claude/`、`contracts/`、`CLAUDE.md`；修正由甲方放進範本來源、以 `update.sh` 帶入。作廢 `merge-cleanup-resume`（已寫好的修改在 commit 2f30707，供甲方參考）；app-shell-login 先在布告欄標 done（PR #91），「已合併」標記待範本修正後由 manager 重跑 `pr.py merge` 補上；`.worktrees/` 舊資料夾由甲方手動刪；BOARD.md 的 D-066 版本欄與「上限 80 行」註解待範本修正或甲方手改後提交。取代 D-066 的做法、D-065 的 chore 部分
