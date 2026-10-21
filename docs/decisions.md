@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-067 改流程腳本的單，worker 與 qa 無法實測，怎麼驗收
+- 背景：91d2e9a 範本更新後，`guard_bash.py` 只讓 manager 執行 task／pr／board／docs 等流程腳本，連暫存 repo 裡的副本也擋；`merge-cleanup-resume`（改 `pr.py`、`board.py`、`_common.py`）已 commit，但派工單要求的暫存 repo 實測一條都跑不了（backend 回報 blocked，沒有繞過）。之前的 scripts-fix-restore 還能實測，是因為當時沒有這道擋
+- 選項：A. 這張改成只靜態審查：qa「B」、architect review 只讀程式碼不執行；合併後由 manager 在真 repo 照安全順序實地驗證：`clean-worktrees` 先只列出 → 重跑 `pr.py merge app-shell-login` → `board.py repair` 後看 git diff，有錯靠 git 還原 ／ B. 這次破例讓 manager 在 scratchpad 建暫存 repo 實測，結果交 qa「B」 ／ C. 你在自己的終端機照我給的指令清單實測 ／ D. 你改 `guard_bash.py`（例：放行在 repo 外暫存目錄跑流程腳本），改完再派 backend 補實測；流程檔案只能你改
+- 建議：A。這三個動作都只碰已合併的殘留，或是可用 git 還原的文件，實地跑一次就是最直接的驗收；以後還會有改流程腳本的單，可以另外考慮 D
+- 提出：manager（merge-cleanup-resume）
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定

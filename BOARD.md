@@ -88,11 +88,11 @@
 | tenant-id-drop | backend | done | 2 | PR #92 |
 | app-shell-login | frontend | blocked | 1 |  |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
-| merge-cleanup-resume | backend | in-progress | 0 |  |
+| merge-cleanup-resume | backend | blocked | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- merge-cleanup-resume：worker／qa 無法執行流程腳本實測，待 D-067
 
 ## 注意事項（踩過的坑）
 
