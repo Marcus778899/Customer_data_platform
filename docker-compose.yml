@@ -1,6 +1,6 @@
 # 本機外部服務。由 make infra-up / infra-down 操作（會帶 --env-file 主目錄 .env）；變數說明見 .env.example。
 # 只放 v0.1.0 需要的服務（PostgreSQL、RabbitMQ）；Redis 等見 docs/design/INIT-01.md「延後」，不要先加。
-# 測試不用這套：後端整合測試由 Testcontainers 自起容器（映像版本須與此一致）。
+# 測試不用這套：後端整合測試由 Testcontainers 自起容器（映像版本須與此一致）；本機跑法見 compose.yaml。
 name: cdp
 
 services:

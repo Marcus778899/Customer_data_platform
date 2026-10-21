@@ -27,7 +27,9 @@ COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 help:
 	@echo "make setup      install deps (Maven repo in ~/.m2, node_modules at checkout root)"
 	@echo "make ci-setup   install deps in CI (same steps as setup)"
-	@echo "make check      lint + tests (incl. acceptance tests)"
+	@echo "make check      lint + tests (container tests skipped when Docker is unreachable)"
+	@echo "backend tests incl. containers, from main checkout as one command:"
+	@echo "  docker compose --env-file .env -f .worktrees/<task_id>/compose.yaml run --rm test"
 	@echo "make infra-up   start local PostgreSQL + RabbitMQ (docker compose)"
 	@echo "make infra-down stop local services (data kept)"
 	@echo "make api-run    run backend on API_PORT"
@@ -58,9 +60,18 @@ lint:
 	else echo "skip web lint: no $(WEB_DIR)/package.json"; fi
 
 # mvnw verify 跑 src/test/java 全部（含 com.cdp.acceptance）；vitest 跑 src/ 與 tests/（含 tests/acceptance）
+# 連不到 Docker（本機 sandbox）或 CONTAINER_TESTS=skip 時用 -Punit-only 略過需要容器的測試並提示 compose 指令；
+# CI（CI 變數非空）一律跑全部，Docker 有問題就直接失敗。見 docs/design/INIT-01.md「驗證方式」
 test:
 	@if [ -f "$(API_DIR)/pom.xml" ]; then \
-		cd "$(API_DIR)" && $(NO_DOTENV) $(MVNW) verify; \
+		if [ -n "$$CI" ] || { [ "$(CONTAINER_TESTS)" != skip ] && timeout 15 docker info >/dev/null 2>&1; }; then \
+			cd "$(API_DIR)" && $(NO_DOTENV) $(MVNW) verify; \
+		else \
+			echo "Docker not reachable or CONTAINER_TESTS=skip: skipping container tests (acceptance/, *IntegrationTest)."; \
+			echo "Run all backend tests from the main checkout as a single command:"; \
+			echo "  docker compose --env-file .env -f .worktrees/<task_id>/compose.yaml run --rm test"; \
+			cd "$(API_DIR)" && $(NO_DOTENV) $(MVNW) -Punit-only verify; \
+		fi; \
 	else echo "skip api tests: no $(API_DIR)/pom.xml"; fi
 	@if [ -f "$(WEB_DIR)/package.json" ]; then \
 		$(NO_DOTENV) npm test -w "$(WEB_DIR)"; \

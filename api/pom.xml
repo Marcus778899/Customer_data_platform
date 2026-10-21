@@ -144,4 +144,27 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- 沒有 Docker 時（本機 sandbox）make test 用：略過需要容器的測試，完整測試走 compose.yaml 的 test 服務
+         （見 docs/design/INIT-01.md「驗證方式」）。需要容器的測試只能放 acceptance/ 或命名為 *IntegrationTest。 -->
+    <profile>
+      <id>unit-only</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>**/*$*</exclude>
+                <exclude>com/cdp/acceptance/**</exclude>
+                <exclude>**/*IntegrationTest.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
