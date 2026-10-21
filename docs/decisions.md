@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-067 改流程腳本的單，worker 與 qa 無法實測，怎麼驗收
-- 背景：91d2e9a 範本更新後，`guard_bash.py` 只讓 manager 執行 task／pr／board／docs 等流程腳本，連暫存 repo 裡的副本也擋；`merge-cleanup-resume`（改 `pr.py`、`board.py`、`_common.py`）已 commit，但派工單要求的暫存 repo 實測一條都跑不了（backend 回報 blocked，沒有繞過）。之前的 scripts-fix-restore 還能實測，是因為當時沒有這道擋
-- 選項：A. 這張改成只靜態審查：qa「B」、architect review 只讀程式碼不執行；合併後由 manager 在真 repo 照安全順序實地驗證：`clean-worktrees` 先只列出 → 重跑 `pr.py merge app-shell-login` → `board.py repair` 後看 git diff，有錯靠 git 還原 ／ B. 這次破例讓 manager 在 scratchpad 建暫存 repo 實測，結果交 qa「B」 ／ C. 你在自己的終端機照我給的指令清單實測 ／ D. 你改 `guard_bash.py`（例：放行在 repo 外暫存目錄跑流程腳本），改完再派 backend 補實測；流程檔案只能你改
-- 建議：A。這三個動作都只碰已合併的殘留，或是可用 git 還原的文件，實地跑一次就是最直接的驗收；以後還會有改流程腳本的單，可以另外考慮 D
-- 提出：manager（merge-cleanup-resume）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-067 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume
+- 決定：團隊不開單改 `scripts/`、`.claude/`、`contracts/`、`CLAUDE.md`；修正由甲方放進範本來源、以 `update.sh` 帶入。作廢 `merge-cleanup-resume`（已寫好的修改在 commit 2f30707，供甲方參考）；app-shell-login 先在布告欄標 done（PR #91），「已合併」標記待範本修正後由 manager 重跑 `pr.py merge` 補上；`.worktrees/` 舊資料夾由甲方手動刪；BOARD.md 的 D-066 版本欄與「上限 80 行」註解待範本修正或甲方手改後提交。取代 D-066 的做法、D-065 的 chore 部分
+- 理由：新範本把這些列為受保護的流程檔案（`check_integrity`、`guard_bash.py`），團隊改了也無法實測
+- 影響：`merge-cleanup-resume` 作廢；之後腳本問題一律回報甲方
+- 日期：2026-10-22
 
 ### D-066 合併後本機清理可續做，舊資料夾一起清
 - 決定：A。開 chore `merge-cleanup-resume`：`pr.py merge` 遇到 PR 已合併就跳過合併、只續做本機清理與「已合併」標記，刪不掉時給明確提示；另提供腳本方式清掉 `.worktrees/` 下 git 已不認得的殘留資料夾（app-shell-login，以及 v0.1.0 的 DESIGN-01、FE-01、INIT-01）。修好後由 manager 重跑；甲方先關掉遺留程式（或重開機），並自行把修正補進範本來源

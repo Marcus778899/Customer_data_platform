@@ -73,6 +73,7 @@
 | 2026-10-19 | D-064 | v0.2.0 | CDP_TENANT_ID 暫留 .env，REFACTOR-01 合併後再刪 |
 | 2026-10-19 | D-065 | v0.2.0 | 保留範本更新，補回編碼修正與決策版本欄 |
 | 2026-10-21 | D-066 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
+| 2026-10-21 | D-067 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
 
 ## 任務狀態
 
@@ -86,13 +87,13 @@
 | DESIGN-04 | architect | done | 1 | PR #83 |
 | CHORE-09 | backend | done | 0 | PR #86 |
 | tenant-id-drop | backend | done | 2 | PR #92 |
-| app-shell-login | frontend | blocked | 1 |  |
+| app-shell-login | frontend | done | 1 | PR #91 |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 |  |
 
 ## 卡住／待甲方決定
 
-- merge-cleanup-resume：worker／qa 無法執行流程腳本實測，待 D-067
+- （無）
 
 ## 注意事項（踩過的坑）
 
