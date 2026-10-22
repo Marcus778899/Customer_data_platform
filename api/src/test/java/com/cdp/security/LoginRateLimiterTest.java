@@ -39,45 +39,97 @@ class LoginRateLimiterTest {
     private final MutableClock clock = new MutableClock();
     private final LoginRateLimiter limiter = new LoginRateLimiter(new LoginProperties(3, Duration.ofSeconds(10)), clock);
 
-    @Test
-    void locks_when_count_reaches_threshold_until_last_failure_plus_lockout() {
-        limiter.recordFailure("a");
-        limiter.recordFailure("a");
-        assertThat(limiter.remainingLock("a")).isZero();
-        limiter.recordFailure("a");
-        assertThat(limiter.remainingLock("a")).isEqualTo(Duration.ofSeconds(10));
-        clock.advance(Duration.ofSeconds(4));
-        assertThat(limiter.remainingLock("a")).isEqualTo(Duration.ofSeconds(6));
-        clock.advance(Duration.ofSeconds(6));
-        assertThat(limiter.remainingLock("a")).isZero();
+    private void fail(String key) {
+        assertThat(limiter.tryBegin(key)).isEmpty();
+        limiter.finish(key, LoginRateLimiter.Outcome.FAILURE);
+    }
+
+    private Duration locked(String key) {
+        return limiter.tryBegin(key).orElse(Duration.ZERO);
     }
 
     @Test
-    void failures_while_locked_do_not_extend_the_lock() {
-        for (int i = 0; i < 3; i++) limiter.recordFailure("a");
+    void locks_when_count_reaches_threshold_until_last_failure_plus_lockout() {
+        fail("a");
+        fail("a");
+        fail("a");
+        assertThat(locked("a")).isEqualTo(Duration.ofSeconds(10));
+        clock.advance(Duration.ofSeconds(4));
+        assertThat(locked("a")).isEqualTo(Duration.ofSeconds(6));
+        clock.advance(Duration.ofSeconds(6));
+        assertThat(limiter.tryBegin("a")).isEmpty();
+    }
+
+    @Test
+    void attempts_while_locked_do_not_extend_the_lock() {
+        for (int i = 0; i < 3; i++) fail("a");
         clock.advance(Duration.ofSeconds(5));
-        limiter.recordFailure("a");
-        assertThat(limiter.remainingLock("a")).isEqualTo(Duration.ofSeconds(5));
+        assertThat(locked("a")).isEqualTo(Duration.ofSeconds(5));
+        assertThat(locked("a")).isEqualTo(Duration.ofSeconds(5));
     }
 
     @Test
     void count_restarts_when_last_failure_is_older_than_lockout() {
-        limiter.recordFailure("a");
-        limiter.recordFailure("a");
+        fail("a");
+        fail("a");
         clock.advance(Duration.ofSeconds(11));
-        limiter.recordFailure("a");
-        limiter.recordFailure("a");
-        assertThat(limiter.remainingLock("a")).isZero();
-        limiter.recordFailure("a");
-        assertThat(limiter.remainingLock("a")).isPositive();
+        fail("a");
+        fail("a");
+        assertThat(locked("a")).isZero();
+        limiter.finish("a", LoginRateLimiter.Outcome.ABORTED);
     }
 
     @Test
-    void reset_and_keys_are_independent() {
-        for (int i = 0; i < 3; i++) limiter.recordFailure("a");
-        assertThat(limiter.remainingLock("b")).isZero();
-        limiter.reset("a");
-        assertThat(limiter.remainingLock("a")).isZero();
+    void success_resets_and_keys_are_independent() {
+        fail("a");
+        fail("a");
+        assertThat(limiter.tryBegin("a")).isEmpty();
+        limiter.finish("a", LoginRateLimiter.Outcome.SUCCESS);
+        fail("a");
+        fail("a");
+        assertThat(limiter.tryBegin("b")).isEmpty();
+    }
+
+    @Test
+    void aborted_attempt_releases_slot_without_counting() {
+        for (int i = 0; i < 10; i++) {
+            assertThat(limiter.tryBegin("a")).isEmpty();
+            limiter.finish("a", LoginRateLimiter.Outcome.ABORTED);
+        }
+        assertThat(limiter.tryBegin("a")).isEmpty();
+    }
+
+    @Test
+    void in_flight_attempts_count_toward_the_threshold() {
+        assertThat(limiter.tryBegin("a")).isEmpty();
+        assertThat(limiter.tryBegin("a")).isEmpty();
+        assertThat(limiter.tryBegin("a")).isEmpty();
+        assertThat(limiter.tryBegin("a")).isPresent();
+    }
+
+    @Test
+    void concurrent_wrong_passwords_never_admit_more_than_the_threshold() throws Exception {
+        int threads = 40;
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+        java.util.concurrent.CountDownLatch go = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicInteger admitted = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.List<java.util.concurrent.Future<?>> fs = new java.util.ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            fs.add(pool.submit(() -> {
+                go.await();
+                if (limiter.tryBegin("race").isEmpty()) {
+                    admitted.incrementAndGet();
+                    Thread.sleep(50); // 模擬 BCrypt
+                    limiter.finish("race", LoginRateLimiter.Outcome.FAILURE);
+                }
+                return null;
+            }));
+        }
+        go.countDown();
+        for (var f : fs) f.get();
+        pool.shutdown();
+        assertThat(admitted.get()).isEqualTo(3);
+        assertThat(limiter.tryBegin("race")).isPresent();
     }
 
     @Test

@@ -29,4 +29,35 @@ class PasswordPolicyTest {
         assertThat(hasher.matchesDummy("a".repeat(100))).isFalse();
         assertThat(hasher.matchesDummy(null)).isFalse();
     }
+
+    @Test
+    void over_long_password_costs_one_bcrypt_comparison_on_every_path() {
+        java.util.concurrent.atomic.AtomicInteger matches = new java.util.concurrent.atomic.AtomicInteger();
+        org.springframework.security.crypto.password.PasswordEncoder counting =
+                new org.springframework.security.crypto.password.PasswordEncoder() {
+                    @Override
+                    public String encode(CharSequence raw) {
+                        return "h";
+                    }
+
+                    @Override
+                    public boolean matches(CharSequence raw, String encoded) {
+                        matches.incrementAndGet();
+                        return false;
+                    }
+                };
+        PasswordHasher hasher = new PasswordHasher(counting);
+        String tooLong = "a".repeat(73);
+        // 帳號存在（有 hash）與不存在（matchesDummy）、hash 為 null、正常長度：都是剛好一次
+        for (java.util.function.Supplier<Boolean> path : java.util.List.<java.util.function.Supplier<Boolean>>of(
+                () -> hasher.matches(tooLong, "$2a$real"),
+                () -> hasher.matchesDummy(tooLong),
+                () -> hasher.matches(tooLong, null),
+                () -> hasher.matches("short-but-ok-123", "$2a$real"),
+                () -> hasher.matchesDummy("short-but-ok-123"))) {
+            matches.set(0);
+            assertThat(path.get()).isFalse();
+            assertThat(matches.get()).isEqualTo(1);
+        }
+    }
 }

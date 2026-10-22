@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cdp.common.web.ApiException;
 import com.cdp.common.web.ErrorCode;
 import com.cdp.common.web.FieldError;
+import com.cdp.security.LoginRateLimiter.Outcome;
 import com.cdp.user.AppUser;
 import com.cdp.user.PasswordHasher;
 import com.cdp.user.UserService;
@@ -39,6 +41,7 @@ import com.cdp.user.UserService;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
+    private static final int EMAIL_MAX = 254;
     private static final String INVALID_CREDENTIALS_DETAIL = "帳號或密碼錯誤";
 
     private final UserService users;
@@ -67,6 +70,9 @@ public class AuthController {
         List<FieldError> errors = new ArrayList<>();
         if (body.email() == null || body.email().isBlank()) {
             errors.add(new FieldError("email", "必填"));
+        } else if (body.email().length() > EMAIL_MAX) {
+            // 不可能是真實帳號；不進限速表，免得被超長字串佔記憶體
+            errors.add(new FieldError("email", "長度不可超過 " + EMAIL_MAX + " 字元"));
         }
         if (body.password() == null || body.password().isEmpty()) {
             errors.add(new FieldError("password", "必填"));
@@ -76,21 +82,28 @@ public class AuthController {
         }
         String key = body.email().trim().toLowerCase(Locale.ROOT);
 
-        Duration locked = limiter.remainingLock(key);
-        if (!locked.isZero()) {
-            response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(LoginRateLimiter.retryAfterSeconds(locked)));
+        // 檢查鎖定與佔用名額是原子的：並行請求不能同時越過門檻
+        Optional<Duration> locked = limiter.tryBegin(key);
+        if (locked.isPresent()) {
+            response.setHeader(
+                    HttpHeaders.RETRY_AFTER, Long.toString(LoginRateLimiter.retryAfterSeconds(locked.get())));
             SecurityProblemWriter.write(response, ErrorCode.LOGIN_RATE_LIMITED, "登入嘗試過於頻繁，請稍後再試。");
             return null;
         }
-
-        AppUser user = users.findByEmail(key).orElse(null);
-        boolean passwordOk = user != null ? hasher.matches(body.password(), user.passwordHash())
-                : hasher.matchesDummy(body.password());
-        if (user == null || !user.active() || !passwordOk) {
-            limiter.recordFailure(key);
+        AppUser user = null;
+        Outcome outcome = Outcome.ABORTED;
+        try {
+            user = users.findByEmail(key).orElse(null);
+            boolean passwordOk = user != null
+                    ? hasher.matches(body.password(), user.passwordHash())
+                    : hasher.matchesDummy(body.password());
+            outcome = user != null && user.active() && passwordOk ? Outcome.SUCCESS : Outcome.FAILURE;
+        } finally {
+            limiter.finish(key, outcome);
+        }
+        if (outcome != Outcome.SUCCESS) {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS, INVALID_CREDENTIALS_DETAIL);
         }
-        limiter.reset(key);
 
         HttpSession old = request.getSession(false);
         if (old != null) {
@@ -114,7 +127,7 @@ public class AuthController {
                 .path(sessionCookie.getPath() != null ? sessionCookie.getPath() : "/")
                 .maxAge(0)
                 .httpOnly(true)
-                .secure(true)
+                .secure(sessionCookie.getSecure() == null || sessionCookie.getSecure())
                 .sameSite("Strict")
                 .build();
         return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cleared.toString()).build();

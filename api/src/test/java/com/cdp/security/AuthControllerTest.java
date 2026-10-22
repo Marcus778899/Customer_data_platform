@@ -118,6 +118,15 @@ class AuthControllerTest {
     }
 
     @Test
+    void over_long_email_is_400_and_never_enters_the_limiter() {
+        String longEmail = "a".repeat(255) + "@example.com";
+        assertThatThrownBy(() -> controller.login(
+                        new LoginRequest(longEmail, "x-password-12345"), new MockHttpServletRequest(), new MockHttpServletResponse()))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+        verify(users, never()).findByEmail(anyString());
+    }
+
+    @Test
     void blank_fields_are_validation_failed_and_not_counted() {
         for (int i = 0; i < 5; i++) {
             assertThatThrownBy(() -> controller.login(
@@ -131,7 +140,7 @@ class AuthControllerTest {
                         new LoginRequest(null, "x"), new MockHttpServletRequest(), new MockHttpServletResponse()))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.errors()).extracting("field")
                         .containsExactly("email"));
-        assertThat(limiter.remainingLock("a@example.com")).isZero();
+        assertThat(limiter.tryBegin("a@example.com")).isEmpty();
     }
 
     @Test
