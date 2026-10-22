@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-069 前端畫面的瀏覽器實測由誰做
-- 背景：journey-customer-ui 的 qa「B」判 FAIL，唯一原因是沒能用瀏覽器實測（375／800px 畫面、對比、節點圖畫法）：qa 沒有瀏覽器工具，寫 mock 伺服器與驅動腳本被 hook 擋下（沒有繞過）；自動測試 196 條全過、lint／build 過、未發現程式缺陷。照記錄會算 worker 一次 FAIL（上限 3 次），但修不了的是環境不是程式
-- 選項：A. 本單 qa 以自動測試＋靜態檢查為準（不記這次 FAIL，重派 qa「B」並說明範圍），瀏覽器實測移到階段收尾的 uat（BE-07 接上後用真資料、uat 有瀏覽器工具） ／ B. 照記這次 FAIL，派 frontend 加「瀏覽器 mock 模式」（只在開發環境啟用），再由有瀏覽器工具的 designer 對照設計稿實測 ／ C. 你在 qa 的設定加上瀏覽器工具（流程檔案只能你改），之後的前端單都由 qa 實測
-- 建議：A。這版前端都對契約 mock，畫面最終要接上真後端才有意義；uat 本來就要在真瀏覽器操作。風險是畫面問題晚一點才發現，修正單回到 1.6；長期可考慮 C
-- 提出：manager（journey-customer-ui）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-069 前端瀏覽器實測移到階段收尾的 uat
+- 決定：A。前端單的 qa「B」以自動測試、lint／build 與靜態檢查為準，因無瀏覽器工具而無法實測不算 FAIL；375／800px 畫面、對比、節點圖畫法等瀏覽器實測由階段收尾的 uat 做（後端接上後用真資料）
+- 理由：v0.2.0 前端對契約 mock，接上真後端看畫面才有意義；uat 有瀏覽器工具
+- 影響：journey-customer-ui 重派 qa「B」；uat 範圍加入上述檢查項目（`reports/journey-customer-ui.qa.md`「下一輪須補」）
+- 日期：2026-10-22
 
 ### D-068 app-shell-login 的「已合併」標記由甲方手動補
 - 決定：範本不改；甲方手動把 `tasks/app-shell-login.meta.json` 標成 merged、刪本機分支 `feat/app-shell-login`（2026-10-22 已完成），之後開 `journey-customer-ui`。原先「等範本修正後重跑 pr.py merge」作廢

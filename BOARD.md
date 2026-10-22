@@ -75,6 +75,7 @@
 | 2026-10-21 | D-066 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
 | 2026-10-21 | D-067 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
 | 2026-10-21 | D-068 | 前端第二批等範本修正（續做清理）後再開 |
+| 2026-10-22 | D-069 | 前端瀏覽器實測移到階段收尾的 uat，qa 以自動測試為準 |
 
 ## 任務狀態
 
@@ -97,8 +98,7 @@
 
 ## 卡住／待甲方決定
 
-- relay-loop-rewrite：worker 誤改鎖定的驗收測試檔（未 commit），待甲方還原；另有 2 條既有 delivery 驗收 disputes 待仲裁
-- journey-customer-ui：qa 無瀏覽器工具無法實測，待 D-069
+- （無）
 
 ## 注意事項（踩過的坑）
 
