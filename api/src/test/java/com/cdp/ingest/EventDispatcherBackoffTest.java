@@ -11,7 +11,14 @@ class EventDispatcherBackoffTest {
 
     private static EventDispatcher with(Duration initial, Duration max) {
         return new EventDispatcher(
-                null, null, null, null, new DispatchProperties(5, initial, max), Clock.systemUTC());
+                null,
+                null,
+                null,
+                null,
+                new DispatchProperties(5, initial, max),
+                null,
+                null,
+                Clock.systemUTC());
     }
 
     @Test

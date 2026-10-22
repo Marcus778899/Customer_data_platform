@@ -11,6 +11,7 @@ spring:
     port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
+    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT}
     # relay 等 broker confirm 後才標 PUBLISHED（DESIGN-01 做法 #4）
     publisher-confirm-type: correlated
     publisher-returns: true
@@ -21,6 +22,11 @@ spring:
         acknowledge-mode: auto
         # 例外預設進 DLQ；要重投的情況由 consumer 丟 ImmediateRequeueAmqpException
         default-requeue-rejected: false
+  task:
+    scheduling:
+      pool:
+        # 輪詢迴圈各佔一條執行緒，relay 卡住不能拖住計時器；啟動驗證 >= 迴圈數（DESIGN-03）
+        size: ${CDP_SCHEDULER_POOL_SIZE}
   jackson:
     # 對外 JSON 一律 snake_case（docs/spec/README.md「命名」）
     property-naming-strategy: SNAKE_CASE
@@ -51,8 +57,14 @@ cdp:
     poll-interval: ${OUTBOX_RELAY_POLL_INTERVAL}
     batch-size: ${OUTBOX_RELAY_BATCH_SIZE}
     retry-delay: ${OUTBOX_RELAY_RETRY_DELAY}
+    confirm-timeout: ${OUTBOX_RELAY_CONFIRM_TIMEOUT}
+    # 必須大於 confirm-timeout（啟動驗證）
+    lease: ${OUTBOX_RELAY_LEASE}
+  loop:
+    max-drain: ${CDP_LOOP_MAX_DRAIN}
   delivery:
     requeue-delay: ${DELIVERY_REQUEUE_DELAY}
+    shutdown-timeout: ${DELIVERY_SHUTDOWN_TIMEOUT}
   security:
     # 契約 §1.1、§1.2；機密只在 .env
     ingest-api-key: ${CDP_INGEST_API_KEY}

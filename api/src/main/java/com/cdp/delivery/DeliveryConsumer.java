@@ -24,7 +24,7 @@ import com.cdp.engine.EffectExecutor;
 import com.cdp.engine.node.Effect;
 
 /**
- * 冪等 consumer（INIT-01 紅線 3）。單一交易：insertIfAbsentAndLock → 已 SENT/CANCELLED 即結束 → KillSwitch →
+ * 冪等 consumer（INIT-01 紅線 3）。單一交易：insertIfAbsentAndLock → 已 SENT/CANCELLED 即結束 → outbox 列 CANCELLED 或 KillSwitch → CANCELLED →
  * EffectExecutor → 提交 → FaultPoint.CONSUMER_AFTER_COMMIT → ack。無法解析 → DLQ；DB 不可用 →
  * ImmediateRequeueAmqpException。
  */
@@ -125,7 +125,8 @@ public class DeliveryConsumer {
         if (task.status() != DeliveryTaskStatus.PENDING) {
             return; // 重複投遞：已處理過
         }
-        if (killSwitch.isStopped(entry.journeyId(), entry.journeyVersion())) {
+        if (entry.status() == OutboxStatus.CANCELLED
+                || killSwitch.isStopped(entry.journeyId(), entry.journeyVersion())) {
             tasks.update(
                     new DeliveryTask(
                             task.idempotencyKey(),
