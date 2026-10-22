@@ -95,7 +95,7 @@
 | relay-loop-rewrite | backend | done | 0 | PR #99 |
 | journey-customer-ui | frontend | done | 0 | PR #98 |
 | compose-test-setup | architect | done | 0 | PR #97 |
-| user-auth-api | backend | todo | 0 |  |
+| user-auth-api | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
