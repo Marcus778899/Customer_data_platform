@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-070 旅程圖右下角的 React Flow 署名連結要不要隱藏
+- 背景：旅程頁與圖形軌跡用 `@xyflow/react`（MIT）。圖右下角預設有一個 React Flow 小連結；官方說法是法律上不能要求保留，可用 `hideAttribution` 隱藏，但「隱藏的話請訂閱支持」（是請求，不是授權條款；Pro 約 US$169／月起）。查證見 `docs/research/react-flow-attribution.md`
+- 選項：A. 保留（免費、合乎官方期望；客戶後台會看到第三方小連結） ／ B. 隱藏、不訂閱（合法，但違背官方請求） ／ C. 隱藏並訂閱 Pro
+- 建議：A。v0.2.0 還在開發，先保留；要交付給客戶前若在意畫面再改 C，只是改一個設定
+- 提出：frontend（journey-customer-ui）、researcher
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
