@@ -1,0 +1,37 @@
+# 本機跑後端全部測試（含 acceptance/）的入口；用法與取捨見 docs/design/INIT-01.md「驗證方式」。
+# 在主目錄單獨一行執行（不可包進 make／script）：
+#   docker compose --env-file .env -f .worktrees/<id>/compose.yaml run --rm test
+# 不設 name：專案名稱 = compose 檔所在目錄（worktree 名稱），平行的單各自一套。
+# 本地 PostgreSQL／RabbitMQ 仍在 docker-compose.yml（make infra-up），與此檔無關。
+
+services:
+  test:
+    image: eclipse-temurin:17-jdk
+    # 掛 Docker socket：測試沿用 Testcontainers 自起 PostgreSQL／RabbitMQ（含 docker pause）。
+    # socket 等同主機 Docker 的 root 權限，故以 root 跑、原始碼唯讀掛載、不寫回主機。
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./api:/src/api:ro
+      # EnvExampleNoTenantIdAcceptanceTest 從 user.dir 往上找 .env.example
+      - ./.env.example:/workspace/.env.example:ro
+      # Maven 相依與 wrapper 下載的快取；固定名稱，所有 worktree 共用
+      - m2:/root/.m2
+    environment:
+      # Testcontainers 起的容器是主機 Docker 的兄弟容器，經主機的對外 port 連
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    extra_hosts:
+      # Linux 引擎沒有內建 host.docker.internal；Docker Desktop 照常
+      - "host.docker.internal:host-gateway"
+    working_dir: /workspace/api
+    # 複製原始碼（不含 target/）到容器內再建置：主機的 api/target 不受影響、不留 root 擁有的檔案
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /workspace/api &&
+        tar -C /src/api --exclude=./target -cf - . | tar -C /workspace/api -xf - &&
+        sh ./mvnw -B -ntp verify -Dsurefire.useFile=false
+
+volumes:
+  m2:
+    name: cdp-test-m2

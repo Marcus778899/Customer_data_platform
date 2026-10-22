@@ -13,9 +13,27 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-070 旅程圖右下角的 React Flow 署名連結要不要隱藏
+- 背景：旅程頁與圖形軌跡用 `@xyflow/react`（MIT）。圖右下角預設有一個 React Flow 小連結；官方說法是法律上不能要求保留，可用 `hideAttribution` 隱藏，但「隱藏的話請訂閱支持」（是請求，不是授權條款；Pro 約 US$169／月起）。查證見 `docs/research/react-flow-attribution.md`
+- 選項：A. 保留（免費、合乎官方期望；客戶後台會看到第三方小連結） ／ B. 隱藏、不訂閱（合法，但違背官方請求） ／ C. 隱藏並訂閱 Pro
+- 建議：A。v0.2.0 還在開發，先保留；要交付給客戶前若在意畫面再改 C，只是改一個設定
+- 提出：frontend（journey-customer-ui）、researcher
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-069 前端瀏覽器實測移到階段收尾的 uat
+- 決定：A。前端單的 qa「B」以自動測試、lint／build 與靜態檢查為準，因無瀏覽器工具而無法實測不算 FAIL；375／800px 畫面、對比、節點圖畫法等瀏覽器實測由階段收尾的 uat 做（後端接上後用真資料）
+- 理由：v0.2.0 前端對契約 mock，接上真後端看畫面才有意義；uat 有瀏覽器工具
+- 影響：journey-customer-ui 重派 qa「B」；uat 範圍加入上述檢查項目（`reports/journey-customer-ui.qa.md`「下一輪須補」）
+- 日期：2026-10-22
+
+### D-068 app-shell-login 的「已合併」標記由甲方手動補
+- 決定：範本不改；甲方手動把 `tasks/app-shell-login.meta.json` 標成 merged、刪本機分支 `feat/app-shell-login`（2026-10-22 已完成），之後開 `journey-customer-ui`。原先「等範本修正後重跑 pr.py merge」作廢
+- 理由：保留正確紀錄，發版封存不漏單；範本維持原樣
+- 影響：`journey-customer-ui` 延後開單
+- 日期：2026-10-22
 
 ### D-067 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume
 - 決定：團隊不開單改 `scripts/`、`.claude/`、`contracts/`、`CLAUDE.md`；修正由甲方放進範本來源、以 `update.sh` 帶入。作廢 `merge-cleanup-resume`（已寫好的修改在 commit 2f30707，供甲方參考）；app-shell-login 先在布告欄標 done（PR #91），「已合併」標記待範本修正後由 manager 重跑 `pr.py merge` 補上；`.worktrees/` 舊資料夾由甲方手動刪；BOARD.md 的 D-066 版本欄與「上限 80 行」註解待範本修正或甲方手改後提交。取代 D-066 的做法、D-065 的 chore 部分

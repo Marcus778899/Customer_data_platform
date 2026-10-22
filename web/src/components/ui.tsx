@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 import { formatLocal, type Tone } from '../format'
 import { ApiError } from '../api/client'
 
@@ -73,5 +73,61 @@ export function Loading({ children }: { children: ReactNode }) {
       <span className="skel" />
       <span className="skel" style={{ width: '70%' }} />
     </div>
+  )
+}
+
+/** 骨架列：role=status、讀屏讀「載入中」 */
+export function Skeleton({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="card" role="status" aria-busy="true">
+      <span className="sr">載入中</span>
+      {Array.from({ length: lines }, (_, i) => (
+        <span className="skel" key={i} />
+      ))}
+    </div>
+  )
+}
+
+/** cursor 分頁的「載入更多」；失敗時改顯示錯誤與重試 */
+export function MoreControls({
+  next,
+  busy,
+  error,
+  onMore,
+  label = '載入更多',
+}: {
+  next: string | null
+  busy: boolean
+  error: ApiError | null
+  onMore: () => void
+  label?: string
+}) {
+  if (error) {
+    return (
+      <div style={{ marginTop: 'var(--space-3)' }}>
+        <ErrorBox title="載入更多失敗" error={error} onRetry={onMore} />
+      </div>
+    )
+  }
+  if (!next) return null
+  return (
+    <p>
+      <button className="btn secondary" type="button" onClick={onMore} aria-disabled={busy}>
+        {busy ? '載入中…' : label}
+      </button>
+    </p>
+  )
+}
+
+/** 複製完整值（只用於未遮罩的 ID） */
+export function CopyButton({ text, label }: { text: string; label: string }) {
+  const [done, setDone] = useState(false)
+  function copy() {
+    void navigator.clipboard?.writeText(text).then(() => setDone(true), () => undefined)
+  }
+  return (
+    <button className="btn secondary sm" type="button" aria-label={label} onClick={copy}>
+      {done ? '已複製' : '複製'}
+    </button>
   )
 }

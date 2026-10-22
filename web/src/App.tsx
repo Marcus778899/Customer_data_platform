@@ -5,12 +5,17 @@ import { AuthContext } from './auth'
 import { PRODUCT_NAME, Shell, type NavKey } from './components/Shell'
 import { ErrorBox } from './components/ui'
 import { AudiencePage } from './pages/AudiencePage'
-import { DetailPage } from './pages/DetailPage'
+import { CustomerPage } from './pages/CustomerPage'
+import { CustomerSearchPage } from './pages/CustomerSearchPage'
+import { EnrollmentBrowsePage } from './pages/EnrollmentBrowsePage'
 import { ForbiddenPage } from './pages/ForbiddenPage'
+import { JourneyListPage } from './pages/JourneyListPage'
+import { JourneyPage } from './pages/JourneyPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PasswordPage } from './pages/PasswordPage'
 import { SearchPage } from './pages/SearchPage'
+import { TracePage } from './pages/TracePage'
 import { navigate, safeNext, useLocation } from './router'
 import { consumeLoggedIn, markLoggedIn } from './sessionFlag'
 
@@ -21,8 +26,10 @@ type AuthState =
   | { status: 'error'; error: ApiError }
 
 function currentNav(pathname: string): NavKey {
-  if (pathname === '/' || pathname.startsWith('/enrollments/')) return 'journeys'
-  if (pathname === '/customers' || pathname.startsWith('/customers/')) return 'customers'
+  if (pathname === '/' || pathname === '/enrollments' || pathname === '/journeys' || pathname.startsWith('/journeys/'))
+    return 'journeys'
+  if (pathname === '/customers' || pathname.startsWith('/customers/') || pathname.startsWith('/enrollments/'))
+    return 'customers'
   if (pathname === '/audience') return 'audience'
   return null
 }
@@ -133,12 +140,19 @@ export function App() {
   }
   if (!authInfo || pathname === '/login') return null
 
-  const detail = /^\/enrollments\/([^/]+)\/?$/.exec(pathname)
+  const trace = /^\/enrollments\/([^/]+)\/?$/.exec(pathname)
+  const journey = /^\/journeys\/([^/]+)\/?$/.exec(pathname)
+  const customer = /^\/customers\/([^/]+)\/?$/.exec(pathname)
   const here = pathname + search
   let page
   if (forbiddenAt === here) page = <ForbiddenPage />
   else if (pathname === '/') page = <SearchPage loc={loc} />
-  else if (detail) page = <DetailPage id={decodeURIComponent(detail[1])} />
+  else if (pathname === '/journeys') page = <JourneyListPage loc={loc} />
+  else if (journey) page = <JourneyPage id={decodeURIComponent(journey[1])} loc={loc} />
+  else if (pathname === '/enrollments') page = <EnrollmentBrowsePage loc={loc} />
+  else if (trace) page = <TracePage id={decodeURIComponent(trace[1])} />
+  else if (pathname === '/customers') page = <CustomerSearchPage loc={loc} />
+  else if (customer) page = <CustomerPage id={decodeURIComponent(customer[1])} />
   else if (pathname === '/audience') page = <AudiencePage />
   else if (pathname === '/account/password') page = <PasswordPage />
   else page = <NotFoundPage />

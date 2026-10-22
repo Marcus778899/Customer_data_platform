@@ -46,6 +46,7 @@ jobs:
       - name: Install dependencies
         if: steps.detect.outputs.found == 'true'
         run: make ci-setup
+      # Actions 會設 CI=true：make test 一律跑含容器的全部測試（見 docs/design/INIT-01.md「驗證方式」）
       - name: Check
         if: steps.detect.outputs.found == 'true'
         run: make check
