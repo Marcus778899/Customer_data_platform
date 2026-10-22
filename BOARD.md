@@ -92,8 +92,8 @@
 | app-shell-login | frontend | done | 1 | PR #91 |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
-| relay-loop-rewrite | backend | review | 0 |  |
-| journey-customer-ui | frontend | review | 0 |  |
+| relay-loop-rewrite | backend | in-progress | 0 |  |
+| journey-customer-ui | frontend | done | 0 | PR #98 |
 | compose-test-setup | architect | done | 0 | PR #97 |
 
 ## 卡住／待甲方決定
