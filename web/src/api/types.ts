@@ -95,3 +95,68 @@ export interface CurrentUser {
   display_name: string
   role: Role
 }
+
+// 型別對應 docs/contracts/journeys.md §1
+export type JourneyStatus = 'DRAFT' | 'ACTIVE' | 'ABORTED'
+export interface UserRef {
+  user_id: string
+  display_name: string
+}
+export interface JourneySummary {
+  journey_id: string
+  name: string
+  status: JourneyStatus
+  latest_version: number | null
+  has_draft: boolean
+  review_status: 'PENDING' | 'REJECTED' | null
+  updated_at: string
+  published_at: string | null
+}
+export interface JourneyDetail extends JourneySummary {
+  description: string | null
+  versions: { version: number; published_at: string }[]
+  stopped_at: string | null
+  stop_reason: string | null
+  stopped_by: UserRef | null
+}
+export interface JourneyNode {
+  id: string
+  type: string
+  name: string | null
+  config: Record<string, unknown>
+  outputs: Record<string, string>
+}
+export interface JourneyVersion {
+  journey_id: string
+  name: string
+  version: number
+  description: string | null
+  settings: Record<string, unknown>
+  entry_node: string
+  nodes: JourneyNode[]
+  layout: { nodes: Record<string, { x: number; y: number }> } | null
+  published_at: string
+}
+
+// 型別對應 docs/contracts/profiles.md §1（IdentifierType 可能出現未知值，以 string 接）
+export interface Identifier {
+  type: string
+  value: string
+  masked: boolean
+}
+export interface ProfileSummary {
+  profile_id: string
+  matched_by: string
+  identifiers: Identifier[]
+  created_at: string
+  updated_at: string
+}
+export interface ProfileDetail {
+  profile_id: string
+  identifiers: Identifier[]
+  created_at: string
+  updated_at: string
+  attributes: Record<string, unknown>
+  masked_paths: string[]
+  as_of: string
+}
