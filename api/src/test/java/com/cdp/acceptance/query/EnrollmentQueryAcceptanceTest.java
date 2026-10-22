@@ -30,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
 import com.cdp.acceptance.engine.EngineTestSupport.MutableClock;
+import com.cdp.acceptance.security.AuthHttp;
 import com.cdp.engine.runtime.AdvanceLoop;
 import com.cdp.ingest.EventDispatcher;
 
@@ -94,19 +95,8 @@ class EnrollmentQueryAcceptanceTest {
     }
 
     private String sessionCookie() throws Exception {
-        HttpResponse<String> r =
-                call(
-                        "POST",
-                        "/api/v1/auth/login",
-                        null,
-                        null,
-                        "{\"username\":\"test-support\",\"password\":\"test-support-password\"}");
-        assertThat(r.statusCode()).isEqualTo(204);
-        return r.headers().allValues("Set-Cookie").stream()
-                .filter(c -> c.startsWith("CDP_SESSION="))
-                .findFirst()
-                .orElseThrow()
-                .split(";")[0];
+        // user-auth-api 改寫：email 登入的 VIEWER（帳號經管理金鑰建立）取代 v0.1.0 客服帳密
+        return AuthHttp.loginNewUser(port, "VIEWER");
     }
 
     private void assertProblem(HttpResponse<String> r, int status, String code) throws Exception {

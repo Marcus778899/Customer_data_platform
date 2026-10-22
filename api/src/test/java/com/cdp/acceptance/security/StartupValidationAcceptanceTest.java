@@ -14,7 +14,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import com.cdp.CdpApplication;
 
 /**
- * FIX-04 驗收：金鑰或客服密碼為空、或兩把金鑰相同 → 啟動失敗，訊息不含機密值。
+ * FIX-04 驗收（user-auth-api 改寫：客服帳密 CDP_SUPPORT_* 已廢除，移除對應啟動參數與兩個空值測試）：金鑰為空、或兩把金鑰相同 → 啟動失敗，訊息不含機密值。
  * 以完整應用程式啟動（Testcontainers 提供 DB 與 MQ），確保失敗原因來自設定驗證而非基礎設施。
  * cause 鏈須含 IllegalStateException，且訊息點出 cdp.security. 開頭的屬性名。
  */
@@ -31,9 +31,7 @@ class StartupValidationAcceptanceTest {
         for (String a : List.of(
                 "--spring.rabbitmq.listener.simple.auto-startup=false",
                 "--cdp.security.ingest-api-key=" + SECRET_A,
-                "--cdp.security.admin-api-key=" + SECRET_B,
-                "--cdp.security.support-username=agent",
-                "--cdp.security.support-password=" + SECRET_PW)) {
+                "--cdp.security.admin-api-key=" + SECRET_B)) {
             merged.put(a.substring(0, a.indexOf('=')), a);
         }
         for (String a : overrides) {
@@ -76,16 +74,6 @@ class StartupValidationAcceptanceTest {
     @Test
     void blankAdminKey_failsStartup() {
         assertStartFails("--cdp.security.admin-api-key=   ");
-    }
-
-    @Test
-    void emptySupportPassword_failsStartup() {
-        assertStartFails("--cdp.security.support-password=");
-    }
-
-    @Test
-    void emptySupportUsername_failsStartup() {
-        assertStartFails("--cdp.security.support-username=");
     }
 
     @Test
