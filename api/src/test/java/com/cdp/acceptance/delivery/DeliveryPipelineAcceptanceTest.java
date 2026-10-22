@@ -48,7 +48,7 @@ import tools.jackson.databind.json.JsonMapper;
  * 觀察。輪詢間隔調成 1 小時，relay 只由 runOnce() 驅動；consumer（@RabbitListener）照常自動啟動。
  */
 @SpringBootTest(
-        properties = {"cdp.engine.poll-interval=PT1H", "cdp.relay.poll-interval=PT1H"})
+        properties = {"cdp.engine.poll-interval=PT1H", "cdp.relay.poll-interval=PT1H", "cdp.relay.lease=PT10S"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(DeliveryTestSupport.class)
@@ -366,6 +366,7 @@ class DeliveryPipelineAcceptanceTest {
             faults.disarm(FaultPoint.RELAY_BEFORE_PUBLISH, s.key());
         }
 
+        clock.advance(Duration.ofSeconds(11));
         relay.runOnce();
         await().atMost(WAIT).until(() -> "SENT".equals(taskStatus(s.key())));
         relay.runOnce();
@@ -394,7 +395,8 @@ class DeliveryPipelineAcceptanceTest {
             faults.disarm(FaultPoint.RELAY_AFTER_CONFIRM, s.key());
         }
 
-        // 「重啟」：relay 再取到同一列，重複推送
+        // 「重啟」：lease 過期後 relay 再取到同一列，重複推送
+        clock.advance(Duration.ofSeconds(11));
         relay.runOnce();
         assertThat(outboxStatus(s.key())).isEqualTo("PUBLISHED");
         settle();

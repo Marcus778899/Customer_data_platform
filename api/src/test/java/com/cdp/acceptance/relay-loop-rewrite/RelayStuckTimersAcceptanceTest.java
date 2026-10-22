@@ -6,14 +6,13 @@ import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
-
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * relay 卡住（broker 無回應，等 confirm 逾時）時，計時器迴圈仍照常推進。
