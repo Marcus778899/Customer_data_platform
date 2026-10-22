@@ -13,7 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class ApiKeyAuthenticationFilterTest {
 
     private final ApiKeyAuthenticationFilter filter =
-            new ApiKeyAuthenticationFilter(new AuthProperties("ing", "adm", "u", "p"));
+            new ApiKeyAuthenticationFilter(new AuthProperties("ing", "adm"));
 
     @AfterEach
     void clear() {
