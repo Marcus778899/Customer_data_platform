@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-069 前端瀏覽器實測移到階段收尾的 uat
+- 決定：A。前端單的 qa「B」以自動測試、lint／build 與靜態檢查為準，因無瀏覽器工具而無法實測不算 FAIL；375／800px 畫面、對比、節點圖畫法等瀏覽器實測由階段收尾的 uat 做（後端接上後用真資料）
+- 理由：v0.2.0 前端對契約 mock，接上真後端看畫面才有意義；uat 有瀏覽器工具
+- 影響：journey-customer-ui 重派 qa「B」；uat 範圍加入上述檢查項目（`reports/journey-customer-ui.qa.md`「下一輪須補」）
+- 日期：2026-10-22
+
 ### D-068 app-shell-login 的「已合併」標記由甲方手動補
 - 決定：範本不改；甲方手動把 `tasks/app-shell-login.meta.json` 標成 merged、刪本機分支 `feat/app-shell-login`（2026-10-22 已完成），之後開 `journey-customer-ui`。原先「等範本修正後重跑 pr.py merge」作廢
 - 理由：保留正確紀錄，發版封存不漏單；範本維持原樣

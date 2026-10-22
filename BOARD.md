@@ -75,6 +75,7 @@
 | 2026-10-21 | D-066 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
 | 2026-10-21 | D-067 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
 | 2026-10-21 | D-068 | 前端第二批等範本修正（續做清理）後再開 |
+| 2026-10-22 | D-069 | 前端瀏覽器實測移到階段收尾的 uat，qa 以自動測試為準 |
 
 ## 任務狀態
 
@@ -91,8 +92,9 @@
 | app-shell-login | frontend | done | 1 | PR #91 |
 | scripts-fix-restore | backend | done | 0 | PR #90 |
 | merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
-| relay-loop-rewrite | backend | in-progress | 0 |  |
-| journey-customer-ui | frontend | todo | 0 |  |
+| relay-loop-rewrite | backend | blocked | 0 |  |
+| journey-customer-ui | frontend | qa | 0 |  |
+| compose-test-setup | architect | done | 0 | PR #97 |
 
 ## 卡住／待甲方決定
 
