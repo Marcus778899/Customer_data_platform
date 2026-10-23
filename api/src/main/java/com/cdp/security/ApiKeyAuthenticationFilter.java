@@ -17,7 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.cdp.common.web.ErrorCode;
 
 /**
- * 契約 §1.1：讀 Authorization: Bearer，與 ingest／admin 金鑰常數時間比對，成功則放入 Role.INGEST／ADMIN；
+ * auth.md §1：讀 Authorization: Bearer，與 ingest／admin 金鑰常數時間比對，成功則放入 Role.INGEST／ADMIN；
  * 帶了但不符 → 401 UNAUTHENTICATED（不再看 session）。不加 @Component：只由 SecurityConfig 掛進 security filter chain，
  * 避免被 Boot 自動註冊成一般 servlet filter。
  */
@@ -57,7 +57,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         }
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
-                role.name().toLowerCase(), null, List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))));
+                role.name().toLowerCase(), null, List.of(
+                        new SimpleGrantedAuthority(role.authority()),
+                        new SimpleGrantedAuthority(Credential.BEARER.authority()))));
         SecurityContextHolder.setContext(context);
         chain.doFilter(request, response);
     }

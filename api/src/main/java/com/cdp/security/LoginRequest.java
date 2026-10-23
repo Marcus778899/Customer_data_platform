@@ -1,10 +1,10 @@
 package com.cdp.security;
 
-/** 契約 §1.2 POST /api/v1/auth/login 的 body。toString 不輸出帳密。 */
-public record LoginRequest(String username, String password) {
+/** auth.md §3 POST /api/v1/auth/login 的 body。toString 不輸出帳密。 */
+public record LoginRequest(String email, String password) {
 
     @Override
     public String toString() {
-        return "LoginRequest[username=***, password=***]";
+        return "LoginRequest[email=***, password=***]";
     }
 }

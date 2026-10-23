@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Seed demo journeys and customers through the public API (contract journey-engine.md 3.1 / 3.2).
+"""Seed demo journeys, customers and login accounts through the public API
+(contracts journey-engine.md 3.1 / 3.2 and auth.md 4).
 
 Env (exported by the Makefile from .env): API_PORT, CDP_ADMIN_API_KEY, CDP_INGEST_API_KEY.
 Each run creates a NEW batch (new journeys, new customers, event names with a run tag),
 so reruns never collide with earlier data. Keys are never printed.
+Demo accounts (one per role) are created through POST /api/v1/users with the admin key; the emails are fixed,
+the passwords are random per run (a rerun resets them through PATCH /api/v1/users/{id}) and printed once.
 """
 import json
 import os
@@ -48,7 +51,7 @@ BASE = "http://127.0.0.1:%s" % PORT
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
-def call(method, path, key, body=None, what=""):
+def call(method, path, key, body=None, what="", tolerate=()):
     data = json.dumps(body).encode("utf-8") if body is not None else None
     req = urllib.request.Request(BASE + path, data=data, method=method)
     req.add_header("Authorization", "Bearer " + key)
@@ -66,6 +69,8 @@ def call(method, path, key, body=None, what=""):
                 extra += " [%s %s]" % (er.get("field"), er.get("message"))
         except Exception:
             extra = ""
+        if e.code in tolerate:
+            return {"_status": e.code}
         if e.code == 401:
             fail("%s returned 401 (API key rejected; check the key matches the running backend)" % what)
         if e.code == 403:
@@ -74,6 +79,29 @@ def call(method, path, key, body=None, what=""):
     except (urllib.error.URLError, OSError) as e:
         fail("cannot reach the API at 127.0.0.1:%s (%s). Start it with `make api-run` first."
              % (PORT, getattr(e, "reason", e)))
+
+
+DEMO_USERS = [
+    ("viewer", "VIEWER", "Demo viewer"),
+    ("editor", "EDITOR", "Demo editor"),
+    ("admin", "ADMIN", "Demo admin"),
+]
+
+
+def ensure_user(role_key, role, display_name):
+    """Create the demo account, or reset its password and re-enable it when it already exists."""
+    email = "demo-%s@example.com" % role_key
+    password = secrets.token_urlsafe(12)
+    body = {"email": email, "display_name": display_name, "role": role, "password": password}
+    r = call("POST", "/api/v1/users", ADMIN_KEY, body, "POST /api/v1/users", tolerate=(409,))
+    if r.get("_status") == 409:
+        users = call("GET", "/api/v1/users", ADMIN_KEY, None, "GET /api/v1/users").get("items", [])
+        found = [u for u in users if u["email"] == email]
+        if not found:
+            fail("POST /api/v1/users returned 409 but %s is not in the user list" % email)
+        patch = {"display_name": display_name, "role": role, "status": "ACTIVE", "password": password}
+        call("PATCH", "/api/v1/users/" + found[0]["user_id"], ADMIN_KEY, patch, "PATCH /api/v1/users")
+    return email, role, password
 
 
 def journey(name, event_name, wait):
@@ -125,6 +153,7 @@ def enrollments(profile_id):
 
 def main():
     tag = secrets.token_hex(3)
+    accounts = [ensure_user(*u) for u in DEMO_USERS]
     ev_short, ev_long = "demo_short_" + tag, "demo_long_" + tag
     js = call("POST", "/api/v1/journeys", ADMIN_KEY,
               journey("Demo short wait (%ds) %s" % (SHORT_WAIT_SECONDS, tag), ev_short,
@@ -160,6 +189,9 @@ def main():
     print("demo-seed: batch %s created (new journeys + new customers; rerun creates another batch)" % tag)
     print("  journey (short): %s v%s  | journey (long): %s v%s" % (
         js["journey_id"], js["version"], jl["journey_id"], jl["version"]))
+    print("Demo login accounts (passwords are new on every run):")
+    for email, role, password in accounts:
+        print("  %-7s %s  %s" % (role, email, password))
     print("Paste a profile_id into the trace page search:")
     for name, pid, _, expect in customers:
         print("  %-6s %s  expect: %s" % (name, pid, expect))

@@ -50,7 +50,9 @@ cdp:
   security:
     ingest-api-key: test-ingest-key
     admin-api-key: test-admin-key
-    support-username: test-support
-    support-password: test-support-password
+  # 登入限速：門檻放寬，免得共用 email 的測試互相鎖住；限速驗收自己覆蓋
+  login:
+    max-failures: 50
+    lockout: PT15M
   trace:
     plain-keys: cart_id,cart_total

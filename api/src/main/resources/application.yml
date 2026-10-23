@@ -37,7 +37,7 @@ server:
   port: ${API_PORT}
   servlet:
     session:
-      # 客服 session（契約 §1.2）；閒置逾時由甲方定
+      # 使用者 session（auth.md §3）；閒置逾時由甲方定
       timeout: ${CDP_SESSION_IDLE_TIMEOUT}
       cookie:
         name: CDP_SESSION
@@ -66,11 +66,13 @@ cdp:
     requeue-delay: ${DELIVERY_REQUEUE_DELAY}
     shutdown-timeout: ${DELIVERY_SHUTDOWN_TIMEOUT}
   security:
-    # 契約 §1.1、§1.2；機密只在 .env
+    # auth.md §1；機密只在 .env
     ingest-api-key: ${CDP_INGEST_API_KEY}
     admin-api-key: ${CDP_ADMIN_API_KEY}
-    support-username: ${CDP_SUPPORT_USERNAME}
-    support-password: ${CDP_SUPPORT_PASSWORD}
+  login:
+    # 登入限速（D-045，auth.md §3）
+    max-failures: ${CDP_LOGIN_MAX_FAILURES}
+    lockout: ${CDP_LOGIN_LOCKOUT}
   trace:
     # 契約 §4.4：逗號分隔、可明文顯示的屬性鍵；空 = 全部遮罩
     plain-keys: ${CDP_TRACE_PLAIN_KEYS}

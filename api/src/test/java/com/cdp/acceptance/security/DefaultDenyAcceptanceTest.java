@@ -24,7 +24,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * FIX-04 驗收：授權預設拒絕（契約 §1.1：未列於角色表的路徑，有效憑證回 403，未認證回 401）與 session 閒置逾時。
+ * user-auth-api 改寫（auth.md）：session 改為 email 登入的 VIEWER（取代 SUPPORT），寫入請求自動帶 CSRF 標頭；
+ * UNLISTED 移除 {@code GET /api/v1/journeys}（auth.md §2 已列為 VIEWER 以上可讀）。意圖不變。
+ *
+ * <p>FIX-04 驗收：授權預設拒絕（契約 §1.1：未列於角色表的路徑，有效憑證回 403，未認證回 401）與 session 閒置逾時。
  * 假設：ADMIN 對未知路徑的結果不在此斷言（既有 FrameworkErrorFormatAcceptanceTest 期待 ADMIN 得 404）。
  */
 @SpringBootTest(
@@ -35,14 +38,11 @@ import tools.jackson.databind.ObjectMapper;
 class DefaultDenyAcceptanceTest {
 
     private static final String INGEST = "Bearer test-ingest-key";
-    private static final String USER = "test-support";
-    private static final String PASS = "test-support-password";
 
     /** 契約 §1.1 沒有列出的 method＋path。 */
     private static final List<String[]> UNLISTED = List.of(
             new String[] {"GET", "/api/v1/not-in-contract"},
             new String[] {"GET", "/api/v1/events"},
-            new String[] {"GET", "/api/v1/journeys"},
             new String[] {"GET", "/api/v1/auth"},
             new String[] {"GET", "/api/unknown"},
             new String[] {"GET", "/actuator"},
@@ -65,24 +65,16 @@ class DefaultDenyAcceptanceTest {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path));
         if (auth != null) b.header("Authorization", auth);
         if (cookie != null) b.header("Cookie", cookie);
+        if (cookie != null && !"GET".equals(method) && AuthHttp.xsrf(cookie) != null) {
+            b.header("X-XSRF-TOKEN", AuthHttp.xsrf(cookie));
+        }
         if (body != null) b.header("Content-Type", "application/json");
         b.method(method, body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body));
         return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private String login() throws Exception {
-        HttpResponse<String> r = call(
-                "POST",
-                "/api/v1/auth/login",
-                null,
-                null,
-                "{\"username\":\"" + USER + "\",\"password\":\"" + PASS + "\"}");
-        assertThat(r.statusCode()).isEqualTo(204);
-        return r.headers().allValues("Set-Cookie").stream()
-                .filter(c -> c.startsWith("CDP_SESSION="))
-                .findFirst()
-                .orElseThrow()
-                .split(";")[0];
+        return AuthHttp.loginNewUser(port, "VIEWER");
     }
 
     private void assertProblem(HttpResponse<String> r, int status, String code, String what) throws Exception {
@@ -108,7 +100,7 @@ class DefaultDenyAcceptanceTest {
     }
 
     @Test
-    void unlistedPaths_supportSession_are403() throws Exception {
+    void unlistedPaths_viewerSession_are403() throws Exception {
         String cookie = login();
         for (String[] p : UNLISTED) {
             assertProblem(call(p[0], p[1], null, cookie, null), 403, "FORBIDDEN", p[0] + " " + p[1]);
