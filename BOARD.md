@@ -76,6 +76,8 @@
 | 2026-10-21 | D-067 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
 | 2026-10-21 | D-068 | 前端第二批等範本修正（續做清理）後再開 |
 | 2026-10-22 | D-069 | 前端瀏覽器實測移到階段收尾的 uat，qa 以自動測試為準 |
+| 2026-10-23 | D-070 | React Flow 署名連結保留，不訂閱 |
+| 2026-10-23 | D-071 | 管理員重設密碼強制登出該使用者所有 session，併進下一張後端單 |
 
 ## 任務狀態
 
@@ -95,7 +97,7 @@
 | relay-loop-rewrite | backend | done | 0 | PR #99 |
 | journey-customer-ui | frontend | done | 0 | PR #98 |
 | compose-test-setup | architect | done | 0 | PR #97 |
-| user-auth-api | backend | todo | 0 |  |
+| user-auth-api | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
