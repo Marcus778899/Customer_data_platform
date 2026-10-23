@@ -15,14 +15,14 @@
 | 使用者 session | cookie `CDP_SESSION`（§3 登入取得） | 該使用者目前的角色 `VIEWER`／`EDITOR`／`ADMIN` |
 
 - 帶了 `Authorization` 就只看它、不看 cookie
-- 先驗認證、再驗角色、最後驗輸入：未認證 `401` `UNAUTHENTICATED`；角色不足 `403` `FORBIDDEN`
-- session 每個請求都以當下的使用者資料判斷：使用者被停用 → 下一個請求即 `401`；角色變更 → 下一個請求即生效
+- 先驗認證、再驗 CSRF（§1.1）、再驗角色、最後驗輸入：未認證 `401` `UNAUTHENTICATED`；角色不足 `403` `FORBIDDEN`
+- session 每個請求都以當下的使用者資料判斷：使用者被停用 → 下一個請求即 `401`；角色變更 → 下一個請求即生效；管理員重設其密碼 → 該使用者所有 session 下一個請求即 `401`（§4，D-071）
 
 ### §1.1 CSRF（session 的寫入請求）
 
 - session 呼叫非 `GET` 的 API（`/auth/login`、`/auth/logout` 除外）須帶標頭 `X-XSRF-TOKEN`，值 = cookie `XSRF-TOKEN`（`Path=/`、非 HttpOnly、`Secure`、`SameSite=Strict`）；前端每次送出前讀 cookie 當下的值，不快取
 - 登入、登出成功會使舊值失效（回應可能清除該 cookie）；前端登入成功後先呼叫 `GET /api/v1/auth/me`，其回應一定帶新的 `XSRF-TOKEN`；其他回應也可能更新它
-- 缺或不符 → `403` `CSRF_INVALID`（前端重呼 `/auth/me` 取新值後重試一次）
+- 缺或不符（含只帶標頭、沒有 cookie）→ `403` `CSRF_INVALID`（前端重呼 `/auth/me` 取新值後重試一次）；未認證的請求不檢查 CSRF，照上方回 `401`
 - Bearer 請求不檢查 CSRF
 
 ## §2 角色矩陣（`✓` = 可用；`ADMIN` ⊇ `EDITOR` ⊇ `VIEWER`；管理金鑰同 `ADMIN`）
@@ -40,7 +40,7 @@
 | §3 `/api/v1/auth/*` | | session（不分角色） | | |
 
 - journeys §3.2 的送審、撤回、核准、退回只收 session（紀錄要對得到人，含 `ADMIN`）；以 Bearer（含管理金鑰）呼叫 → `403` `FORBIDDEN`
-- 不需認證：`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`；其他 `/api/**` 未列者：一律 `403`（已認證）／`401`（未認證）
+- 不需認證：`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`；其他 `/api/**` 未列者：未認證 `401`；`INGEST`、`VIEWER`、`EDITOR` `403` `FORBIDDEN`；`ADMIN`（含管理金鑰）不擋，交給路由（不存在 `404`、方法不符 `405`）
 
 ## §3 登入
 
@@ -49,7 +49,7 @@
 | POST | `/api/v1/auth/login` | `{ "email", "password" }` 皆必填；`email` 不分大小寫 | `204`，`Set-Cookie: CDP_SESSION=…; Path=/api; HttpOnly; Secure; SameSite=Strict`（每次換新 id）與 `XSRF-TOKEN` | `400` `VALIDATION_FAILED`、`401` `INVALID_CREDENTIALS`（帳號不存在、停用、密碼錯一律同一碼）、`429` `LOGIN_RATE_LIMITED`（見下）、`415` |
 | POST | `/api/v1/auth/logout` | — | `204`，清除 cookie；沒有 session 也回 `204` | — |
 | GET | `/api/v1/auth/me` | — | `200` `CurrentUser` | `401`；`403`（Bearer 呼叫） |
-| POST | `/api/v1/auth/password` | `{ "current_password", "new_password" }` | `204`；其他 session 不登出 | `400` `VALIDATION_FAILED`（密碼規則見下）、`401` `INVALID_CREDENTIALS`（舊密碼錯）、`403` `CSRF_INVALID` |
+| POST | `/api/v1/auth/password` | `{ "current_password", "new_password" }` | `204`；其他 session 不登出（與 §4 管理員重設不同，見 D-071） | `400` `VALIDATION_FAILED`（密碼規則見下）、`401` `INVALID_CREDENTIALS`（舊密碼錯）、`403` `CSRF_INVALID` |
 
 - `CurrentUser`：`user_id` string、`email` string、`display_name` string、`role` `VIEWER` \| `EDITOR` \| `ADMIN`
 - 密碼規則：12–72 字元（UTF-8 位元組數 ≤ 72）；不檢查複雜度
@@ -61,6 +61,7 @@
   | 計數 | 密碼錯（`401` `INVALID_CREDENTIALS`）才 +1；`400` 不計；距上次失敗超過 `CDP_LOGIN_LOCKOUT` 先歸零再計；登入成功歸零 |
   | 門檻與鎖定 | 計數達 `CDP_LOGIN_MAX_FAILURES` → 鎖定到「最後一次失敗 + `CDP_LOGIN_LOCKOUT`」；鎖定中的嘗試不計數、不延長 |
   | 超限回應 | 鎖定中任何登入（含正確密碼）→ `429` `LOGIN_RATE_LIMITED`，標頭 `Retry-After` = 剩餘秒數（整數，無條件進位）；不跑 BCrypt |
+  | 併發 | 同一 `email` 的「計數 + 進行中的嘗試」達門檻、但尚未鎖定時，新的嘗試也回 `429` `LOGIN_RATE_LIMITED`、`Retry-After: 1`；不計數、不跑 BCrypt（同時最多門檻數個嘗試在比對密碼） |
   | 範圍 | 只限 `POST /auth/login`（`/auth/password` 不計）；計數存記憶體，後端重啟歸零（同 session） |
 - 前端：任何 API 回 `401` `UNAUTHENTICATED` → 導向登入
 
@@ -73,6 +74,7 @@
 | PATCH | `/api/v1/users/{user_id}` | `{ "display_name"?, "role"?, "status"?, "password"? }`（`status` = `ACTIVE`／`DISABLED`） | `200` `User` | `400`、`404` `USER_NOT_FOUND`、`409` `LAST_ADMIN`（會使啟用中的 `ADMIN` 變成 0 位） |
 
 - `User`：`user_id`（ULID）、`email`（存小寫）、`display_name`（1–100 字）、`role`、`status`、`created_at`、`updated_at`
+- 請求帶 `password` 且成功（`200`）時，該使用者所有現有 session 立即失效，下一個請求回 `401` `UNAUTHENTICATED`（D-071）；管理金鑰呼叫時一樣；管理員以 session 重設**自己**的密碼時，自己目前的 session 也失效（本次仍回 `200`，前端成功後導向登入頁）。只改 `display_name`／`role`／`status` 不使 session 失效（停用、改角色照 §1 在下一個請求生效）；回錯誤時不改資料、session 不失效
 - 不提供刪除（停用即可；歷史紀錄的 `updated_by` 需要對得到人）
 - 第一位 `ADMIN` 由維運以管理金鑰建立（帳號開通方式見 D-057）
 
