@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-072 profile-store-api 卡住：仲裁要改的舊驗收測試不在派工單範圍，派工單又不能再追加
+- 背景：仲裁判 TEST_WRONG（`reports/profile-store-api.ruling.md`），要刪 `acceptance/query/EnrollmentQueryAcceptanceTest.java` 的一項；但該檔不在派工單「驗收測試」範圍，qa 被權限擋下。manager 這一輪已用掉追加（追認範圍外檔案時），分支沒有新 commit 前 `task.py amend` 不能再追加，形成死結
+- 選項：A. 甲方手動把該檔加進 `tasks/profile-store-api.md` 檔尾並提交（manager 提供要貼的文字），之後照常 qa「A」→ lock → worker ／ B. 作廢重開（worker 的實作 commit 隨分支刪除，要重做） ／ C. 甲方先改範本，讓仲裁後可再追加一次（較慢，順便防下次）
+- 建議：A。最快、不丟成果；C 可之後另做
+- 提出：manager（profile-store-api）
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定

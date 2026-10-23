@@ -99,11 +99,12 @@
 | compose-test-setup | architect | done | 0 | PR #97 |
 | user-auth-api | backend | done | 0 | PR #104 |
 | auth-session-design | architect | done | 0 | PR #107 |
-| profile-store-api | backend | in-progress | 0 |  |
+| profile-store-api | backend | blocked | 0 |  |
+| user-session-revoke | backend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- profile-store-api：仲裁要改的舊驗收測試不在派工單範圍、派工單本輪不能再追加，待甲方決定 D-072
 
 ## 注意事項（踩過的坑）
 
