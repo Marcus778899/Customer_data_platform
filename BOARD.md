@@ -98,7 +98,8 @@
 | journey-customer-ui | frontend | done | 0 | PR #98 |
 | compose-test-setup | architect | done | 0 | PR #97 |
 | user-auth-api | backend | done | 0 | PR #104 |
-| auth-session-design | architect | in-progress | 0 |  |
+| auth-session-design | architect | done | 0 | PR #107 |
+| profile-store-api | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
