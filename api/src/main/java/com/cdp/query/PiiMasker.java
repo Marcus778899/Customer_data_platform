@@ -97,6 +97,23 @@ public class PiiMasker {
                 paths);
     }
 
+    /** 客戶屬性遮罩（profiles.md §1）：根路徑 {@code attributes}，規則同 variables；遮罩的葉節點路徑加進 paths。 */
+    public Map<String, Object> maskAttributes(Map<String, Object> attributes, List<String> paths) {
+        return map(attributes, plainKeys(), "attributes", paths);
+    }
+
+    /** 客戶識別碼值遮罩：鍵名 = type 小寫，在白名單才明文；回傳 null 表示明文（呼叫端用原值）。 */
+    public String maskIdentifier(String type, String value, String path, List<String> paths) {
+        if (plainKeys().contains(type.toLowerCase(java.util.Locale.ROOT))) {
+            return null;
+        }
+        return (String) value(value, plainKeys(), path, paths);
+    }
+
+    private Set<String> plainKeys() {
+        return properties.plainKeys() == null ? Set.of() : properties.plainKeys();
+    }
+
     private static Map<String, Object> map(
             Map<String, Object> in, Set<String> plain, String path, List<String> paths) {
         if (in == null) {

@@ -61,12 +61,24 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
 
     @Override
     public List<EnrollmentSummary> list(
-            String q, Set<EnrollmentStatus> statuses, PageCursor after, int limit) {
+            String q,
+            String profileId,
+            String journeyId,
+            Set<EnrollmentStatus> statuses,
+            PageCursor after,
+            int limit) {
         boolean filtered = statuses != null && !statuses.isEmpty();
         StringBuilder sql =
-                new StringBuilder(SUMMARY_SELECT)
-                        .append(SUMMARY_FROM)
-                        .append(" where (e.profile_id = :q or e.enrollment_id = :q)");
+                new StringBuilder(SUMMARY_SELECT).append(SUMMARY_FROM).append(" where true");
+        if (q != null) {
+            sql.append(" and (e.profile_id = :q or e.enrollment_id = :q)");
+        }
+        if (profileId != null) {
+            sql.append(" and e.profile_id = :profileId");
+        }
+        if (journeyId != null) {
+            sql.append(" and e.journey_id = :journeyId");
+        }
         if (filtered) {
             sql.append(" and e.status in (:statuses)");
         }
@@ -76,7 +88,16 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
         sql.append(" order by e.enrolled_at desc, e.enrollment_id desc limit :limit");
 
         JdbcClient.StatementSpec spec =
-                jdbc.sql(sql.toString()).param("q", q).param("limit", limit);
+                jdbc.sql(sql.toString()).param("limit", limit);
+        if (q != null) {
+            spec = spec.param("q", q);
+        }
+        if (profileId != null) {
+            spec = spec.param("profileId", profileId);
+        }
+        if (journeyId != null) {
+            spec = spec.param("journeyId", journeyId);
+        }
         if (filtered) {
             spec = spec.param("statuses", statuses.stream().map(Enum::name).toList());
         }
