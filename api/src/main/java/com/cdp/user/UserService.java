@@ -80,7 +80,8 @@ public class UserService {
                 role,
                 UserStatus.ACTIVE,
                 now,
-                now);
+                now,
+                0);
         try {
             store.insert(user);
         } catch (DuplicateKeyException e) {
@@ -117,6 +118,7 @@ public class UserService {
                     role,
                     st,
                     newHash != null ? newHash : current.passwordHash(),
+                    newHash != null,
                     now());
             return store.findById(userId).orElseThrow();
         });
@@ -141,7 +143,7 @@ public class UserService {
         }
         String newHash = hasher.hash(newPassword);
         tx.executeWithoutResult(status -> store.lockById(userId)
-                .ifPresent(u -> store.update(userId, u.displayName(), u.role(), u.status(), newHash, now())));
+                .ifPresent(u -> store.update(userId, u.displayName(), u.role(), u.status(), newHash, false, now())));
     }
 
     private Instant now() {

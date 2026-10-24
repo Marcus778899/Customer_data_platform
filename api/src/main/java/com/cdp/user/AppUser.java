@@ -11,7 +11,8 @@ public record AppUser(
         UserRole role,
         UserStatus status,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        int sessionEpoch) {
 
     public boolean active() {
         return status == UserStatus.ACTIVE;
