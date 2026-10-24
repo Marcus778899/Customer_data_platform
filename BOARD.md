@@ -101,12 +101,13 @@
 | user-auth-api | backend | done | 0 | PR #104 |
 | auth-session-design | architect | done | 0 | PR #107 |
 | profile-store-api | backend | blocked | 0 | 作廢（D-072） |
-| user-session-revoke | backend | todo | 0 |  |
-| profile-search-api | backend | in-progress | 0 |  |
+| user-session-revoke | backend | review | 0 |  |
+| profile-search-api | backend | qa-fail | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單
+- profile-search-api：review 退回 1 項但本輪不能再追加，待甲方決定 D-073；user-session-revoke 已 qa＋review 通過，排在它之後合併
 
 ## 注意事項（踩過的坑）
 
