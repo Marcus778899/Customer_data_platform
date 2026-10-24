@@ -78,6 +78,7 @@
 | 2026-10-22 | D-069 | 前端瀏覽器實測移到階段收尾的 uat，qa 以自動測試為準 |
 | 2026-10-23 | D-070 | React Flow 署名連結保留，不訂閱 |
 | 2026-10-23 | D-071 | 管理員重設密碼強制登出該使用者所有 session，併進下一張後端單 |
+| 2026-10-24 | D-072 | profile-store-api 作廢，用正確驗收範圍重開 |
 
 ## 任務狀態
 
@@ -99,12 +100,12 @@
 | compose-test-setup | architect | done | 0 | PR #97 |
 | user-auth-api | backend | done | 0 | PR #104 |
 | auth-session-design | architect | done | 0 | PR #107 |
-| profile-store-api | backend | blocked | 0 |  |
+| profile-store-api | backend | blocked | 0 | 作廢（D-072） |
 | user-session-revoke | backend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
-- profile-store-api：仲裁要改的舊驗收測試不在派工單範圍、派工單本輪不能再追加，待甲方決定 D-072
+- （無）
 
 ## 注意事項（踩過的坑）
 
