@@ -54,5 +54,7 @@ cdp:
   login:
     max-failures: 50
     lockout: PT15M
+  phone:
+    default-country-code: 886
   trace:
     plain-keys: cart_id,cart_total

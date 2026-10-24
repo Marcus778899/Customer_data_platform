@@ -23,11 +23,12 @@ public class EnrollmentQueryController {
 
     @GetMapping
     public Page<EnrollmentSummary> list(
-            @RequestParam String q,
+            @RequestParam(required = false) String q,
+            @RequestParam(name = "journey_id", required = false) String journeyId,
             @RequestParam(required = false) Set<EnrollmentStatus> status,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        return service.list(q, status, cursor, limit);
+        return service.list(q, journeyId, status, cursor, limit);
     }
 
     @GetMapping("/{enrollmentId}")
