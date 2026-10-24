@@ -102,6 +102,7 @@
 | auth-session-design | architect | done | 0 | PR #107 |
 | profile-store-api | backend | blocked | 0 | 作廢（D-072） |
 | user-session-revoke | backend | todo | 0 |  |
+| profile-search-api | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
