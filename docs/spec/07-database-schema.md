@@ -354,6 +354,7 @@ PRIMARY KEY (event_id)
 | V5 | `V5__drop_tenant_id.sql` | §12「V5」：7 張表移除 `tenant_id`、重建 `event` PK 與 7 個索引（D-063，REFACTOR-01） |
 | V6 | `V6__app_user.sql` | §12：`app_user`（不動既有表） |
 | V7 | `V7__profile_store.sql` | §12：`profile`、`profile_identifier`、自既有 Enrollment 與事件回填空白客戶、`enrollment_record` 兩個瀏覽索引 |
+| V7_1 | `V7_1__app_user_session_epoch.sql` | §12：`app_user.session_epoch`（D-071；用 7.1 不佔 V8） |
 | V8 | `V8__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
 
 ### 鐵則
@@ -443,7 +444,7 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 
 | 表 | 欄位（型別依 §2） | 鍵、索引、約束 |
 |---|---|---|
-| `app_user` | `user_id`、`email`（存小寫）、`display_name`、`password_hash`（BCrypt）、`role`（`VIEWER`／`EDITOR`／`ADMIN`）、`status`（`ACTIVE`／`DISABLED`）、`created_at`、`updated_at` | PK `user_id`；`uq_app_user_email (email)`（回到多租戶時另加成員表，D-051） |
+| `app_user` | `user_id`、`email`（存小寫）、`display_name`、`password_hash`（BCrypt）、`role`（`VIEWER`／`EDITOR`／`ADMIN`）、`status`（`ACTIVE`／`DISABLED`）、`created_at`、`updated_at`、`session_epoch`（INT，預設 0；管理員重設密碼 +1，session 比對，D-071，V7_1） | PK `user_id`；`uq_app_user_email (email)`（回到多租戶時另加成員表，D-051） |
 | `profile` | `profile_id`、`attributes` JSONB（預設 `{}`）、`created_at`、`updated_at` | PK `profile_id`；`ck_profile_attributes_size`：`octet_length(attributes::text) <= 32768` |
 | `profile_identifier` | `id_type`、`id_value`（已正規化，`profiles.md` §1.1）、`profile_id`、`created_at` | PK `(id_type, id_value)`（一個識別碼只屬於一位客戶）；`ix_profile_identifier_profile (profile_id)`；`ck_profile_identifier_type`（五種 `IdentifierType`）；`ck_profile_identifier_norm`：`EMAIL` = `lower(btrim(id_value))` 且含 `@`、`PHONE` 符合 `^\+[1-9][0-9]{6,14}$`、其他 = `btrim(id_value)` 且 1–200 字 |
 | `journey` | `journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (updated_at DESC, journey_id DESC)`；V8 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
