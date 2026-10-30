@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-075 develop 上只改文件的 push 要不要跳過測試（CI 加速 #1）
-- 背景：`ci-speedup-design`（PR #114，`docs/design/ci-speedup.md`）量到近 200 次 CI 有 48% 是 develop 上只改文件的 push（manager 的 `ae docs commit`），合計 456 分鐘。屬決策分級④（驗證範圍變小）
-- 選項：A. 這類 push 跳過 Check job（資安掃描照跑；PR 的 CI 不受影響，兜底見設計文件「威脅與對策」）／ B. 不跳，照現狀全跑
-- 建議：A。省一半 CI 次數；程式碼的每次變更仍在 PR 上完整驗證過才進 develop
-- 提出：architect（ci-speedup-design）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-075 develop 上只改文件的 push 跳過測試
+- 決定：A。develop 上只改文件的 push 跳過 Check job，資安掃描照跑；PR 的 CI 不變（`docs/design/ci-speedup.md` 做法 #1）
+- 理由：近 200 次 CI 有 48% 是這類 push；程式碼每次變更仍在 PR 上完整驗證過才進 develop
+- 影響：實作單 `ci-docs-skip`；開單時機依 10/24 暫停指示另定
+- 日期：2026-10-31
 
 ### D-074 依賴漏洞：破例開單升版
 - 決定：A。破例開 chore 單 `deps-security-upgrade`，backend 把 tomcat-embed-core、rabbitmq amqp-client、jackson 升到修正版，全部測試＋CI 驗證；合併後 user-session-revoke、profile-search-api sync 再合併
