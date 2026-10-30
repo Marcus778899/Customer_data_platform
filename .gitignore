@@ -1,12 +1,12 @@
 .env
 .worktrees/
-tasks/*
-!tasks/v[0-9]*/
-reports/
+.agent/tasks/*
+!.agent/tasks/v[0-9]*/
+.agent/reports/
 .hooklog/
 .venv
 node_modules
 __pycache__/
+coverage-reports/
 api/target/
 web/dist/
-.claude/agent-memory/
