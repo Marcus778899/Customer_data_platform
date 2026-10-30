@@ -108,7 +108,7 @@
 ## 卡住／待甲方決定
 
 - 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單
-- user-session-revoke 已 sync、等 CI 綠合併（甲方 2026-10-31 指示先合）
+- CI 依賴漏洞掃描擋住所有 PR 合併（tomcat／amqp-client／jackson 待升版），待甲方決定 D-074；user-session-revoke 等合併、profile-search-api backend 修 review 退回項中
 
 ## 注意事項（踩過的坑）
 
