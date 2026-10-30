@@ -3,6 +3,8 @@ package com.cdp.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,7 +41,7 @@ class UserServiceTest {
     }
 
     private static AppUser user(String id, UserRole role, UserStatus status) {
-        return new AppUser(id, id + "@example.com", "n", "$2a$old", role, status, T, T);
+        return new AppUser(id, id + "@example.com", "n", "$2a$old", role, status, T, T, 0);
     }
 
     private static UpdateUserRequest patch(String role, String status) {
@@ -84,7 +86,7 @@ class UserServiceTest {
                         assertThat(e.getMessage()).isEqualTo("至少要保留一位啟用中的管理員。");
                     });
         }
-        verify(store, never()).update(any(), any(), any(), any(), any(), any());
+        verify(store, never()).update(any(), any(), any(), any(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -119,6 +121,17 @@ class UserServiceTest {
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.INVALID_CREDENTIALS));
         assertThatThrownBy(() -> service.changePassword("a", "old-password-123", "short"))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
-        verify(store, never()).update(any(), any(), any(), any(), any(), any());
+        verify(store, never()).update(any(), any(), any(), any(), any(), anyBoolean(), any());
+    }
+
+    @Test
+    void update_bumps_session_epoch_only_when_password_is_given() {
+        when(store.lockActiveAdminIds()).thenReturn(List.of("a", "b"));
+        when(store.lockById("a")).thenReturn(Optional.of(user("a", UserRole.EDITOR, UserStatus.ACTIVE)));
+        when(store.findById("a")).thenReturn(Optional.of(user("a", UserRole.EDITOR, UserStatus.ACTIVE)));
+        service.update("a", new UpdateUserRequest("renamed", null, null, null));
+        verify(store).update(eq("a"), any(), any(), any(), any(), eq(false), any());
+        service.update("a", new UpdateUserRequest(null, null, null, "brand-new-password"));
+        verify(store).update(eq("a"), any(), any(), any(), any(), eq(true), any());
     }
 }

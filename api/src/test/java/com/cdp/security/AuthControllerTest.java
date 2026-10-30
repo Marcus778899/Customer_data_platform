@@ -48,7 +48,7 @@ class AuthControllerTest {
 
     private static AppUser user(UserStatus status) {
         Instant t = Instant.parse("2026-10-22T00:00:00Z");
-        return new AppUser("01JD0USER0000000000000001", "ops@example.com", "Ops", "$2a$hash", UserRole.EDITOR, status, t, t);
+        return new AppUser("01JD0USER0000000000000001", "ops@example.com", "Ops", "$2a$hash", UserRole.EDITOR, status, t, t, 0);
     }
 
     private HttpStatus loginStatus(String email, String password, MockHttpServletRequest req, MockHttpServletResponse res)
