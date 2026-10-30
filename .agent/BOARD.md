@@ -104,13 +104,16 @@
 | auth-session-design | architect | done | 0 | PR #107 |
 | profile-store-api | backend | blocked | 0 | 作廢（D-072） |
 | user-session-revoke | backend | review | 0 |  |
-| profile-search-api | backend | qa-fail | 0 |  |
-| ci-speedup-design | architect | in-progress | 0 |  |
+| profile-search-api | backend | qa | 0 |  |
+| ci-speedup-design | architect | qa | 0 |  |
+| deps-security-upgrade | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
 - 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單（例外：甲方 2026-10-31 要求 ci-speedup-design 調查 CI 加速）
 - CI 依賴漏洞掃描擋住所有 PR 合併：deps-security-upgrade 升版中（D-074），合併後 user-session-revoke、profile-search-api 再 sync
+- develop CI 的 Check 紅：LoginSessionAcceptanceTest.role_change_takes_effect_on_next_request 受測試執行順序影響（user-session-revoke 仲裁 TEST_WRONG，修正在該 PR 內），合併 user-session-revoke 後恢復
+- ci-speedup-design 待甲方決定 D-075
 
 ## 注意事項（踩過的坑）
 
