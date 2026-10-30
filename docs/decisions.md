@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-073 profile-search-api 的 review 退回無法寫進派工單（又撞到一輪一次追加）
-- 背景：architect review 退回 1 項（EMAIL 夾 Unicode 空白時 Java 放行、DB 擋下 → 回 500，契約要 400；`reports/profile-search-api.review.md`）。但本輪已用掉追加（修正派工單路徑筆誤），worker 沒有新 commit 前 `task.py amend` 不能再追加，同 D-072 的死結
-- 選項：A. 先 `pr.py sync`（develop 已有新的文件提交，合併前本來就要 sync），分支有了新 commit 再照常追加 review 結果、派回 worker ／ B. 甲方手動把 review 結果貼進派工單 ／ C. 不追加，直接把 review 檔路徑交給 worker 修（派工單少一段紀錄）
-- 建議：A。用的是合併前本來就要跑的步驟，不丟成果、甲方不用動手；但它等於借 sync 解開追加限制，所以先問你
-- 提出：manager（profile-search-api）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-073 profile-search-api 先 sync 再追加 review 結果
+- 決定：A。先 `ae pr sync profile-search-api`，分支有新 commit 後照常 `ae task amend` 追加 review 結果、派回 backend
+- 理由：sync 是合併前本來就要跑的步驟，不丟成果、甲方不用動手
+- 影響：無（流程照常，修正後重走 qa＋review）
+- 日期：2026-10-31
 
 ### D-072 profile-store-api 作廢，用正確範圍重開
 - 決定：B。作廢 profile-store-api（仲裁 TEST_WRONG 要改的舊驗收 `acceptance/query/EnrollmentQueryAcceptanceTest.java` 不在派工單範圍，且本輪已追加過，形成死結），以含該檔的驗收範圍重開新單，worker 重做

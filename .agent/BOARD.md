@@ -79,6 +79,7 @@
 | 2026-10-23 | D-070 | v0.2.0 | React Flow 署名連結保留，不訂閱 |
 | 2026-10-23 | D-071 | v0.2.0 | 管理員重設密碼強制登出該使用者所有 session，併進下一張後端單 |
 | 2026-10-24 | D-072 | v0.2.0 | profile-store-api 作廢，用正確驗收範圍重開 |
+| 2026-10-30 | D-073 | v0.2.0 | profile-search-api 先 sync 再追加 review 結果 |
 
 ## 任務狀態
 
@@ -107,7 +108,7 @@
 ## 卡住／待甲方決定
 
 - 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單
-- profile-search-api：review 退回 1 項但本輪不能再追加，待甲方決定 D-073；user-session-revoke 已 qa＋review 通過，排在它之後合併
+- user-session-revoke 已 sync、等 CI 綠合併（甲方 2026-10-31 指示先合）
 
 ## 注意事項（踩過的坑）
 
