@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class IdentifierNormalizer {
 
-    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+$");
+    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+$", Pattern.UNICODE_CHARACTER_CLASS);
     private static final Pattern PHONE = Pattern.compile("^\\+[1-9][0-9]{6,14}$");
     private static final Pattern COUNTRY_CODE = Pattern.compile("^[1-9][0-9]{0,2}$");
     private static final int MAX_OTHER_LENGTH = 200;

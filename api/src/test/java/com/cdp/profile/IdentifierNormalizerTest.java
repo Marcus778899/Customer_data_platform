@@ -14,6 +14,8 @@ class IdentifierNormalizerTest {
         assertThat(normalizer.normalize(IdentifierType.EMAIL, "  Amy@Example.COM ")).contains("amy@example.com");
         assertThat(normalizer.normalize(IdentifierType.EMAIL, "no-at")).isEmpty();
         assertThat(normalizer.normalize(IdentifierType.EMAIL, "a b@example.com")).isEmpty();
+        assertThat(normalizer.normalize(IdentifierType.EMAIL, "a　b@example.com")).isEmpty();
+        assertThat(normalizer.normalize(IdentifierType.EMAIL, "a b@example.com")).isEmpty();
     }
 
     @Test
