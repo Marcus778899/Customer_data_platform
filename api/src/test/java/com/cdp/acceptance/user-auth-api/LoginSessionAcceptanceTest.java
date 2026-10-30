@@ -299,6 +299,8 @@ class LoginSessionAcceptanceTest {
 
     @Test
     void role_change_takes_effect_on_next_request() throws Exception {
+        // 自己持有另一位啟用中的 ADMIN：降回 VIEWER 不受其他測試留下的狀態影響（否則依契約回 409 LAST_ADMIN）
+        AuthHttp.createUserId(port, uniqueEmail(), "ADMIN");
         String email = uniqueEmail();
         String id = AuthHttp.createUserId(port, email, "VIEWER");
         String cookie = AuthHttp.login(port, email, PASSWORD);
