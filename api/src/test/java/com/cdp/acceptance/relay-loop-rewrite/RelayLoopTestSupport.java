@@ -10,13 +10,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
+import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
+import com.cdp.acceptance.support.SharedContainers;
 import com.cdp.common.fault.FaultInjector;
 import com.cdp.common.fault.FaultPoint;
 
@@ -30,13 +34,20 @@ public class RelayLoopTestSupport {
     public static final Instant BASE = Instant.parse("2026-10-18T02:00:00Z");
 
     @Bean
+    DynamicPropertyRegistrar sharedContainers(Environment env) {
+        return SharedContainers.registrar("PT8S".equals(env.getProperty("cdp.relay.confirm-timeout")));
+    }
+
+    @Bean
     @ServiceConnection
+    @ConditionalOnProperty(name = "cdp.relay.confirm-timeout", havingValue = "PT8S")
     PostgreSQLContainer postgres() {
         return new PostgreSQLContainer("postgres:18-alpine");
     }
 
     @Bean
     @ServiceConnection
+    @ConditionalOnProperty(name = "cdp.relay.confirm-timeout", havingValue = "PT8S")
     RabbitMQContainer rabbit() {
         return new RabbitMQContainer("rabbitmq:4.3-management-alpine");
     }
