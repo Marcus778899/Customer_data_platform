@@ -110,10 +110,12 @@
 | ci-speedup-design | architect | done | 0 | PR #114 |
 | deps-security-upgrade | backend | done | 0 | PR #117 |
 | ci-docs-skip | architect | done | 0 | PR #116 |
+| ci-surefire-fork | backend | review | 0 |  |
 
 ## 卡住／待甲方決定
 
 - 甲方 2026-10-31：先完成 CI 加速（ci-surefire-fork → ci-container-share），之後再回產品開發
+- develop push 的 CI Security 紅：gitleaks 誤判驗收測試的虛構金鑰（.agent/reports/develop-gitleaks-finding.md），scan 單 gitleaks-test-allowlist 處理中
 
 ## 注意事項（踩過的坑）
 
