@@ -143,6 +143,15 @@
           </compilerArgs>
         </configuration>
       </plugin>
+      <!-- CI 加速（docs/design/ci-speedup.md 做法 2）：以類別為單位分到 2 個 JVM 平行跑；量過再調 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <forkCount>2</forkCount>
+          <reuseForks>true</reuseForks>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
