@@ -17,6 +17,18 @@
 
 ## 已決定
 
+### D-076 deps-security-upgrade 由 backend 補空 commit 交件
+- 決定：A。backend 補 `git commit --allow-empty`，訊息如實寫「驗證 e7fc134 後端全部測試 297 個通過、程式不用改」，之後照常 qa → review → CI → merge
+- 理由：這一輪程式確實不用改；qa、review、CI 照樣把關
+- 影響：流程工具缺「worker 確認不用改」的出口（qa「A」lock 後強制要 worker commit），留給甲方之後更新範本參考
+- 日期：2026-10-31
+
+### D-075 develop 上只改文件的 push 跳過測試
+- 決定：A。develop 上只改文件的 push 跳過 Check job，資安掃描照跑；PR 的 CI 不變（`docs/design/ci-speedup.md` 做法 #1）
+- 理由：近 200 次 CI 有 48% 是這類 push；程式碼每次變更仍在 PR 上完整驗證過才進 develop
+- 影響：實作單 `ci-docs-skip`；開單時機依 10/24 暫停指示另定
+- 日期：2026-10-31
+
 ### D-074 依賴漏洞：破例開單升版
 - 決定：A。破例開 chore 單 `deps-security-upgrade`，backend 把 tomcat-embed-core、rabbitmq amqp-client、jackson 升到修正版，全部測試＋CI 驗證；合併後 user-session-revoke、profile-search-api sync 再合併
 - 理由：不升版兩張單都無法合併；Critical 漏洞發版前 security 也會判 FAIL

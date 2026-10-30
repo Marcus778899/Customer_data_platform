@@ -81,6 +81,8 @@
 | 2026-10-24 | D-072 | v0.2.0 | profile-store-api 作廢，用正確驗收範圍重開 |
 | 2026-10-30 | D-073 | v0.2.0 | profile-search-api 先 sync 再追加 review 結果 |
 | 2026-10-30 | D-074 | v0.2.0 | 依賴漏洞破例開單升版（deps-security-upgrade） |
+| 2026-10-30 | D-075 | v0.2.0 | develop 只改文件的 push 跳過測試，資安掃描照跑 |
+| 2026-10-30 | D-076 | v0.2.0 | lock 後程式不用改：backend 補空 commit 交件 |
 
 ## 任務狀態
 
@@ -104,13 +106,17 @@
 | auth-session-design | architect | done | 0 | PR #107 |
 | profile-store-api | backend | blocked | 0 | 作廢（D-072） |
 | user-session-revoke | backend | review | 0 |  |
-| profile-search-api | backend | qa-fail | 0 |  |
-| ci-speedup-design | architect | in-progress | 0 |  |
+| profile-search-api | backend | qa | 0 |  |
+| ci-speedup-design | architect | review | 0 |  |
+| deps-security-upgrade | backend | in-progress | 0 |  |
+| ci-docs-skip | architect | review | 0 |  |
 
 ## 卡住／待甲方決定
 
 - 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單（例外：甲方 2026-10-31 要求 ci-speedup-design 調查 CI 加速）
-- CI 依賴漏洞掃描擋住所有 PR 合併：deps-security-upgrade 升版中（D-074），合併後 user-session-revoke、profile-search-api 再 sync
+- develop CI 的 Check 紅：LoginSessionAcceptanceTest.role_change_takes_effect_on_next_request 受測試執行順序影響（user-session-revoke 仲裁 TEST_WRONG，修正在該 PR 內），合併 user-session-revoke 後恢復
+- CI 依賴漏洞掃描擋住所有 PR 合併：deps-security-upgrade 升版中（D-074），合併後 user-session-revoke、profile-search-api、ci-speedup-design（已核可）、ci-docs-skip（qa＋review 通過）再 sync
+- deps-security-upgrade 補 LoginSessionAcceptanceTest 順序修正（解 CI 互卡）中；合併後 user-session-revoke、ci-speedup-design、ci-docs-skip、profile-search-api 依序 sync 合併（甲方 .wslconfig 已限記憶體，容器測試可平行）
 
 ## 注意事項（踩過的坑）
 
