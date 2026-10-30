@@ -110,7 +110,8 @@
 | ci-speedup-design | architect | done | 0 | PR #114 |
 | deps-security-upgrade | backend | done | 0 | PR #117 |
 | ci-docs-skip | architect | done | 0 | PR #116 |
-| ci-surefire-fork | backend | review | 0 |  |
+| ci-surefire-fork | backend | done | 0 | PR #120 |
+| gitleaks-test-allowlist | architect | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
