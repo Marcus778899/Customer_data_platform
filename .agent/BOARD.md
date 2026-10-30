@@ -107,8 +107,8 @@
 
 ## 卡住／待甲方決定
 
-- 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單
 - CI 依賴漏洞掃描擋住所有 PR 合併（tomcat／amqp-client／jackson 待升版），待甲方決定 D-074；user-session-revoke 等合併、profile-search-api backend 修 review 退回項中
+- 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單（例外：甲方 2026-10-31 要求 ci-speedup-design 調查 CI 加速）
 
 ## 注意事項（踩過的坑）
 
