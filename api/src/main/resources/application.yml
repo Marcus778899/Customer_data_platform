@@ -73,6 +73,9 @@ cdp:
     # 登入限速（D-045，auth.md §3）
     max-failures: ${CDP_LOGIN_MAX_FAILURES}
     lockout: ${CDP_LOGIN_LOCKOUT}
+  phone:
+    # profiles.md §1.1：0 開頭的手機號碼補上的國碼（只填數字，不含 +）
+    default-country-code: ${CDP_PHONE_DEFAULT_COUNTRY_CODE}
   trace:
     # 契約 §4.4：逗號分隔、可明文顯示的屬性鍵；空 = 全部遮罩
     plain-keys: ${CDP_TRACE_PLAIN_KEYS}

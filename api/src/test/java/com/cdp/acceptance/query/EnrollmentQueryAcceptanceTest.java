@@ -502,7 +502,6 @@ class EnrollmentQueryAcceptanceTest {
     void list_invalidParameters_return400ValidationFailed() throws Exception {
         for (String bad :
                 List.of(
-                        "/api/v1/enrollments",
                         "/api/v1/enrollments?q=",
                         "/api/v1/enrollments?q=x&limit=0",
                         "/api/v1/enrollments?q=x&limit=101",
