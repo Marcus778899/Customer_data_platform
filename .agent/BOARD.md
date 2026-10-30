@@ -113,7 +113,7 @@
 
 ## 卡住／待甲方決定
 
-- 甲方要求（2026-10-24）暫停開新單：profile-search-api、user-session-revoke 已合併；CI 加速（ci-surefire-fork、ci-container-share）待甲方確認是否繼續
+- 甲方 2026-10-31：先完成 CI 加速（ci-surefire-fork → ci-container-share），之後再回產品開發
 
 ## 注意事項（踩過的坑）
 
