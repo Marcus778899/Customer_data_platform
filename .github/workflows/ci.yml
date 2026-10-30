@@ -4,15 +4,15 @@ permissions:
   contents: read
 
 # PR 開到 develop / main 時先跑一次；合併（push）到 develop / main 後再跑一次
+# 檢查邏輯與工具版本在 agent-engineering 裡（ae ci …），升級工具就跟著更新；這裡只放專案自己的部分
 on:
   push:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
   pull_request:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
+
+env:
+  AE: .claude/skills/agent-engineering/bin/ae
 
 jobs:
   check:
@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       # 專案初始化（INIT）合併前還沒有 Makefile，後續步驟全部跳過
       - name: Detect Makefile
         id: detect
@@ -50,3 +52,37 @@ jobs:
       - name: Check
         if: steps.detect.outputs.found == 'true'
         run: make check
+      # 改到的程式碼覆蓋率（ae ci coverage-gate）：Makefile 還沒有 coverage target，加上後再補這一步
+
+  # 資安稽核：每個 PR 都跑，ae pr merge 要求所有 check 綠
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # 密鑰掃描要看整段歷史，刪掉的 secret 仍在 git 裡
+      # 工具本體（ae）：submodule 指到的版本。agent-engineering 是 private，用 repo secrets 的 AE_TOKEN
+      # （fine-grained token，只給 agent-engineering 的 Contents 唯讀）。不讓 checkout 順便抓 submodule：預設 token 讀不到別的 private repo
+      - name: Locate agent-engineering
+        id: ae
+        run: |
+          url=$(git config -f .gitmodules --get submodule..claude/skills/agent-engineering.url)
+          repo=${url#https://github.com/}
+          echo "repo=${repo%.git}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD:.claude/skills/agent-engineering)" >> "$GITHUB_OUTPUT"
+      - name: Checkout agent-engineering
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.ae.outputs.repo }}
+          ref: ${{ steps.ae.outputs.sha }}
+          path: .claude/skills/agent-engineering
+          token: ${{ secrets.AE_TOKEN || github.token }}
+          persist-credentials: false   # 後面會跑專案的程式，不留 token
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan (gitleaks, osv-scanner, semgrep)
+        run: '"$AE" ci security'

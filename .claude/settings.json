@@ -1,16 +1,7 @@
 {
-  "enabledMcpjsonServers": [
-    "playwright"
-  ],
   "permissions": {
     "allow": [
       "Bash(make check)",
-      "Bash(python3 scripts/board.py:*)",
-      "Bash(python3 scripts/task.py:*)",
-      "Bash(python3 scripts/pr.py:*)",
-      "Bash(python3 scripts/docs.py:*)",
-      "Bash(python3 scripts/check_env.py)",
-      "Bash(python3 scripts/validate_report.py:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue view:*)",
       "Bash(gh pr view:*)",
@@ -21,18 +12,24 @@
       "Bash(git log:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py:*)",
       "Bash(python3 -m http.server:*)",
       "Bash(docker compose:*)",
-      "Bash(python3 scripts/release.py open:*)",
-      "Bash(python3 scripts/check_env.py setup)"
+      "Bash(ae board:*)",
+      "Bash(ae task:*)",
+      "Bash(ae pr:*)",
+      "Bash(ae docs:*)",
+      "Bash(ae release open:*)",
+      "Bash(ae check-env)",
+      "Bash(ae check-env setup)",
+      "Bash(ae config)",
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py:*)",
+      "Bash(gh issue create:*)"
     ],
     "ask": [
-      "Bash(python3 scripts/init_project.py:*)",
-      "Bash(python3 scripts/pr.py approve:*)",
-      "Bash(python3 scripts/pr.py unblock:*)",
-      "Bash(python3 scripts/release.py finish:*)",
-      "Bash(dangerouslyDisableSandbox:true)"
+      "Bash(dangerouslyDisableSandbox:true)",
+      "Bash(ae pr approve:*)",
+      "Bash(ae pr unblock:*)",
+      "Bash(ae release finish:*)"
     ],
     "deny": [
       "Bash(git push:*)",
@@ -48,42 +45,9 @@
       "Bash(gh release upload:*)",
       "Bash(gh repo:*)",
       "Read(**/.env)",
-      "Edit(/scripts/**)",
-      "Edit(/contracts/**)",
-      "Edit(/CLAUDE.md)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/guard_paths.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/guard_bash.py\""
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "backend|frontend|architect|designer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/validate_report.py\""
-          }
-        ]
-      }
+      "Edit(/CLAUDE.md)",
+      "Edit(/.claude/**)",
+      "Edit(/.agent/config.toml)"
     ]
   },
   "sandbox": {
@@ -91,7 +55,6 @@
     "failIfUnavailable": false,
     "allowUnsandboxedCommands": false,
     "excludedCommands": [
-      "python3 scripts/init_project.py *",
       "docker compose *"
     ],
     "filesystem": {
@@ -104,9 +67,8 @@
         "~/.gradle"
       ],
       "denyWrite": [
-        "./scripts",
-        "./contracts",
-        "./CLAUDE.md"
+        "./CLAUDE.md",
+        "./.agent/config.toml"
       ]
     },
     "network": {
@@ -125,6 +87,7 @@
         "services.gradle.org"
       ],
       "allowLocalBinding": true
-    }
+    },
+    "enableWeakerNetworkIsolation": true
   }
 }
