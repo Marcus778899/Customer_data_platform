@@ -112,8 +112,8 @@
 ## 卡住／待甲方決定
 
 - 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單（例外：甲方 2026-10-31 要求 ci-speedup-design 調查 CI 加速）
-- CI 依賴漏洞掃描擋住所有 PR 合併：deps-security-upgrade 升版中（D-074），合併後 user-session-revoke、profile-search-api 再 sync
 - develop CI 的 Check 紅：LoginSessionAcceptanceTest.role_change_takes_effect_on_next_request 受測試執行順序影響（user-session-revoke 仲裁 TEST_WRONG，修正在該 PR 內），合併 user-session-revoke 後恢復
+- CI 依賴漏洞掃描擋住所有 PR 合併：deps-security-upgrade 升版中（D-074），合併後 user-session-revoke、profile-search-api、ci-speedup-design（已核可）再 sync
 
 ## 注意事項（踩過的坑）
 
