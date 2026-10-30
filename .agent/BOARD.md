@@ -80,6 +80,7 @@
 | 2026-10-23 | D-071 | v0.2.0 | 管理員重設密碼強制登出該使用者所有 session，併進下一張後端單 |
 | 2026-10-24 | D-072 | v0.2.0 | profile-store-api 作廢，用正確驗收範圍重開 |
 | 2026-10-30 | D-073 | v0.2.0 | profile-search-api 先 sync 再追加 review 結果 |
+| 2026-10-30 | D-074 | v0.2.0 | 依賴漏洞破例開單升版（deps-security-upgrade） |
 
 ## 任務狀態
 
@@ -104,11 +105,12 @@
 | profile-store-api | backend | blocked | 0 | 作廢（D-072） |
 | user-session-revoke | backend | review | 0 |  |
 | profile-search-api | backend | qa-fail | 0 |  |
+| ci-speedup-design | architect | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
-- CI 依賴漏洞掃描擋住所有 PR 合併（tomcat／amqp-client／jackson 待升版），待甲方決定 D-074；user-session-revoke 等合併、profile-search-api backend 修 review 退回項中
 - 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單（例外：甲方 2026-10-31 要求 ci-speedup-design 調查 CI 加速）
+- CI 依賴漏洞掃描擋住所有 PR 合併：deps-security-upgrade 升版中（D-074），合併後 user-session-revoke、profile-search-api 再 sync
 
 ## 注意事項（踩過的坑）
 

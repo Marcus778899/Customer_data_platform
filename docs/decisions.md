@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-074 依賴套件新公布漏洞擋住所有 PR 的 CI，是否破例開單升版
-- 背景：CI 資安掃描（osv-scanner）抓到 `api/pom.xml` 依賴的已知漏洞 21 個（4 Critical、9 High），都有修正版：tomcat-embed-core 11.0.24→11.0.25（4 個 9.1～9.8）、rabbitmq amqp-client 5.30.0→5.36.1、jackson-core／databind 3.1.5→3.1.7。是新公布的漏洞，不是這兩張單造成的，也不是誤判；但 user-session-revoke（PR #110）、profile-search-api 都因此不能合併。甲方 10/24 指示「這兩張合併後暫停、不開新單」
-- 選項：A. 破例開一張 chore 單 `deps-security-upgrade`（backend 升版到修正版、全部測試＋CI 驗證；升版本身屬 D-009 團隊安排），合併後兩張單 sync 再合併 ／ B. 維持暫停，兩張單做到 CI 前為止，等你恢復開單
-- 建議：A。不升版這兩張就合不進去，而且 Critical 漏洞發版前 security 也會判 FAIL，遲早要做
-- 提出：manager（user-session-revoke）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-074 依賴漏洞：破例開單升版
+- 決定：A。破例開 chore 單 `deps-security-upgrade`，backend 把 tomcat-embed-core、rabbitmq amqp-client、jackson 升到修正版，全部測試＋CI 驗證；合併後 user-session-revoke、profile-search-api sync 再合併
+- 理由：不升版兩張單都無法合併；Critical 漏洞發版前 security 也會判 FAIL
+- 影響：10/24「不開新單」的例外；升版本身屬 D-009 團隊安排
+- 日期：2026-10-31
 
 ### D-073 profile-search-api 先 sync 再追加 review 結果
 - 決定：A。先 `ae pr sync profile-search-api`，分支有新 commit 後照常 `ae task amend` 追加 review 結果、派回 backend
