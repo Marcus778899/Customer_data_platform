@@ -72,13 +72,14 @@
 | 2026-10-19 | D-063 | v0.2.0 | v0.2.0 從 schema 移除 tenant_id，廢除 CDP_TENANT_ID |
 | 2026-10-19 | D-064 | v0.2.0 | CDP_TENANT_ID 暫留 .env，REFACTOR-01 合併後再刪 |
 | 2026-10-19 | D-065 | v0.2.0 | 保留範本更新，補回編碼修正與決策版本欄 |
-| 2026-10-21 | D-066 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
-| 2026-10-21 | D-067 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
-| 2026-10-21 | D-068 | 前端第二批等範本修正（續做清理）後再開 |
-| 2026-10-22 | D-069 | 前端瀏覽器實測移到階段收尾的 uat，qa 以自動測試為準 |
-| 2026-10-23 | D-070 | React Flow 署名連結保留，不訂閱 |
-| 2026-10-23 | D-071 | 管理員重設密碼強制登出該使用者所有 session，併進下一張後端單 |
-| 2026-10-24 | D-072 | profile-store-api 作廢，用正確驗收範圍重開 |
+| 2026-10-21 | D-066 | v0.2.0 | 合併後本機清理可續做（chore merge-cleanup-resume），舊 worktree 資料夾一起清 |
+| 2026-10-21 | D-067 | v0.2.0 | 流程檔案只由甲方經範本更新修改，作廢 merge-cleanup-resume |
+| 2026-10-21 | D-068 | v0.2.0 | 前端第二批等範本修正（續做清理）後再開 |
+| 2026-10-22 | D-069 | v0.2.0 | 前端瀏覽器實測移到階段收尾的 uat，qa 以自動測試為準 |
+| 2026-10-23 | D-070 | v0.2.0 | React Flow 署名連結保留，不訂閱 |
+| 2026-10-23 | D-071 | v0.2.0 | 管理員重設密碼強制登出該使用者所有 session，併進下一張後端單 |
+| 2026-10-24 | D-072 | v0.2.0 | profile-store-api 作廢，用正確驗收範圍重開 |
+| 2026-10-30 | D-073 | v0.2.0 | profile-search-api 先 sync 再追加 review 結果 |
 
 ## 任務狀態
 
@@ -101,11 +102,13 @@
 | user-auth-api | backend | done | 0 | PR #104 |
 | auth-session-design | architect | done | 0 | PR #107 |
 | profile-store-api | backend | blocked | 0 | 作廢（D-072） |
-| user-session-revoke | backend | todo | 0 |  |
+| user-session-revoke | backend | review | 0 |  |
+| profile-search-api | backend | qa-fail | 0 |  |
 
 ## 卡住／待甲方決定
 
-- （無）
+- 甲方要求（2026-10-24）：profile-search-api、user-session-revoke 合併後暫停，不開新單
+- user-session-revoke 已 sync、等 CI 綠合併（甲方 2026-10-31 指示先合）
 
 ## 注意事項（踩過的坑）
 

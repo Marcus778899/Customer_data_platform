@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-073 profile-search-api 先 sync 再追加 review 結果
+- 決定：A。先 `ae pr sync profile-search-api`，分支有新 commit 後照常 `ae task amend` 追加 review 結果、派回 backend
+- 理由：sync 是合併前本來就要跑的步驟，不丟成果、甲方不用動手
+- 影響：無（流程照常，修正後重走 qa＋review）
+- 日期：2026-10-31
+
 ### D-072 profile-store-api 作廢，用正確範圍重開
 - 決定：B。作廢 profile-store-api（仲裁 TEST_WRONG 要改的舊驗收 `acceptance/query/EnrollmentQueryAcceptanceTest.java` 不在派工單範圍，且本輪已追加過，形成死結），以含該檔的驗收範圍重開新單，worker 重做
 - 理由：甲方不手動編輯派工單；重做只花 agent 時間

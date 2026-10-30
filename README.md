@@ -8,7 +8,7 @@
 
 Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell／cmd 會失敗）。
 
-1. 設定：`python3 scripts/check_env.py`，依提示在 `.env` 填入缺少的值
+1. 設定：`.claude/skills/agent-engineering/bin/ae check-env`，依提示在 `.env` 填入缺少的值（clone 後先 `git submodule update --init`）
 2. 安裝：`make setup`（需 Temurin 17、Node 24）；外部服務（需 Docker Desktop，起 PostgreSQL 與 RabbitMQ）：
    `docker compose --env-file .env -f docker-compose.yml up -d --wait`
 3. 啟動：後端 `make api-run`、前端 `make web-dev`（各開一個終端機）
@@ -39,11 +39,12 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | `docs/spec/` | 產品規格（事件契約、Enrollment、旅程定義、節點、發送管線、Segment DSL、資料表） |
 | `docs/design/` | 各設計單的設計文件（技術棧與分期見 `docs/design/INIT-01.md`） |
 | `docker-compose.yml` | 本機 PostgreSQL 18、RabbitMQ 4.3 |
-| `scripts/` | 團隊流程腳本（派工、PR、發版） |
+| `.claude/skills/agent-engineering/` | 團隊流程工具（git submodule，`ae` 指令：派工、PR、發版） |
+| `.agent/` | 團隊流程狀態：布告欄、派工單、回報 |
 
 ## 開發方式
 
-由 agent 團隊開發（規則見 `CLAUDE.md`）。分支：`main` ← `develop` ← `feat/…`、`fix/…`；每個階段合回 `main` 並打 tag。
+由 agent 團隊開發（[agent-engineering](https://github.com/Marcus778899/agent-engineering)，規則見 `CLAUDE.md`；`claude --agent manager` 開始）。分支：`main` ← `develop` ← `feat/…`、`fix/…`；每個階段合回 `main` 並打 tag。
 決策紀錄：`docs/decisions.md`；使用者測試：`docs/uat/`。
 
 ## 版本
