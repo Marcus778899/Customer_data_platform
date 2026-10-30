@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-076 deps-security-upgrade 卡在「worker 必須在測試 lock 後再 commit」
+- 背景：為解 CI 互卡，qa 把 `LoginSessionAcceptanceTest` 的順序修正 commit（e7fc134）並 lock；這一輪程式不用改，backend 已在 e7fc134 上跑完後端全部測試 297 個全過並更新回報。但 `ae pr` 規定 lock 之後必須有 worker 的新 commit 才算交件，否則不能派 qa 驗證，工具沒有「worker 確認不用改」的出口。PR #117 的 CI 正在跑 e7fc134
+- 選項：A. backend 補一個空 commit（`git commit --allow-empty`，訊息寫「驗證 e7fc134 後端全部測試 297 個通過、程式不用改」），之後照常 qa → review → CI → merge；等於用空 commit 滿足檢查，所以先問你 ／ B. 不補 commit，由甲方在流程工具加「worker 確認不用改」的出口（範本更新）後再繼續；在那之前 5 個 PR 都卡著
+- 建議：A。commit 內容如實記錄這一輪做了什麼，qa、review、CI 照樣把關；並把這個缺口記下，供甲方之後更新範本
+- 提出：manager（deps-security-upgrade）
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
