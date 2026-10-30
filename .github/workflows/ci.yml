@@ -14,9 +14,50 @@ on:
 env:
   AE: .claude/skills/agent-engineering/bin/ae
 
+# 同一個 PR 有新 push 時取消舊 run（docs/design/ci-speedup.md #4）；只作用在 pull_request：
+# push 的 group 帶 run_id，每個 run 自成一組，develop／main 的 push 不會被取消或排隊
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # develop／main 的 push 只改文件時跳過 check（docs/design/ci-speedup.md #1、D-075）；security 不受影響
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # 白名單：docs/**、.agent/**、根目錄 README.md、BOARD.md（刻意不用 **/*.md）
+      # 照跑的情況：非 push 事件（PR 一律全套）、before 全 0（新分支）、before 不在歷史裡（強推）、diff 失敗或為空、任一檔不在白名單
+      # --no-renames：搬移檔案時列出舊路徑與新路徑，從 api/ 搬到 docs/ 也會照跑
+      - name: Detect docs-only push
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          code=true
+          if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+            && files=$(git diff --no-renames --name-only "$BEFORE" "$AFTER") && [ -n "$files" ]; then
+            if ! printf '%s\n' "$files" | grep -Ev '^(docs/|\.agent/|README\.md$|BOARD\.md$)' >/dev/null; then
+              code=false
+            fi
+          fi
+          echo "event=$EVENT before=$BEFORE after=$AFTER code=$code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   check:
     name: Check
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
