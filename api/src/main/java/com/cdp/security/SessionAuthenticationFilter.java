@@ -28,6 +28,9 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     /** session 內只存使用者 ID。 */
     public static final String USER_ID_ATTRIBUTE = "user_id";
 
+    /** session 內存登入當下的 app_user.session_epoch（D-071）。 */
+    public static final String EPOCH_ATTRIBUTE = "session_epoch";
+
     private final UserService users;
 
     public SessionAuthenticationFilter(UserService users) {
@@ -53,7 +56,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         AppUser user = users.findActiveById(userId).orElse(null);
-        if (user == null) {
+        if (user == null || !(session.getAttribute(EPOCH_ATTRIBUTE) instanceof Integer epoch)
+                || epoch != user.sessionEpoch()) {
             session.invalidate();
             return;
         }

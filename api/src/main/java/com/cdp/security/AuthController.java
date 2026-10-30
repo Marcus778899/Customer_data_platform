@@ -111,6 +111,7 @@ public class AuthController {
         }
         HttpSession session = request.getSession(true);
         session.setAttribute(SessionAuthenticationFilter.USER_ID_ATTRIBUTE, user.userId());
+        session.setAttribute(SessionAuthenticationFilter.EPOCH_ATTRIBUTE, user.sessionEpoch());
         csrf.rotate(request, response);
         return ResponseEntity.noContent().build();
     }

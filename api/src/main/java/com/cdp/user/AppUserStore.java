@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
 public class AppUserStore {
 
     private static final String COLUMNS =
-            "user_id, email, display_name, password_hash, role, status, created_at, updated_at";
+            "user_id, email, display_name, password_hash, role, status, created_at, updated_at, session_epoch";
 
     private final JdbcClient jdbc;
 
@@ -27,7 +27,8 @@ public class AppUserStore {
     /** email 重複時丟 {@link org.springframework.dao.DuplicateKeyException}。 */
     public void insert(AppUser u) {
         jdbc.sql("insert into app_user (" + COLUMNS + ") values"
-                        + " (:id, :email, :name, :hash, :role, :status, :createdAt, :updatedAt)")
+                        + " (:id, :email, :name, :hash, :role, :status, :createdAt, :updatedAt, :epoch)")
+                .param("epoch", u.sessionEpoch())
                 .param("id", u.userId())
                 .param("email", u.email())
                 .param("name", u.displayName())
@@ -76,9 +77,14 @@ public class AppUserStore {
     }
 
     public void update(
-            String userId, String displayName, UserRole role, UserStatus status, String passwordHash, Instant at) {
+            String userId, String displayName, UserRole role, UserStatus status, String passwordHash,
+            boolean bumpEpoch,
+            Instant at) {
         jdbc.sql("update app_user set display_name = :name, role = :role, status = :status,"
-                        + " password_hash = :hash, updated_at = :at where user_id = :id")
+                        + " password_hash = :hash, updated_at = :at,"
+                        + " session_epoch = session_epoch + (case when :bump then 1 else 0 end)"
+                        + " where user_id = :id")
+                .param("bump", bumpEpoch)
                 .param("name", displayName)
                 .param("role", role.name())
                 .param("status", status.name())
@@ -97,7 +103,8 @@ public class AppUserStore {
                 UserRole.valueOf(rs.getString("role")),
                 UserStatus.valueOf(rs.getString("status")),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(),
-                rs.getObject("updated_at", OffsetDateTime.class).toInstant());
+                rs.getObject("updated_at", OffsetDateTime.class).toInstant(),
+                rs.getInt("session_epoch"));
     }
 
     private static OffsetDateTime ts(Instant instant) {
