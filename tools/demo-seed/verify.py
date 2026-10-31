@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """API-level end-to-end check of everything the frontend calls, against a running backend (make api-run)
-that was seeded by seed.py (run `make demo-seed` first, with the same CDP_DEMO_PASSWORD).
+that was seeded by seed.py (run `make demo-seed` first, with the same CDP_DEMO_PASSWORD). Run via `make demo-verify`.
 
 Env: API_PORT, CDP_ADMIN_API_KEY, CDP_INGEST_API_KEY, CDP_DEMO_PASSWORD. Secrets are never printed.
 Cookies are handled by hand (the session cookie is Secure and urllib would not send it over http).
@@ -16,7 +16,7 @@ import urllib.request
 BASE = "http://127.0.0.1:%s" % os.environ["API_PORT"]
 ADMIN_KEY = os.environ["CDP_ADMIN_API_KEY"]
 INGEST_KEY = os.environ["CDP_INGEST_API_KEY"]
-PASSWORD = os.environ["CDP_DEMO_PASSWORD"]
+PASSWORD = os.environ.get("CDP_DEMO_PASSWORD") or sys.exit("verify: set CDP_DEMO_PASSWORD (same value used for make demo-seed)")
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 FAILS = []
 
@@ -123,19 +123,17 @@ def main():
     st, prof = v.call("GET", "/api/v1/profiles/" + pid)
     check("GET /profiles/{id} 200 with masked identifiers", st == 200 and all(i["masked"] for i in prof["identifiers"] if i["type"] in ("EMAIL", "PHONE")),
           "identifiers=%s masked_paths=%d" % (mask_note(prof), len(prof["masked_paths"])))
-    # identifiers are masked in responses; the seed printed plain values -> the caller supplies them via env
-    plain = {
-        "PROFILE_ID": pid,
-        "EMAIL": os.environ.get("VERIFY_EMAIL"),
-        "PHONE": os.environ.get("VERIFY_PHONE"),
-        "MEMBER_ID": os.environ.get("VERIFY_MEMBER"),
-    }
+    # identifiers are masked in responses, so create a fresh customer here to know the plain values
+    import secrets
+    tag, newp = secrets.token_hex(3), "01" + "".join(secrets.choice("0123456789ABCDEFGHJKMNPQRSTVWXYZ") for _ in range(24))
+    plain = {"PROFILE_ID": newp, "EMAIL": "verify-%s@example.com" % tag,
+             "PHONE": "+886913%06d" % (int(tag, 16) % 1000000), "MEMBER_ID": "V-%s" % tag.upper()}
+    st, _ = ev.call("PUT", "/api/v1/profiles/" + newp, {"identifiers": [
+        {"type": k, "value": q} for k, q in plain.items() if k != "PROFILE_ID"]})
+    check("PUT /profiles creates the verification customer", st == 200)
     for kind, q in plain.items():
-        if not q:
-            check("search by %s (VERIFY_* env not set)" % kind, False)
-            continue
         st, js = v.call("GET", "/api/v1/profiles/search?q=" + urllib.parse.quote(q))
-        hit = [i for i in js["items"] if i["profile_id"] == pid] if st == 200 else []
+        hit = [i for i in js["items"] if i["profile_id"] == newp] if st == 200 else []
         check("search by %-10s -> that customer" % kind, len(hit) == 1 and hit[0]["matched_by"] == kind,
               "matched_by=%s items=%d" % (hit and hit[0]["matched_by"], len(js["items"]) if js else -1))
     st, js = v.call("GET", "/api/v1/profiles/%s/enrollments" % pid)
