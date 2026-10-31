@@ -113,6 +113,8 @@
 | ci-surefire-fork | backend | done | 0 | PR #120 |
 | gitleaks-test-allowlist | architect | done | 0 | PR #122 |
 | ci-container-share | qa | done | 0 | PR #124 |
+| relay-perf-test | qa | blocked | 0 | 作廢：負責角色開錯，改 relay-perf-bench |
+| demo-seed-integration | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
