@@ -84,6 +84,7 @@
 | 2026-10-30 | D-075 | v0.2.0 | develop 只改文件的 push 跳過測試，資安掃描照跑 |
 | 2026-10-30 | D-076 | v0.2.0 | lock 後程式不用改：backend 補空 commit 交件 |
 | 2026-10-31 | D-077 | v0.2.0 | v0.2.0 修正大量同時到期的推進效能 |
+| 2026-10-31 | D-078 | v0.2.0 | 派發與送達吞吐調校不納入 v0.2.0（backlog） |
 
 ## 任務狀態
 
@@ -115,12 +116,14 @@
 | gitleaks-test-allowlist | architect | done | 0 | PR #122 |
 | ci-container-share | qa | done | 0 | PR #124 |
 | relay-perf-test | qa | blocked | 0 | 作廢：負責角色開錯，改 relay-perf-bench |
-| demo-seed-integration | frontend | in-progress | 0 |  |
-| relay-perf-bench | backend | qa | 0 |  |
+| demo-seed-integration | frontend | qa | 0 |  |
+| relay-perf-bench | backend | review | 0 |  |
+| due-backlog-design | architect | review | 0 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
+- PR CI Security 紅：osv-scanner 新公布 npm minimatch 10.2.6 漏洞（GHSA-g3hv-75wg-m249，dev 相依，eslint／typescript-eslint 帶入），npm-minimatch-upgrade 處理中；擋住所有 PR 合併
 
 ## 注意事項（踩過的坑）
 
