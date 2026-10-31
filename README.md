@@ -12,7 +12,7 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 2. 安裝：`make setup`（需 Temurin 17、Node 24）；外部服務（需 Docker Desktop，起 PostgreSQL 與 RabbitMQ）：
    `docker compose --env-file .env -f docker-compose.yml up -d --wait`
 3. 啟動：後端 `make api-run`、前端 `make web-dev`（各開一個終端機）
-4. 示範資料：後端啟動後 `make demo-seed`，會印出可在軌跡頁查詢的客戶 ID（D-031）
+4. 示範資料：後端啟動後 `make demo-seed`（D-031），經公開 API 建立示範旅程、客戶（各種可搜尋識別碼）與檢視者／編輯者／管理員三個示範帳號，印出可查詢的客戶 ID 與登入帳號；密碼取 `.env` 的 `CDP_DEMO_PASSWORD`（可選，至少 12 字，不印出），沒設則每次隨機並印出一次。每次執行都是新的一批，不會撞到舊資料。之後 `make demo-verify` 以 API 驗證示範資料完整（需同一個 `CDP_DEMO_PASSWORD`）
 5. 檢查（lint＋不需容器的測試）：後端 `cd api && ./mvnw -B -q spotless:check && ./mvnw -B -Punit-only verify`；前端 `npm run lint -w web && npm test -w web`
 6. 後端全部測試（含驗收，需 Docker）：
    `docker compose --env-file .env -f compose.yaml run --rm test`
