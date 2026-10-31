@@ -22,7 +22,7 @@ WEB_DIR := web
 MVNW := ./mvnw -B
 COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 
-.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down demo-seed
+.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down demo-seed perf
 
 help:
 	@echo "make setup      install deps (Maven repo in ~/.m2, node_modules at checkout root)"
@@ -92,3 +92,8 @@ infra-down:
 # demo data via public API only; backend must be running (make api-run)
 demo-seed:
 	python3 tools/demo-seed/seed.py
+
+# relay / loop load test (D-038); needs make infra-up and a running backend (make api-run). Not part of make check or CI.
+# Optional: make perf PERF_SIZES=1000,10000 PERF_TIMEOUT=900
+perf:
+	python3 tools/perf/run.py
