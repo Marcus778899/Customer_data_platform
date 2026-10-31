@@ -119,35 +119,39 @@ def main():
     by_profile = {}
     for e in enr["items"][:6]:
         by_profile.setdefault(e["profile_id"], []).append(e)
-    pid = next(p for p, es in by_profile.items() if len(es) == 2)
-    st, prof = v.call("GET", "/api/v1/profiles/" + pid)
-    check("GET /profiles/{id} 200 with masked identifiers", st == 200 and all(i["masked"] for i in prof["identifiers"] if i["type"] in ("EMAIL", "PHONE")),
-          "identifiers=%s masked_paths=%d" % (mask_note(prof), len(prof["masked_paths"])))
-    # identifiers are masked in responses, so create a fresh customer here to know the plain values
-    import secrets
-    tag, newp = secrets.token_hex(3), "01" + "".join(secrets.choice("0123456789ABCDEFGHJKMNPQRSTVWXYZ") for _ in range(24))
-    plain = {"PROFILE_ID": newp, "EMAIL": "verify-%s@example.com" % tag,
-             "PHONE": "+886913%06d" % (int(tag, 16) % 1000000), "MEMBER_ID": "V-%s" % tag.upper()}
-    st, _ = ev.call("PUT", "/api/v1/profiles/" + newp, {"identifiers": [
-        {"type": k, "value": q} for k, q in plain.items() if k != "PROFILE_ID"]})
-    check("PUT /profiles creates the verification customer", st == 200)
-    for kind, q in plain.items():
-        st, js = v.call("GET", "/api/v1/profiles/search?q=" + urllib.parse.quote(q))
-        hit = [i for i in js["items"] if i["profile_id"] == newp] if st == 200 else []
-        check("search by %-10s -> that customer" % kind, len(hit) == 1 and hit[0]["matched_by"] == kind,
-              "matched_by=%s items=%d" % (hit and hit[0]["matched_by"], len(js["items"]) if js else -1))
-    st, js = v.call("GET", "/api/v1/profiles/%s/enrollments" % pid)
-    check("GET /profiles/{id}/enrollments", st == 200 and len(js["items"]) == 2, "items=%s" % [e["status"] for e in js["items"]])
-    done = next(e for e in js["items"] if e["status"] == "COMPLETED")
-    st, d = v.call("GET", "/api/v1/enrollments/" + done["enrollment_id"])
-    check("GET /enrollments/{id} detail with trace", st == 200 and len(d["trace"]) >= 4,
-          "trace=%s" % [(t["node_id"], t["out_port"]) for t in d["trace"]])
-    st, dl = v.call("GET", "/api/v1/enrollments/%s/deliveries" % done["enrollment_id"])
-    check("GET deliveries", st == 200 and dl["items"] and dl["items"][0]["status"] == "SENT", "status=%s" % [x["status"] for x in dl["items"]])
-    st, ver = v.call("GET", "/api/v1/journeys/%s/versions/%s" % (d["journey_id"], d["journey_version"]))
-    ids = {n["id"] for n in ver["nodes"]} if st == 200 else set()
-    check("GET journey version -> graph nodes cover trace nodes", st == 200 and {t["node_id"] for t in d["trace"]} <= ids,
-          "nodes=%d layout=%s" % (len(ids), ver.get("layout")))
+    pid = next((p for p, es in by_profile.items() if len(es) == 2), None)
+    check("newest batch has a customer with 2 enrollments", pid is not None, "run make demo-seed first and wait for the short wait to finish")
+    if pid is not None:
+        st, prof = v.call("GET", "/api/v1/profiles/" + pid)
+        check("GET /profiles/{id} 200 with masked identifiers", st == 200 and all(i["masked"] for i in prof["identifiers"] if i["type"] in ("EMAIL", "PHONE")),
+              "identifiers=%s masked_paths=%d" % (mask_note(prof), len(prof["masked_paths"])))
+        # identifiers are masked in responses, so create a fresh customer here to know the plain values
+        import secrets
+        tag, newp = secrets.token_hex(3), "01" + "".join(secrets.choice("0123456789ABCDEFGHJKMNPQRSTVWXYZ") for _ in range(24))
+        plain = {"PROFILE_ID": newp, "EMAIL": "verify-%s@example.com" % tag,
+                 "PHONE": "+886913%08d" % int(tag, 16), "MEMBER_ID": "V-%s" % tag.upper()}
+        st, _ = ev.call("PUT", "/api/v1/profiles/" + newp, {"identifiers": [
+            {"type": k, "value": q} for k, q in plain.items() if k != "PROFILE_ID"]})
+        check("PUT /profiles creates the verification customer", st == 200)
+        for kind, q in plain.items():
+            st, js = v.call("GET", "/api/v1/profiles/search?q=" + urllib.parse.quote(q))
+            hit = [i for i in js["items"] if i["profile_id"] == newp] if st == 200 else []
+            check("search by %-10s -> that customer" % kind, len(hit) == 1 and hit[0]["matched_by"] == kind,
+                  "matched_by=%s items=%d" % (hit and hit[0]["matched_by"], len(js["items"]) if js else -1))
+        st, js = v.call("GET", "/api/v1/profiles/%s/enrollments" % pid)
+        check("GET /profiles/{id}/enrollments", st == 200 and len(js["items"]) == 2, "items=%s" % [e["status"] for e in js["items"]])
+        done = next((e for e in js["items"] if e["status"] == "COMPLETED"), None)
+        check("customer has a COMPLETED enrollment", done is not None, "wait for the short wait (15s) to finish, then rerun")
+        if done is not None:
+            st, d = v.call("GET", "/api/v1/enrollments/" + done["enrollment_id"])
+            check("GET /enrollments/{id} detail with trace", st == 200 and len(d["trace"]) >= 4,
+                  "trace=%s" % [(t["node_id"], t["out_port"]) for t in d["trace"]])
+            st, dl = v.call("GET", "/api/v1/enrollments/%s/deliveries" % done["enrollment_id"])
+            check("GET deliveries", st == 200 and dl["items"] and dl["items"][0]["status"] == "SENT", "status=%s" % [x["status"] for x in dl["items"]])
+            st, ver = v.call("GET", "/api/v1/journeys/%s/versions/%s" % (d["journey_id"], d["journey_version"]))
+            ids = {n["id"] for n in ver["nodes"]} if st == 200 else set()
+            check("GET journey version -> graph nodes cover trace nodes", st == 200 and {t["node_id"] for t in d["trace"]} <= ids,
+                  "nodes=%d layout=%s" % (len(ids), ver.get("layout")))
 
     print("4. journey list -> read-only journey page (journeys.md 2)")
     st, jl = v.call("GET", "/api/v1/journeys?limit=5")

@@ -5,11 +5,12 @@
 Env (exported by the Makefile from .env): API_PORT, CDP_ADMIN_API_KEY, CDP_INGEST_API_KEY.
 Optional: CDP_DEMO_PASSWORD (>= 12 chars) = fixed password for the three demo accounts; unset = random per run.
 Customers are written through PUT /api/v1/profiles/{id} (profiles.md 2) with identifiers of every searchable kind
-(PROFILE_ID, EMAIL, PHONE, MEMBER_ID, LINE_USER_ID, DEVICE_ID); identifiers carry the run tag so reruns never conflict.
+(PROFILE_ID, EMAIL, PHONE, MEMBER_ID, LINE_USER_ID, DEVICE_ID); identifiers carry the run tag (EMAIL, MEMBER_ID, LINE_USER_ID, DEVICE_ID, and an 8-digit PHONE that maps one-to-one to the tag).
 Each run creates a NEW batch (new journeys, new customers, event names with a run tag),
 so reruns never collide with earlier data. Keys are never printed.
 Demo accounts (one per role) are created through POST /api/v1/users with the admin key; the emails are fixed,
-the passwords are random per run (a rerun resets them through PATCH /api/v1/users/{id}) and printed once.
+the passwords are CDP_DEMO_PASSWORD when set (not printed), otherwise random per run and printed once
+(a rerun resets them through PATCH /api/v1/users/{id}).
 """
 import json
 import os
@@ -94,7 +95,8 @@ DEMO_USERS = [
 def ensure_user(role_key, role, display_name):
     """Create the demo account, or reset its password and re-enable it when it already exists."""
     email = "demo-%s@example.com" % role_key
-    password = os.environ.get("CDP_DEMO_PASSWORD") or secrets.token_urlsafe(12)
+    fixed = os.environ.get("CDP_DEMO_PASSWORD")
+    password = fixed or secrets.token_urlsafe(12)
     body = {"email": email, "display_name": display_name, "role": role, "password": password}
     r = call("POST", "/api/v1/users", ADMIN_KEY, body, "POST /api/v1/users", tolerate=(409,))
     if r.get("_status") == 409:
@@ -104,7 +106,7 @@ def ensure_user(role_key, role, display_name):
             fail("POST /api/v1/users returned 409 but %s is not in the user list" % email)
         patch = {"display_name": display_name, "role": role, "status": "ACTIVE", "password": password}
         call("PATCH", "/api/v1/users/" + found[0]["user_id"], ADMIN_KEY, patch, "PATCH /api/v1/users")
-    return email, role, password
+    return email, role, ("(CDP_DEMO_PASSWORD)" if fixed else password)
 
 
 def journey(name, event_name, wait):
@@ -131,7 +133,7 @@ def put_profile(profile_id, who, n, tag):
     """Create the customer with one identifier of each searchable kind. Returns the (unmasked) identifiers."""
     ids = {
         "EMAIL": "%s-%s@example.com" % (who, tag),
-        "PHONE": "+886912%06d" % ((int(tag, 16) + n) % 1000000),
+        "PHONE": "+886912%08d" % (int(tag, 16) * 10 + n),
         "MEMBER_ID": "M-%s-%d" % (tag.upper(), n),
         "LINE_USER_ID": "U%s%02d" % (tag, n),
         "DEVICE_ID": "dev-%s-%d" % (tag, n),
@@ -209,7 +211,7 @@ def main():
     print("demo-seed: batch %s created (new journeys + new customers; rerun creates another batch)" % tag)
     print("  journey (short): %s v%s  | journey (long): %s v%s" % (
         js["journey_id"], js["version"], jl["journey_id"], jl["version"]))
-    print("Demo login accounts (passwords are new on every run):")
+    print("Demo login accounts (%s):" % ("password = CDP_DEMO_PASSWORD" if os.environ.get("CDP_DEMO_PASSWORD") else "passwords are new on every run"))
     for email, role, password in accounts:
         print("  %-7s %s  %s" % (role, email, password))
     print("Search these in the customer page (profile_id, e-mail, phone, member id, LINE user id, device id):")
