@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-077 v0.2.0 修正大量同時到期的推進效能
+- 決定：A。architect 確認原因並出修法（design 單），backend 實作，壓測重跑 1 萬／10 萬對照後再進收尾
+- 理由：第一版主打資料整合（D-051），匯入後大量 Enrollment 同時到期是主要情境；問題在引擎工作佇列（`enrollment_record`、`effect_outbox` 的到期查詢），與多租戶無關
+- 影響：新增 `due-backlog-design` 與其實作單；v0.2.0 收尾順延
+- 日期：2026-10-31
+
 ### D-076 deps-security-upgrade 由 backend 補空 commit 交件
 - 決定：A。backend 補 `git commit --allow-empty`，訊息如實寫「驗證 e7fc134 後端全部測試 297 個通過、程式不用改」，之後照常 qa → review → CI → merge
 - 理由：這一輪程式確實不用改；qa、review、CI 照樣把關

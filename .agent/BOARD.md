@@ -83,6 +83,7 @@
 | 2026-10-30 | D-074 | v0.2.0 | 依賴漏洞破例開單升版（deps-security-upgrade） |
 | 2026-10-30 | D-075 | v0.2.0 | develop 只改文件的 push 跳過測試，資安掃描照跑 |
 | 2026-10-30 | D-076 | v0.2.0 | lock 後程式不用改：backend 補空 commit 交件 |
+| 2026-10-31 | D-077 | v0.2.0 | v0.2.0 修正大量同時到期的推進效能 |
 
 ## 任務狀態
 
@@ -115,6 +116,7 @@
 | ci-container-share | qa | done | 0 | PR #124 |
 | relay-perf-test | qa | blocked | 0 | 作廢：負責角色開錯，改 relay-perf-bench |
 | demo-seed-integration | frontend | in-progress | 0 |  |
+| relay-perf-bench | backend | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
