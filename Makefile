@@ -24,7 +24,11 @@ WEB_DIR := web
 MVNW := ./mvnw -B
 COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 
+<<<<<<< HEAD
 .PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down demo-seed demo-verify
+=======
+.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down demo-seed perf
+>>>>>>> develop
 
 help:
 	@echo "make setup      install deps (Maven repo in ~/.m2, node_modules at checkout root)"
@@ -95,6 +99,13 @@ infra-down:
 demo-seed:
 	python3 tools/demo-seed/seed.py
 
+<<<<<<< HEAD
 # API-level end-to-end check after demo-seed; needs make api-run and the same CDP_DEMO_PASSWORD
 demo-verify:
 	python3 tools/demo-seed/verify.py
+=======
+# relay / loop load test (D-038); needs make infra-up and a running backend (make api-run). Not part of make check or CI.
+# Optional: make perf PERF_SIZES=1000,10000 PERF_TIMEOUT=900
+perf:
+	python3 tools/perf/run.py
+>>>>>>> develop
