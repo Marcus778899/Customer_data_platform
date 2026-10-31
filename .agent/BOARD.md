@@ -119,6 +119,7 @@
 | demo-seed-integration | frontend | qa | 0 |  |
 | relay-perf-bench | backend | review | 0 |  |
 | due-backlog-design | architect | review | 0 |  |
+| npm-minimatch-upgrade | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
