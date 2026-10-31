@@ -31,6 +31,13 @@ public class JdbcOutboxStore implements OutboxStore {
                     + " visit_seq, effect_index, effect_type, payload, status, available_at,"
                     + " publish_count, created_at, published_at";
 
+    /** relay 搶列 SQL（具名參數 :lease、:now、:limit）；public 供驗收測試 EXPLAIN。 */
+    public static final String CLAIM_DUE_SQL =
+            "update effect_outbox set available_at = :lease where idempotency_key in ("
+                    + " select idempotency_key from effect_outbox where status = 'PENDING'"
+                    + " and available_at <= :now order by available_at, idempotency_key"
+                    + " limit :limit for update skip locked) returning " + COLUMNS;
+
     /** 條件式回寫（fencing）：status 仍為 PENDING 且 available_at 仍是搶列時的 lease。參數：at、key、lease。 */
     private static final String MARK_PUBLISHED =
             "update effect_outbox set status = 'PUBLISHED', published_at = ?,"
@@ -80,11 +87,7 @@ public class JdbcOutboxStore implements OutboxStore {
 
     @Override
     public List<OutboxEntry> claimDue(Instant now, Instant leaseUntil, int limit) {
-        return jdbc.sql(
-                        "update effect_outbox set available_at = :lease where idempotency_key in ("
-                                + " select idempotency_key from effect_outbox where status = 'PENDING'"
-                                + " and available_at <= :now order by available_at, idempotency_key"
-                                + " limit :limit for update skip locked) returning " + COLUMNS)
+        return jdbc.sql(CLAIM_DUE_SQL)
                 .param("lease", ts(leaseUntil))
                 .param("now", ts(now))
                 .param("limit", limit)

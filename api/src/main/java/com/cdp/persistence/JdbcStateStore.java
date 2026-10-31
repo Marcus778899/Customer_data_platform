@@ -43,6 +43,13 @@ public class JdbcStateStore implements StateStore {
                     + " trigger_snapshot, dedup_key, variables, delivery_history, enrolled_at,"
                     + " updated_at, terminated_at, termination_reason";
 
+    /** 到期推進的搶列 SQL（具名參數 :now、:limit）；public 供驗收測試 EXPLAIN。 */
+    public static final String LOCK_DUE_SQL =
+            "select " + ENROLLMENT_COLUMNS + " from enrollment_record"
+                    + " where status = 'WAITING' and next_wake_at is not null"
+                    + " and next_wake_at <= :now order by next_wake_at, enrollment_id"
+                    + " limit :limit for update skip locked";
+
     private final JdbcClient jdbc;
     private final JsonMapper json;
     private final Timer timer;
@@ -108,11 +115,7 @@ public class JdbcStateStore implements StateStore {
 
     @Override
     public List<EnrollmentState> lockDue(Instant now, int limit) {
-        return jdbc.sql(
-                        "select " + ENROLLMENT_COLUMNS + " from enrollment_record"
-                                + " where status = 'WAITING' and next_wake_at is not null"
-                                + " and next_wake_at <= :now order by next_wake_at, enrollment_id"
-                                + " limit :limit for update skip locked")
+        return jdbc.sql(LOCK_DUE_SQL)
                 .param("now", ts(now))
                 .param("limit", limit)
                 .query((rs, n) -> map(rs))

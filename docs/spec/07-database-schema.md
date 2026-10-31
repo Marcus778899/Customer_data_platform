@@ -160,7 +160,7 @@ Partition 同理，不需要。那是給 `event` 表的（億級、有時間維�
 | 索引 | 服務誰 | 為什麼是 partial |
 |---|---|---|
 | `uq_enrollment_dedup`<br>`(journey_id, profile_id, dedup_key)`<br>`WHERE dedup_key IS NOT NULL` | G3 併發去重 | `COOLDOWN` / `UNLIMITED` 模式的 `dedup_key` 是 null，不該佔唯一性 |
-| `ix_enrollment_wake`<br>`(next_wake_at)`<br>`WHERE status = 'WAITING' AND next_wake_at IS NOT NULL` | `StateStore.lockDue()` | 只有 `WAITING` 需要被掃，其餘是死重量 |
+| `ix_enrollment_wake`<br>`(next_wake_at, enrollment_id)`<br>`WHERE status = 'WAITING' AND next_wake_at IS NOT NULL` | `StateStore.lockDue()` | 只有 `WAITING` 需要被掃，其餘是死重量 |
 | `ix_enrollment_wake_event`<br>`(profile_id, wake_event_name)`<br>`WHERE status = 'WAITING' AND wake_event_name IS NOT NULL` | `StateStore.findWaitingForEvent()` | **必須含 `profile_id`**，理由見 `04` §7 |
 | `ix_enrollment_journey_active`<br>`(journey_id)`<br>`WHERE terminated_at IS NULL` | G10 緊急停止、全域退出的批次操作 | 終態實例不需要被批次操作掃到 |
 
@@ -355,6 +355,7 @@ PRIMARY KEY (event_id)
 | V6 | `V6__app_user.sql` | §12：`app_user`（不動既有表） |
 | V7 | `V7__profile_store.sql` | §12：`profile`、`profile_identifier`、自既有 Enrollment 與事件回填空白客戶、`enrollment_record` 兩個瀏覽索引 |
 | V7_1 | `V7_1__app_user_session_epoch.sql` | §12：`app_user.session_epoch`（D-071；用 7.1 不佔 V8） |
+| V7_2 | `V7_2__due_queue_tiebreak_index.sql` | §12「V7_2」：`ix_enrollment_wake`、`ix_effect_outbox_due` 同名重建並補第二排序欄（D-077；不佔 V8） |
 | V8 | `V8__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
 
 ### 鐵則
@@ -390,7 +391,7 @@ DDL 正本為 `api/src/main/resources/db/migration/V2__engine_pipeline.sql`；�
 |---|---|---|
 | `event.dispatched_at` | 扇出（比對 EventSource、建立 Enrollment）結束時間；遲到 > 24h、重試用完（§11）也標上但不建立（`01` §6） | V3 起改 `ix_event_dispatch_queue`（§11） |
 | `enrollment_record` 查詢索引 | 軌跡頁依客戶列 Enrollment，新到舊 | `ix_enrollment_profile (profile_id, enrolled_at DESC, enrollment_id DESC)` |
-| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`（v0.2.0 起 `available_at` 兼作 lease 與 fencing 值，見 §12「relay」）；confirm 才標 `PUBLISHED`；`publish_count` 只在標 `PUBLISHED`（`markPublished`）時遞增，reschedule 不動；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at) WHERE status='PENDING'` |
+| `effect_outbox` | 與狀態同一交易寫入的 Effect；`status` = `PENDING`／`PUBLISHED`／`CANCELLED`；relay 只推 `PENDING` 且 `available_at <= now`（v0.2.0 起 `available_at` 兼作 lease 與 fencing 值，見 §12「relay」）；confirm 才標 `PUBLISHED`；`publish_count` 只在標 `PUBLISHED`（`markPublished`）時遞增，reschedule 不動；發佈失敗（nack／returned／逾時）或未列的 `effect_type` → 留 `PENDING`、`available_at = now + OUTBOX_RELAY_RETRY_DELAY`，不用 MQ 延遲 | PK `idempotency_key`；`ix_effect_outbox_due (available_at, idempotency_key) WHERE status='PENDING'`（V7_2 補第二欄） |
 | `delivery_task` | 每個 SendMessage 一列，consumer 冪等依據（已 `SENT` 即丟棄重投）；`status` = `PENDING`／`SENT`／`SKIPPED`／`FAILED`／`CANCELLED`，`SKIPPED` 必帶 `skip_reason`（CHECK）；`visit_seq` = `node_trace.seq` | PK `idempotency_key`；`ix_delivery_task_enrollment (enrollment_id, attempted_at DESC, idempotency_key DESC)` |
 | `mock_channel_message` | Mock 通道「已送出」的訊息，與 `delivery_task` 同一交易寫入；驗收「恰好一則」數這張表 | PK `idempotency_key` |
 
@@ -475,11 +476,23 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 - 引擎與 API 讀客戶資料一律即時查表、不快取；其他來源寫入後，下一次查詢或推進即可見
 - 整合入口的資料表與 DB 帳號權限由 DESIGN-04 定，本版不建（同樣不帶 `tenant_id`，§2）
 
+### V7_2：到期佇列索引補第二排序欄（D-077）
+
+一支 migration、一個交易：`DROP INDEX` 後以**原名**重建，不並存兩份。查詢文字不變（`ORDER BY next_wake_at, enrollment_id`、`ORDER BY available_at, idempotency_key`），兩個排序欄都在索引內，大量同時到期時 `LIMIT` 讀到 limit 列就停，不再排序（原本單欄索引在並列時為 O(N²)）。
+
+| 索引 | 重建為 |
+|---|---|
+| `ix_enrollment_wake` | `(next_wake_at, enrollment_id) WHERE status = 'WAITING' AND next_wake_at IS NOT NULL` |
+| `ix_effect_outbox_due` | `(available_at, idempotency_key) WHERE status = 'PENDING'` |
+
+- down：同名重建回單欄 `(next_wake_at)`、`(available_at)`，條件不變（寫在 migration 檔頭）
+- 不用 `CREATE INDEX CONCURRENTLY`：Flyway 在應用程式啟動、迴圈與 API 開始前執行，這兩類列少；`CONCURRENTLY` 不能在交易內、失敗會留 INVALID 索引。收件區（v0.4.0）之後的大表索引變更改用 `CONCURRENTLY`
+
 ### relay（`effect_outbox`，不需 migration）
 
 | 步驟 | SQL 語意 |
 |---|---|
-| 搶列（短交易） | `PENDING` 且 `available_at <= now`，`ORDER BY available_at`，`LIMIT n FOR UPDATE SKIP LOCKED`，同一敘述把 `available_at` 設為 `lease_until = now + OUTBOX_RELAY_LEASE` 並回傳列；提交後不持鎖 |
+| 搶列（短交易） | `PENDING` 且 `available_at <= now`，`ORDER BY available_at, idempotency_key`，`LIMIT n FOR UPDATE SKIP LOCKED`，同一敘述把 `available_at` 設為 `lease_until = now + OUTBOX_RELAY_LEASE` 並回傳列；提交後不持鎖 |
 | 發送（交易外） | 整批 publish、一起等 confirm（上限 `OUTBOX_RELAY_CONFIRM_TIMEOUT`） |
 | 回寫（條件式） | 成功：`status='PUBLISHED'`、`published_at`、`publish_count+1`，**`WHERE status='PENDING' AND available_at = lease_until`**；失敗：同條件下 `available_at = now + OUTBOX_RELAY_RETRY_DELAY`。影響 0 列 = lease 已過期被別人重搶或已被取消，丟棄這次結果 |
 | 取消 | 進入終態、旅程停止：`PENDING` → `CANCELLED`（不論是否被搶走）；之後的回寫因 `status` 條件失效；已在 MQ 的訊息由 consumer 讀到 `CANCELLED` 列即寫 `delivery_task.CANCELLED` 後 ack |
