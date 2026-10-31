@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-078 派發與送達吞吐調校不納入 v0.2.0
+- 決定：A。不納入 v0.2.0，開 backlog issue
+- 理由：派發約 210 筆／秒、consumer 約 115 筆／秒，不隨積壓變慢；D-038 沒有流量目標
+- 影響：backlog issue；due-backlog-design 只處理推進迴圈與 relay 的到期查詢
+- 日期：2026-10-31
+
 ### D-077 v0.2.0 修正大量同時到期的推進效能
 - 決定：A。architect 確認原因並出修法（design 單），backend 實作，壓測重跑 1 萬／10 萬對照後再進收尾
 - 理由：第一版主打資料整合（D-051），匯入後大量 Enrollment 同時到期是主要情境；問題在引擎工作佇列（`enrollment_record`、`effect_outbox` 的到期查詢），與多租戶無關
