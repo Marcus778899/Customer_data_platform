@@ -142,7 +142,6 @@
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - 遮罩白名單改為程式內建預設（甲方 11-02 決定下一版做），issue #184
-- v0.2.0 待甲方驗收：uat 第 4 輪 PASS（minor T-F1 → backlog #187）、資安 PASS f9f973c；請甲方勾 docs/uat/v0.2.0.md 清單並寫 甲方驗收：PASS
 
 ## 注意事項（踩過的坑）
 
