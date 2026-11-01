@@ -2,15 +2,17 @@ import { useCallback, useState, type FormEvent } from 'react'
 import { listEnrollments, listJourneys } from '../api/client'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
-import { Badge, ErrorBox, MoreControls, Skeleton, Time } from '../components/ui'
+import { Badge, ErrorBox, MoreControls, Skeleton } from '../components/ui'
+import type { EnrollmentStatus, EnrollmentSummary } from '../api/types'
 import { ENROLLMENT_STATUS } from '../format'
+import { enrollmentStatusText, stepTitle } from '../plain'
 import { usePagedList } from '../hooks'
 import { navigate, type Loc } from '../router'
 import { useFetch } from '../useFetch'
 
 const STATUSES = Object.keys(ENROLLMENT_STATUS) as (keyof typeof ENROLLMENT_STATUS)[]
 
-/** 最近 Enrollment 瀏覽（D-030）：不收 q，可依狀態、旅程篩選；精確查詢走 `/` */
+/** 旅程進度瀏覽（D-030）：不收 q，可依狀態、旅程篩選；精確查詢走 `/` */
 export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
   const params = new URLSearchParams(loc.search)
   const status = params.get('status') ?? ''
@@ -36,13 +38,13 @@ export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
 
   return (
     <>
-      <Crumbs items={[{ label: '旅程', to: '/journeys' }, { label: '最近的 Enrollment' }]} />
+      <Crumbs items={[{ label: '旅程', to: '/journeys' }, { label: '旅程進度' }]} />
       <div className="pagehead">
         <div>
-          <h1>最近的 Enrollment</h1>
-          <p className="muted">依進入時間新到舊。要查特定客戶或 Enrollment，請用精確查詢。</p>
+          <h1>旅程進度</h1>
+          <p className="muted">最近加入旅程的客戶，新到舊。要查特定客戶，請用精確查詢。</p>
         </div>
-        <AppLink to="/">依 ID 查詢</AppLink>
+        <AppLink to="/">用客戶 ID 查詢</AppLink>
       </div>
       <FilterForm
         key={loc.search}
@@ -53,10 +55,10 @@ export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
         onSubmit={submit}
       />
       {loading && <Skeleton lines={4} />}
-      {error && <ErrorBox title="無法載入 Enrollment。" error={error} onRetry={reload} />}
+      {error && <ErrorBox title="無法載入旅程進度。" error={error} onRetry={reload} />}
       {data && items.length === 0 && (
         <div className="card msg" role="status">
-          <h2 className="sec">找不到符合條件的 Enrollment</h2>
+          <h2 className="sec">找不到符合條件的旅程進度</h2>
           <p className="muted">試著放寬狀態或旅程條件。</p>
         </div>
       )}
@@ -64,39 +66,34 @@ export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
         <>
           <div className="card scroll">
             <table className="stack">
-              <caption>已載入 {items.length} 筆，依進入時間新到舊</caption>
+              <caption>已載入 {items.length} 筆，新到舊</caption>
               <thead>
                 <tr>
-                  <th scope="col">旅程（版本）</th>
+                  <th scope="col">客戶</th>
+                  <th scope="col">旅程</th>
                   <th scope="col">狀態</th>
-                  <th scope="col">目前節點</th>
-                  <th scope="col">進入時間</th>
-                  <th scope="col">最後更新</th>
+                  <th scope="col">目前在哪一步</th>
+                  <th scope="col">下一步</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((r) => {
-                  const st = ENROLLMENT_STATUS[r.status]
-                  return (
-                    <tr key={r.enrollment_id}>
-                      <td data-label="旅程">
-                        <AppLink className="tap" to={`/enrollments/${encodeURIComponent(r.enrollment_id)}`}>
-                          {r.journey_name}（v{r.journey_version}）
-                        </AppLink>
-                      </td>
-                      <td data-label="狀態">
-                        <Badge tone={st.tone}>{st.label}</Badge>
-                      </td>
-                      <td data-label="目前節點">{r.current_node_name ?? r.current_node_type}</td>
-                      <td data-label="進入時間" className="nw">
-                        <Time iso={r.enrolled_at} />
-                      </td>
-                      <td data-label="最後更新" className="nw">
-                        <Time iso={r.updated_at} />
-                      </td>
-                    </tr>
-                  )
-                })}
+                {items.map((r) => (
+                  <tr key={r.enrollment_id}>
+                    <td data-label="客戶">
+                      <CustomerLink profileId={r.profile_id} />
+                    </td>
+                    <td data-label="旅程">
+                      <AppLink className="tap" to={`/enrollments/${encodeURIComponent(r.enrollment_id)}`}>
+                        {r.journey_name}
+                      </AppLink>
+                    </td>
+                    <td data-label="狀態">
+                      <StatusBadge status={r.status} />
+                    </td>
+                    <td data-label="目前在哪一步">{stepText(r)}</td>
+                    <td data-label="下一步">{nextText(r.status)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -104,6 +101,40 @@ export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
         </>
       )}
     </>
+  )
+}
+
+/** 目前（或最後）在哪一步的白話文字；節點型別不直接顯示 */
+export const stepText = (r: EnrollmentSummary) => stepTitle(r.current_node_type, r.current_node_name) ?? '旅程開始'
+
+/** 列表「下一步」：摘要沒有 wake_at 與旅程定義，只依狀態給一句白話 */
+export function nextText(status: EnrollmentStatus): string {
+  switch (status) {
+    case 'WAITING':
+      return '時間到會自動繼續'
+    case 'ACTIVE':
+    case 'PENDING':
+      return '處理中'
+    case 'FAILED':
+      return '需要技術人員處理'
+    case 'SUSPENDED':
+      return '已暫停'
+    default:
+      return '—'
+  }
+}
+
+/** 狀態徽章：顏色沿用 ENROLLMENT_STATUS，文字用白話 */
+export function StatusBadge({ status }: { status: EnrollmentStatus }) {
+  return <Badge tone={ENROLLMENT_STATUS[status].tone}>{enrollmentStatusText(status)}</Badge>
+}
+
+/** 客戶欄：摘要只有 profile_id，不顯示 ID，改為連到客戶頁 */
+export function CustomerLink({ profileId }: { profileId: string }) {
+  return (
+    <AppLink className="tap" to={`/customers/${encodeURIComponent(profileId)}`}>
+      查看客戶
+    </AppLink>
   )
 }
 
@@ -129,7 +160,7 @@ function FilterForm({
   // 網址指定了旅程但清單還沒載到（或不在清單內）時，仍保留該選項
   const options = journeys.some(([id]) => id === j) || !j ? journeys : [...journeys, [j, j] as const]
   return (
-    <form className="search card" aria-label="篩選 Enrollment" onSubmit={handle}>
+    <form className="search card" aria-label="篩選旅程進度" onSubmit={handle}>
       <div className="field">
         <label htmlFor="bj">旅程</label>
         <select id="bj" value={j} onChange={(e) => setJ(e.target.value)}>
@@ -147,7 +178,7 @@ function FilterForm({
           <option value="">全部</option>
           {STATUSES.map((v) => (
             <option key={v} value={v}>
-              {ENROLLMENT_STATUS[v].label}（{v}）
+              {enrollmentStatusText(v)}
             </option>
           ))}
         </select>

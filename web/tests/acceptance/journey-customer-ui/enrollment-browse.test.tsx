@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * journey-customer-ui：最近 Enrollment 瀏覽（D-030；journey-engine §4 `/enrollments`，`q` 省略 = 瀏覽）。
+ * journey-customer-ui：最近的旅程進度瀏覽（D-079 改稱；D-030；journey-engine §4 `/enrollments`，`q` 省略 = 瀏覽）。
  * 網址 ROUTES.browse（= `/enrollments`，routes.md §1）；「旅程」篩選控制項（label 含「旅程」的 <select>，選項來自 GET /api/v1/journeys）是假設，見 fixtures.tsx。
  */
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
@@ -30,20 +30,22 @@ function openBrowse(routes: Parameters<typeof backend>[0] = {}) {
   return api
 }
 
-describe('最近 Enrollment 瀏覽', () => {
-  it('不輸入 q 即載入最近的 Enrollment（請求不帶 q），列出旅程（版本）、狀態、目前節點、進入時間，新到舊', async () => {
+describe('最近的旅程進度瀏覽', () => {
+  it('不輸入 q 即載入最近的旅程進度（請求不帶 q），欄位＝客戶、旅程、狀態、目前在哪一步、下一步，新到舊（D-079、D-080）', async () => {
     const api = openBrowse()
     const table = await screen.findByRole('table')
     expect(browseCalls(api).length).toBeGreaterThan(0)
     expect(params(browseCalls(api)[0]).has('q')).toBe(false)
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim()))
+      .toEqual(['客戶', '旅程', '狀態', '目前在哪一步', '下一步'])
     const r = within(table).getAllByRole('row').slice(1)
     expect(r).toHaveLength(2)
-    expect(r[0].textContent).toContain('棄單挽回（v3）')
+    expect(r[0].textContent).toContain('棄單挽回')
     expect(r[0].textContent).toContain('等待中')
     expect(r[0].textContent).toContain('等 3 天')
-    expect(r[0].textContent).toContain('2026-10-18 10:00')
-    expect(r[1].textContent).toContain('新會員歡迎（v7）')
-    expect(r[1].textContent).toContain('已完成')
+    expect(r[1].textContent).toContain('新會員歡迎')
+    expect(r[1].textContent).toContain('已走完')
+    expect(r[1].textContent).toContain('旅程結束')
   })
 
   it('依狀態篩選：送出 status=…，q 仍省略', async () => {
@@ -74,7 +76,7 @@ describe('最近 Enrollment 瀏覽', () => {
     await userEvent.selectOptions(screen.getByLabelText('狀態'), 'WAITING')
     await userEvent.click(screen.getByRole('button', { name: '查詢' }))
     await waitFor(() => expect(new URLSearchParams(window.location.search).get('status')).toBe('WAITING'))
-    expect(screen.getByRole('link', { name: /棄單挽回（v3）/ })).toBeTruthy()
+    expect(screen.getAllByRole('link').some((a) => a.getAttribute('href')?.endsWith('/enrollments/e1'))).toBe(true)
   })
 
   it('篩選無結果：顯示查無說明，不是錯誤', async () => {

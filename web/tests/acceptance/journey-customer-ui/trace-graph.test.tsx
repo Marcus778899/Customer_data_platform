@@ -27,7 +27,7 @@ async function openTrace(routes: Parameters<typeof backend>[0] = {}) {
   await gotoNav('客戶')
   await userEvent.type(await screen.findByLabelText('搜尋客戶'), PID)
   await userEvent.click(screen.getByRole('button', { name: '搜尋' }))
-  await userEvent.click(await screen.findByRole('link', { name: '棄單挽回（v3）' }))
+  await userEvent.click(await screen.findByRole('link', { name: /棄單挽回/ }))
   return api
 }
 const node = (name: RegExp) => screen.findByRole('button', { name, hidden: true })

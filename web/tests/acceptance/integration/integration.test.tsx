@@ -102,7 +102,7 @@ describe('不載入 mock，打真實端點', () => {
     })
     const user = userEvent.setup()
     start(`/?q=${PID}`)
-    await user.click(within(await screen.findByRole('table')).getAllByRole('link')[0])
+    await user.click(within(await screen.findByRole('table')).getAllByRole('link').find((a) => (a.getAttribute('href') ?? '').endsWith(`/enrollments/${EID}`))!)
     await user.click(await screen.findByRole('button', { name: '載入更早紀錄' }))
     await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)) // 表頭 + 2 筆（白話改版不再顯示模板 ID）
     await user.click(logoutControl())

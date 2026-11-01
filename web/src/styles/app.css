@@ -206,6 +206,14 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 }
 @media (max-width: 1100px) { .cols, .cols.two { grid-template-columns: minmax(0, 1fr); } }
 
+/* 客戶頁「參加過的旅程」表格：寬螢幕各欄不逐字換行、不出橫向捲軸 */
+@media (min-width: 641px) {
+  table.enr .badge { white-space: nowrap; }
+  table.enr th:nth-child(1), table.enr td:nth-child(1),
+  table.enr th:nth-child(3), table.enr td:nth-child(3) { min-width: 8em; }
+  table.enr th, table.enr td { padding-inline: var(--space-2); }
+}
+
 /* ---------- 旅程進度（軌跡）頁白話改版；選擇器一律在 .trace-page 底下，不影響其他頁（docs/ui/enrollment-trace.md；設計稿 plain.html） ---------- */
 .trace-page .head-act { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .trace-page h2.sec { font-size: var(--text-lg); margin: var(--space-5) 0 var(--space-3); }

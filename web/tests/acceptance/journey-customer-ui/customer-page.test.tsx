@@ -122,12 +122,13 @@ describe('客戶頁：基本資料', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('「同時顯示 UTC 原值」勾選後時間旁加註 UTC 原值', async () => {
+  it('沒有「同時顯示 UTC 原值」控制項；畫面不顯示 UTC 原值，只留在 <time> 的 dateTime／title', async () => {
     await openCustomer()
     await screen.findByRole('heading', { name: '基本資料' })
+    expect(screen.queryByLabelText('同時顯示 UTC 原值')).toBeNull()
     expect(bodyText()).not.toContain('2026-05-03T03:20:00Z')
-    await userEvent.click(screen.getByLabelText('同時顯示 UTC 原值'))
-    expect(bodyText()).toContain('2026-05-03T03:20:00Z')
+    const times = [...document.querySelectorAll('time')]
+    expect(times.some((t) => t.getAttribute('datetime') === '2026-05-03T03:20:00Z' || t.getAttribute('title') === '2026-05-03T03:20:00Z')).toBe(true)
   })
 
   it('404 PROFILE_NOT_FOUND：「找不到這位客戶」＋回搜尋連結（與 5xx 分開）', async () => {
@@ -161,21 +162,20 @@ describe('客戶頁：基本資料', () => {
 })
 
 describe('客戶頁：參加過的旅程', () => {
-  it('表格：旅程（版本）、狀態、目前／最後節點、進入時間、結束時間、Enrollment ID；新到舊；未結束的結束時間為「—」', async () => {
+  it('表格（D-079、D-080）：旅程、狀態、目前／最後在哪一步、加入時間、結束時間；不含 Enrollment ID 欄；新到舊；未結束的結束時間為「—」', async () => {
     const api = await openCustomer()
     const table = await screen.findByRole('table', { name: /參加過/ })
     expect(within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim()))
-      .toEqual(['旅程（版本）', '狀態', '目前／最後節點', '進入時間', '結束時間', 'Enrollment ID'])
+      .toEqual(['旅程', '狀態', '目前／最後在哪一步', '加入時間', '結束時間'])
     const rows = within(table).getAllByRole('row').slice(1)
     expect(rows).toHaveLength(2)
-    expect(within(rows[0]).getByRole('link', { name: '棄單挽回（v3）' })).toBeTruthy()
+    expect(within(rows[0]).getByRole('link', { name: /棄單挽回/ })).toBeTruthy()
     expect(rows[0].textContent).toContain('等待中')
     expect(rows[0].textContent).toContain('等 3 天')
-    expect(rows[0].textContent).toContain('2026-10-18 10:00')
     expect(rows[0].textContent).toContain('—')
-    expect(rows[1].textContent).toContain('新會員歡迎（v7）')
-    expect(rows[1].textContent).toContain('已完成')
-    expect(rows[1].textContent).toContain('2026-09-04 14:31')
+    expect(rows[1].textContent).toContain('新會員歡迎')
+    expect(rows[1].textContent).toContain('已走完')
+    expect(rows[1].textContent).toContain('旅程結束')
     expect(api.calls.some((c) => c.path === ENR)).toBe(true)
   })
 
