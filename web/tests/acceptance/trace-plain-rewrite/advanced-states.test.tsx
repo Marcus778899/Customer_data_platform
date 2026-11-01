@@ -167,7 +167,7 @@ describe('麵包屑、重新整理、無障礙', () => {
     expect(nav.textContent).not.toContain(PID)
     expect(nav.textContent).not.toMatch(/01JCX7K2/)
     expect(nav.querySelector('li:last-child')!.textContent).toBe('旅程進度')
-    // trace-customer-label：無姓名也無識別碼時，中段是「未具名客戶」（不再是「這位客戶」）
+    // trace-customer-name：無姓名也無識別碼時，中段是「未具名客戶」（不再是「這位客戶」）
     await waitFor(() => expect([...nav.querySelectorAll('ol > li')].map(norm)[1]).toBe('未具名客戶'))
   })
 

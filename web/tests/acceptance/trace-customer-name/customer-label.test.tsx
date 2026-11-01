@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 軌跡頁客戶標示（trace-customer-label；甲方回饋 2026-11-02；D-014、D-021、D-080）。
+ * 軌跡頁客戶標示（trace-customer-name；甲方回饋 2026-11-02；D-014、D-021、D-080）。
  * 取得順序：1. 軌跡 profile_snapshot 姓名；2. GET /profiles/{id} 的 attributes.name（未遮罩）；
  *           3. 第一個識別碼（照後端遮罩值）；4. 「未具名客戶」。麵包屑中段與副標用同一標示，中段連到客戶頁。
  * 共用工具沿用 trace-plain-rewrite/fixtures（worker 不可改）。

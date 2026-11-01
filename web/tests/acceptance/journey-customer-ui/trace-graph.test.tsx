@@ -54,7 +54,7 @@ describe('圖形軌跡：進行中', () => {
     expect(sum).toBeTruthy()
     expect(sum!.textContent).toContain('等 3 天')
     expect(screen.getByRole('button', { name: '重新整理' })).toBeTruthy()
-    // trace-customer-label：snapshot 無姓名，改用 /profiles/{id} 的第一個識別碼（遮罩值）；請求清單容納新增的 /profiles/{id}
+    // trace-customer-name：snapshot 無姓名，改用 /profiles/{id} 的第一個識別碼（遮罩值）；請求清單容納新增的 /profiles/{id}
     await waitFor(() => {
       const crumb = screen.getByRole('navigation', { name: '麵包屑' })
       expect(crumb.textContent).toContain('a***@example.com')
