@@ -122,12 +122,13 @@ describe('客戶頁：基本資料', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('「同時顯示 UTC 原值」勾選後時間旁加註 UTC 原值', async () => {
+  it('沒有「同時顯示 UTC 原值」控制項；畫面不顯示 UTC 原值，只留在 <time> 的 dateTime／title', async () => {
     await openCustomer()
     await screen.findByRole('heading', { name: '基本資料' })
+    expect(screen.queryByLabelText('同時顯示 UTC 原值')).toBeNull()
     expect(bodyText()).not.toContain('2026-05-03T03:20:00Z')
-    await userEvent.click(screen.getByLabelText('同時顯示 UTC 原值'))
-    expect(bodyText()).toContain('2026-05-03T03:20:00Z')
+    const times = [...document.querySelectorAll('time')]
+    expect(times.some((t) => t.getAttribute('datetime') === '2026-05-03T03:20:00Z' || t.getAttribute('title') === '2026-05-03T03:20:00Z')).toBe(true)
   })
 
   it('404 PROFILE_NOT_FOUND：「找不到這位客戶」＋回搜尋連結（與 5xx 分開）', async () => {

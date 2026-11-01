@@ -19,6 +19,8 @@ import { AMY, logoutControl } from '../shell/helpers'
 process.env.TZ = 'Asia/Taipei' // 本地時區 = UTC+8，用來驗證 D-016
 
 const EID = '01JCXYZENROLL000000000001'
+const detailLink = (scope: HTMLElement, id: string = EID) =>
+  within(scope).getAllByRole('link').find((a) => (a.getAttribute('href') ?? '').endsWith(`/enrollments/${id}`)) as HTMLElement
 const PID = '01JCXYZPROFILE00000000001'
 
 type Handler = (url: URL, init?: RequestInit) => Response | Promise<Response>
@@ -166,10 +168,11 @@ describe('查詢列表', () => {
     expect(table.querySelectorAll('th[scope="col"]').length).toBeGreaterThan(0)
     expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('q')).toBe(PID)
     expect(window.location.search).toContain(`q=${PID}`)
-    expect(within(table).getAllByRole('link').length).toBe(2)
+    expect(detailLink(table)).toBeTruthy()
+    for (const r of within(table).getAllByRole('row').slice(1)) expect(within(r).getAllByRole('link').some((a) => /\/enrollments\/[^/]+$/.test(a.getAttribute('href') ?? ''))).toBe(true)
     expect(table.textContent).toContain('棄單挽回')
     expect(table.textContent).toContain('等待中')
-    expect(table.textContent).toContain('已完成')
+    expect(table.textContent).toContain('已走完')
   })
 
   it('網址帶 ?q= 直接查詢；狀態篩選帶 status 參數', async () => {
@@ -178,7 +181,7 @@ describe('查詢列表', () => {
     start(`/?q=${PID}`)
     await screen.findByRole('table')
     expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('q')).toBe(PID)
-    await user.selectOptions(screen.getByLabelText('狀態'), screen.getByRole('option', { name: /WAITING/ }))
+    await user.selectOptions(screen.getByLabelText('狀態'), screen.getByRole('option', { name: '等待中' }))
     await user.click(screen.getByRole('button', { name: '查詢' }))
     await waitFor(() => expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('status')).toBe('WAITING'))
   })
@@ -220,8 +223,8 @@ describe('查詢列表', () => {
     start(`/?q=${PID}`)
     await screen.findByRole('table')
     await user.click(screen.getByRole('button', { name: '載入更多' }))
-    await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('link').length).toBe(2))
-    expect(screen.getByRole('table').textContent).toContain('E_PAGE2')
+    await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)) // 表頭 + 2 筆
+    expect(detailLink(screen.getByRole('table'), 'E_PAGE2')).toBeTruthy()
     expect(screen.queryByRole('button', { name: '載入更多' })).toBeNull()
   })
 })
@@ -237,7 +240,7 @@ describe('詳情', () => {
     })
     const user = userEvent.setup()
     start(`/?q=${PID}`)
-    await user.click(within(await screen.findByRole('table')).getAllByRole('link')[0])
+    await user.click(detailLink(await screen.findByRole('table')))
     const heading = await h1()
     expect(window.location.pathname).toBe(`/enrollments/${EID}`)
     await waitFor(() => expect(document.activeElement).toBe(heading))
@@ -402,7 +405,7 @@ describe('唯讀與鍵盤', () => {
     nav()
     const user = userEvent.setup()
     start(`/?q=${PID}`)
-    await user.click(within(await screen.findByRole('table')).getAllByRole('link')[0])
+    await user.click(detailLink(await screen.findByRole('table')))
     await h1()
     expect(screen.queryByRole('button', { name: /暫停|恢復|重送|重新發送|編輯|修改|刪除|取消發送|終止|pause|resend|edit|delete/i })).toBeNull()
     expect(calls.filter((c) => c.method !== 'GET' && !c.url.pathname.includes('/auth/'))).toEqual([])
@@ -412,10 +415,10 @@ describe('唯讀與鍵盤', () => {
     nav()
     const user = userEvent.setup()
     start(`/?q=${PID}`)
-    const link = within(await screen.findByRole('table')).getAllByRole('link')[0]
+    const link = detailLink(await screen.findByRole('table'))
     await user.click(screen.getByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/))
     const seen = new Set<Element | null>()
-    for (let i = 0; i < 6; i++) { await user.tab(); seen.add(document.activeElement) }
+    for (let i = 0; i < 10; i++) { await user.tab(); seen.add(document.activeElement) }
     expect(seen.has(screen.getByRole('button', { name: '查詢' }))).toBe(true)
     expect(seen.has(link)).toBe(true)
     link.focus()
