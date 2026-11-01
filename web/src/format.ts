@@ -94,10 +94,12 @@ export function formatDuration(ms: number): string {
 
 const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 
-/** 白話時間（D-079／D-016）：今天／昨天／明天以本地日曆日判斷 */
-export function formatPlainTime(iso: string, now: Date): string {
+/** 白話時間（D-079／D-016）：今天／昨天／明天以本地日曆日判斷；relative=false 時不附括號內的相對時間 */
+export function formatPlainTime(iso: string, now: Date, opts: { relative?: boolean } = {}): string {
   const d = new Date(iso)
   if (!iso || Number.isNaN(d.getTime())) return iso
+  const relative = opts.relative ?? true
+  const rel = (text: string) => (relative ? `（${text}）` : '')
   const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`
   const dayDiff = Math.round((dayStart(d) - dayStart(now)) / DAY_MS)
   const diff = d.getTime() - now.getTime()
@@ -105,20 +107,19 @@ export function formatPlainTime(iso: string, now: Date): string {
   const abs = Math.abs(diff)
   if (dayDiff === 0) {
     if (past) {
-      if (abs < 60_000) return `今天 ${hm}（剛剛）`
-      if (abs < 3_600_000) return `今天 ${hm}（${Math.floor(abs / 60_000)} 分鐘前）`
-      return `今天 ${hm}（${Math.floor(abs / 3_600_000)} 小時前）`
+      if (abs < 60_000) return `今天 ${hm}${rel('剛剛')}`
+      if (abs < 3_600_000) return `今天 ${hm}${rel(`${Math.floor(abs / 60_000)} 分鐘前`)}`
+      return `今天 ${hm}${rel(`${Math.floor(abs / 3_600_000)} 小時前`)}`
     }
-    if (abs < 3_600_000) return `今天 ${hm}（約 ${Math.max(1, Math.round(abs / 60_000))} 分鐘後）`
-    return `今天 ${hm}（約 ${Math.round(abs / 3_600_000)} 小時後）`
+    const mins = Math.max(1, Math.round(abs / 60_000))
+    if (mins < 60) return `今天 ${hm}${rel(`約 ${mins} 分鐘後`)}`
+    return `今天 ${hm}${rel(`約 ${Math.round(abs / 3_600_000)} 小時後`)}`
   }
   if (dayDiff === -1) return `昨天 ${hm}`
   if (dayDiff === 1) {
-    const rel = abs < DAY_MS ? `（約 ${Math.max(1, Math.round(abs / 3_600_000))} 小時後）` : ''
-    return `明天 ${hm}${rel}`
+    return `明天 ${hm}${abs < DAY_MS ? rel(`約 ${Math.max(1, Math.round(abs / 3_600_000))} 小時後`) : ''}`
   }
   const md = `${d.getMonth() + 1}/${d.getDate()}（${WEEKDAY[d.getDay()]}）${hm}`
   const date = d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}/${md}`
-  if (!past) return `${date}（約 ${Math.max(1, Math.round(abs / DAY_MS))} 天後）`
-  return date
+  return dayDiff > 0 ? `${date}${rel(`約 ${dayDiff} 天後`)}` : date
 }

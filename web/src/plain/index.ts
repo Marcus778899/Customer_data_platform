@@ -73,7 +73,8 @@ export function stepTitle(nodeType: string, nodeName: string | null, delay?: str
     case 'EventSourceNode':
       return nodeName ? `${nodeName}，${base}` : base
     case 'WaitDelayNode':
-      return delay ? `等 ${isoDurationText(delay)}` : base
+      if (delay && isoDurationText(delay) !== delay) return `等 ${isoDurationText(delay)}`
+      return nodeName ?? base
     default:
       return nodeName ? `${base}：${nodeName}` : base
   }
