@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** journey-customer-ui：圖形軌跡（直線）。推導規則 journey-engine §4.5；遮罩 §4.4。假設見 fixtures.tsx。 */
-import { cleanup, screen, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -54,6 +54,11 @@ describe('圖形軌跡：進行中', () => {
     expect(sum).toBeTruthy()
     expect(sum!.textContent).toContain('等 3 天')
     expect(screen.getByRole('button', { name: '重新整理' })).toBeTruthy()
+    // trace-customer-label：snapshot 無姓名，改用 /profiles/{id} 的第一個識別碼（遮罩值）；請求清單容納新增的 /profiles/{id}
+    await waitFor(() => {
+      const crumb = screen.getByRole('navigation', { name: '麵包屑' })
+      expect(crumb.textContent).toContain('a***@example.com')
+    })
     const clone = document.querySelector('main')!.cloneNode(true) as HTMLElement
     clone.querySelectorAll('details').forEach((n) => n.remove())
     expect(clone.textContent).not.toContain(EID)
