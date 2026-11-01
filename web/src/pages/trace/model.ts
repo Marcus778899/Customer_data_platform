@@ -1,4 +1,4 @@
-import type { Delivery, EnrollmentDetail, JourneyNode, JourneyVersion, TraceEntry } from '../../api/types'
+import type { Delivery, EnrollmentDetail, JourneyNode, JourneyVersion, ProfileDetail, TraceEntry } from '../../api/types'
 import { formatDuration, formatPlainTime, TERMINAL } from '../../format'
 import { channelText, isoDurationText, nodeTypeText, skipReasonText, stepTitle } from '../../plain'
 
@@ -193,6 +193,20 @@ export function customerName(d: EnrollmentDetail): { name: string | null; masked
   const name = typeof raw === 'string' && raw.trim() !== '' ? raw : null
   const masked = d.masked_paths.some((p) => p === 'trigger_snapshot.profile_snapshot.name' || p === 'trigger_snapshot.profile_snapshot.attributes.name')
   return { name, masked }
+}
+
+/** 客戶標示：1 軌跡姓名；2 客戶資料未遮罩的姓名；3 第一個識別碼（後端遮罩值）；4 未具名客戶 */
+export function customerLabel(d: EnrollmentDetail, profile?: ProfileDetail): { text: string; masked: boolean } {
+  const snap = customerName(d)
+  if (snap.name) return { text: snap.name, masked: snap.masked }
+  if (profile) {
+    const raw = profile.attributes?.name
+    const nameMasked = (profile.masked_paths ?? []).includes('attributes.name')
+    if (typeof raw === 'string' && raw.trim() !== '' && !nameMasked) return { text: raw, masked: false }
+    const id = (profile.identifiers ?? []).find((x) => typeof x.value === 'string' && x.value.trim() !== '')
+    if (id) return { text: id.value, masked: id.masked }
+  }
+  return { text: '未具名客戶', masked: false }
 }
 
 function messageRow(d: EnrollmentDetail, now: Date): SummaryRow {
