@@ -8,11 +8,12 @@ import java.time.ZoneOffset;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.rabbitmq.RabbitMQContainer;
+import org.springframework.core.env.Environment;
+import org.springframework.test.context.DynamicPropertyRegistrar;
+
+import com.cdp.acceptance.support.SharedContainers;
 
 /** 驗收測試共用接縫（DESIGN-01 做法 #5）：Testcontainers（使用真實 RabbitTopology）與可調 Clock。 */
 @TestConfiguration(proxyBeanMethods = false)
@@ -22,15 +23,8 @@ public class EngineTestSupport {
     private static final String ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
     @Bean
-    @ServiceConnection
-    PostgreSQLContainer postgres() {
-        return new PostgreSQLContainer("postgres:18-alpine");
-    }
-
-    @Bean
-    @ServiceConnection
-    RabbitMQContainer rabbit() {
-        return new RabbitMQContainer("rabbitmq:4.3-management-alpine");
+    DynamicPropertyRegistrar sharedContainers(Environment env) {
+        return SharedContainers.registrar(false);
     }
 
     @Bean

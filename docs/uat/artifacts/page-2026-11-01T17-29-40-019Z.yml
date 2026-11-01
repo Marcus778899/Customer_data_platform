@@ -1,0 +1,369 @@
+- generic [ref=f6e3]:
+  - link "跳到主要內容" [ref=f6e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f6e5]:
+    - banner [ref=f6e6]:
+      - strong [ref=f6e7]: 客戶旅程平台
+      - group [ref=f6e8]:
+        - generic "選單" [ref=f6e9] [cursor=pointer]
+    - main [ref=f6e10]:
+      - navigation "麵包屑" [ref=f6e11]:
+        - list [ref=f6e12]:
+          - listitem [ref=f6e13]:
+            - link "旅程" [ref=f6e14] [cursor=pointer]:
+              - /url: /journeys
+          - listitem [ref=f6e15]: 旅程進度
+      - generic [ref=f6e16]:
+        - generic [ref=f6e17]:
+          - heading "旅程進度" [level=1] [ref=f6e18]
+          - paragraph [ref=f6e19]: 最近加入旅程的客戶，新到舊。要查特定客戶，請用精確查詢。
+        - link "用客戶 ID 查詢" [ref=f6e20] [cursor=pointer]:
+          - /url: /
+      - form "篩選旅程進度" [ref=f6e21]:
+        - generic [ref=f6e22]:
+          - generic [ref=f6e23]: 旅程
+          - combobox "旅程" [ref=f6e24]:
+            - option "全部" [selected]
+            - option "Demo long wait (PT2H) d82fb6"
+            - option "Demo short wait (15s) d82fb6"
+            - option "Demo long wait (PT2H) 68529d"
+            - option "Demo short wait (15s) 68529d"
+            - option "Demo long wait (PT2H) 7cb256"
+            - option "Demo short wait (15s) 7cb256"
+            - option "Demo long wait (PT2H) e18986"
+            - option "Demo short wait (15s) e18986"
+            - option "Demo long wait (PT2H) 079492"
+            - option "Demo short wait (15s) 079492"
+            - option "Demo long wait (PT2H) d6e5a3"
+            - option "Demo short wait (15s) d6e5a3"
+            - option "Demo long wait (PT2H) a00b91"
+            - option "Demo short wait (15s) a00b91"
+            - option "Demo long wait (PT2H) 1adc8b"
+            - option "Demo short wait (15s) 1adc8b"
+            - option "Demo long wait (PT2H) f35ce6"
+            - option "Demo short wait (15s) f35ce6"
+            - option "Demo long wait (PT2H) 9f283e"
+            - option "Demo short wait (15s) 9f283e"
+            - option "Demo long wait (PT2H) cefb38"
+            - option "Demo short wait (15s) cefb38"
+            - option "Demo long wait (PT2H) e5e596"
+            - option "Demo short wait (15s) e5e596"
+            - option "Demo long wait (PT2H) aa3611"
+            - option "Demo short wait (15s) aa3611"
+            - option "Demo long wait (PT2H) 3deb29"
+            - option "Demo short wait (15s) 3deb29"
+            - option "Demo long wait (PT2H) a450b0"
+            - option "Demo short wait (15s) a450b0"
+            - option "Demo long wait (PT2H) e56540"
+            - option "Demo short wait (15s) e56540"
+            - option "Demo long wait (PT2H) 324717"
+            - option "Demo short wait (15s) 324717"
+            - option "棄單挽回(長)"
+            - option "棄單挽回(短)"
+            - option "qa-int01"
+        - generic [ref=f6e25]:
+          - generic [ref=f6e26]: 狀態
+          - combobox "狀態" [ref=f6e27]:
+            - option "全部" [selected]
+            - option "準備中"
+            - option "進行中"
+            - option "等待中"
+            - option "已暫停"
+            - option "已走完"
+            - option "已達成目標"
+            - option "已提前離開"
+            - option "發生錯誤"
+            - option "已中止"
+        - button "查詢" [ref=f6e35] [cursor=pointer]
+      - table [ref=f6e37]:
+        - caption [ref=f6e38]: 已載入 20 筆，新到舊
+        - rowgroup [ref=f6e39]:
+          - row [ref=f6e40]:
+            - columnheader "客戶" [ref=f6e41]
+            - columnheader "旅程" [ref=f6e42]
+            - columnheader "狀態" [ref=f6e43]
+            - columnheader "目前在哪一步" [ref=f6e44]
+            - columnheader "下一步" [ref=f6e45]
+        - rowgroup [ref=f6e46]:
+          - row [ref=f6e47]:
+            - cell [ref=f6e48]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e49] [cursor=pointer]:
+                - /url: /customers/01M6C2C8TEFVT1SN4VHENXRJM0
+            - cell [ref=f6e50]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) d82fb6" [ref=f6e51] [cursor=pointer]:
+                - /url: /enrollments/01M6C2C9K3KSWCWT78G7T4XVY9
+            - cell "狀態： 等待中" [ref=f6e52]:
+              - text: 狀態：
+              - generic [ref=f6e53]: 等待中
+            - cell "目前在哪一步：Wait PT2H" [ref=f6e54]
+            - cell "下一步：時間到會自動繼續" [ref=f6e55]
+          - row [ref=f6e56]:
+            - cell [ref=f6e57]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e58] [cursor=pointer]:
+                - /url: /customers/01M6C2C8TEFVT1SN4VHENXRJM0
+            - cell [ref=f6e59]:
+              - text: 旅程：
+              - link "Demo short wait (15s) d82fb6" [ref=f6e60] [cursor=pointer]:
+                - /url: /enrollments/01M6C2C9JG141944NQDM4GEXYC
+            - cell "狀態： 已走完" [ref=f6e61]:
+              - text: 狀態：
+              - generic [ref=f6e62]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e63]
+            - cell "下一步：—" [ref=f6e64]
+          - row [ref=f6e65]:
+            - cell [ref=f6e66]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e67] [cursor=pointer]:
+                - /url: /customers/01M6C2C8TEZQ3YMXACCVAY233Y
+            - cell [ref=f6e68]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) d82fb6" [ref=f6e69] [cursor=pointer]:
+                - /url: /enrollments/01M6C2C9HX7M240Y1RQEPZC5CD
+            - cell "狀態： 等待中" [ref=f6e70]:
+              - text: 狀態：
+              - generic [ref=f6e71]: 等待中
+            - cell "目前在哪一步：Wait PT2H" [ref=f6e72]
+            - cell "下一步：時間到會自動繼續" [ref=f6e73]
+          - row [ref=f6e74]:
+            - cell [ref=f6e75]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e76] [cursor=pointer]:
+                - /url: /customers/01M6C2C8TEQQAPWFBZ5JVNG2NS
+            - cell [ref=f6e77]:
+              - text: 旅程：
+              - link "Demo short wait (15s) d82fb6" [ref=f6e78] [cursor=pointer]:
+                - /url: /enrollments/01M6C2C9H6RK0B9JC4YWGT6KH5
+            - cell "狀態： 已走完" [ref=f6e79]:
+              - text: 狀態：
+              - generic [ref=f6e80]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e81]
+            - cell "下一步：—" [ref=f6e82]
+          - row [ref=f6e83]:
+            - cell [ref=f6e84]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e85] [cursor=pointer]:
+                - /url: /customers/01M6BC7XDSTHQWNPWERCBVXG5P
+            - cell [ref=f6e86]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) 68529d" [ref=f6e87] [cursor=pointer]:
+                - /url: /enrollments/01M6BC7Y7DYCB727PS5AMSKNA8
+            - cell "狀態： 已走完" [ref=f6e88]:
+              - text: 狀態：
+              - generic [ref=f6e89]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e90]
+            - cell "下一步：—" [ref=f6e91]
+          - row [ref=f6e92]:
+            - cell [ref=f6e93]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e94] [cursor=pointer]:
+                - /url: /customers/01M6BC7XDSTHQWNPWERCBVXG5P
+            - cell [ref=f6e95]:
+              - text: 旅程：
+              - link "Demo short wait (15s) 68529d" [ref=f6e96] [cursor=pointer]:
+                - /url: /enrollments/01M6BC7Y6TJSVCJNTPA8NQ1DVB
+            - cell "狀態： 已走完" [ref=f6e97]:
+              - text: 狀態：
+              - generic [ref=f6e98]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e99]
+            - cell "下一步：—" [ref=f6e100]
+          - row [ref=f6e101]:
+            - cell [ref=f6e102]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e103] [cursor=pointer]:
+                - /url: /customers/01M6BC7XDS1RS3CXC5FT1B7ZW8
+            - cell [ref=f6e104]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) 68529d" [ref=f6e105] [cursor=pointer]:
+                - /url: /enrollments/01M6BC7Y684YR2W4QQJDHH1RGJ
+            - cell "狀態： 已走完" [ref=f6e106]:
+              - text: 狀態：
+              - generic [ref=f6e107]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e108]
+            - cell "下一步：—" [ref=f6e109]
+          - row [ref=f6e110]:
+            - cell [ref=f6e111]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e112] [cursor=pointer]:
+                - /url: /customers/01M6BC7XDSEN93YDAY4KQ72QEM
+            - cell [ref=f6e113]:
+              - text: 旅程：
+              - link "Demo short wait (15s) 68529d" [ref=f6e114] [cursor=pointer]:
+                - /url: /enrollments/01M6BC7Y5G4RA72R5ASPRR2K58
+            - cell "狀態： 已走完" [ref=f6e115]:
+              - text: 狀態：
+              - generic [ref=f6e116]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e117]
+            - cell "下一步：—" [ref=f6e118]
+          - row [ref=f6e119]:
+            - cell [ref=f6e120]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e121] [cursor=pointer]:
+                - /url: /customers/01M6AZ40KHS60C3ZJ45W8KFP7R
+            - cell [ref=f6e122]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) 7cb256" [ref=f6e123] [cursor=pointer]:
+                - /url: /enrollments/01M6AZ41Q4E2JTYZYZMXM4SNTB
+            - cell "狀態： 已走完" [ref=f6e124]:
+              - text: 狀態：
+              - generic [ref=f6e125]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e126]
+            - cell "下一步：—" [ref=f6e127]
+          - row [ref=f6e128]:
+            - cell [ref=f6e129]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e130] [cursor=pointer]:
+                - /url: /customers/01M6AZ40KHS60C3ZJ45W8KFP7R
+            - cell [ref=f6e131]:
+              - text: 旅程：
+              - link "Demo short wait (15s) 7cb256" [ref=f6e132] [cursor=pointer]:
+                - /url: /enrollments/01M6AZ41PEDB5ZMDBMSKJYS45Q
+            - cell "狀態： 已走完" [ref=f6e133]:
+              - text: 狀態：
+              - generic [ref=f6e134]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e135]
+            - cell "下一步：—" [ref=f6e136]
+          - row [ref=f6e137]:
+            - cell [ref=f6e138]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e139] [cursor=pointer]:
+                - /url: /customers/01M6AZ40KH9XPJ9B66ESJK7STX
+            - cell [ref=f6e140]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) 7cb256" [ref=f6e141] [cursor=pointer]:
+                - /url: /enrollments/01M6AZ41NTPDM4RQN4X8C5NPFA
+            - cell "狀態： 已走完" [ref=f6e142]:
+              - text: 狀態：
+              - generic [ref=f6e143]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e144]
+            - cell "下一步：—" [ref=f6e145]
+          - row [ref=f6e146]:
+            - cell [ref=f6e147]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e148] [cursor=pointer]:
+                - /url: /customers/01M6AZ40KHVXFP3Y2AQEZPH0EM
+            - cell [ref=f6e149]:
+              - text: 旅程：
+              - link "Demo short wait (15s) 7cb256" [ref=f6e150] [cursor=pointer]:
+                - /url: /enrollments/01M6AZ41MV28PV772G24X986S4
+            - cell "狀態： 已走完" [ref=f6e151]:
+              - text: 狀態：
+              - generic [ref=f6e152]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e153]
+            - cell "下一步：—" [ref=f6e154]
+          - row [ref=f6e155]:
+            - cell [ref=f6e156]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e157] [cursor=pointer]:
+                - /url: /customers/01M6AXQBS4T3B6NV8EPXCG1CYP
+            - cell [ref=f6e158]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) e18986" [ref=f6e159] [cursor=pointer]:
+                - /url: /enrollments/01M6AXQCP4G1F0BQXKHRHECM7R
+            - cell "狀態： 已走完" [ref=f6e160]:
+              - text: 狀態：
+              - generic [ref=f6e161]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e162]
+            - cell "下一步：—" [ref=f6e163]
+          - row [ref=f6e164]:
+            - cell [ref=f6e165]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e166] [cursor=pointer]:
+                - /url: /customers/01M6AXQBS4T3B6NV8EPXCG1CYP
+            - cell [ref=f6e167]:
+              - text: 旅程：
+              - link "Demo short wait (15s) e18986" [ref=f6e168] [cursor=pointer]:
+                - /url: /enrollments/01M6AXQCNKX6SC83VFPWRT8RV0
+            - cell "狀態： 已走完" [ref=f6e169]:
+              - text: 狀態：
+              - generic [ref=f6e170]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e171]
+            - cell "下一步：—" [ref=f6e172]
+          - row [ref=f6e173]:
+            - cell [ref=f6e174]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e175] [cursor=pointer]:
+                - /url: /customers/01M6AXQBS4QARDCZDQJ37YFMRD
+            - cell [ref=f6e176]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) e18986" [ref=f6e177] [cursor=pointer]:
+                - /url: /enrollments/01M6AXQCN367TS3KXKN8AB8YXQ
+            - cell "狀態： 已走完" [ref=f6e178]:
+              - text: 狀態：
+              - generic [ref=f6e179]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e180]
+            - cell "下一步：—" [ref=f6e181]
+          - row [ref=f6e182]:
+            - cell [ref=f6e183]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e184] [cursor=pointer]:
+                - /url: /customers/01M6AXQBS4P01BA9TH1VAX38EM
+            - cell [ref=f6e185]:
+              - text: 旅程：
+              - link "Demo short wait (15s) e18986" [ref=f6e186] [cursor=pointer]:
+                - /url: /enrollments/01M6AXQCMD6BFEBKA3R64NK6FJ
+            - cell "狀態： 已走完" [ref=f6e187]:
+              - text: 狀態：
+              - generic [ref=f6e188]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e189]
+            - cell "下一步：—" [ref=f6e190]
+          - row [ref=f6e191]:
+            - cell [ref=f6e192]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e193] [cursor=pointer]:
+                - /url: /customers/01M6AXPH5T1M2PX19TVYDD4H2F
+            - cell [ref=f6e194]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) 079492" [ref=f6e195] [cursor=pointer]:
+                - /url: /enrollments/01M6AXPHYXRSN45ZXGK92A50KS
+            - cell "狀態： 已走完" [ref=f6e196]:
+              - text: 狀態：
+              - generic [ref=f6e197]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e198]
+            - cell "下一步：—" [ref=f6e199]
+          - row [ref=f6e200]:
+            - cell [ref=f6e201]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e202] [cursor=pointer]:
+                - /url: /customers/01M6AXPH5T1M2PX19TVYDD4H2F
+            - cell [ref=f6e203]:
+              - text: 旅程：
+              - link "Demo short wait (15s) 079492" [ref=f6e204] [cursor=pointer]:
+                - /url: /enrollments/01M6AXPHY99TV7PGNEA5MVZGN8
+            - cell "狀態： 已走完" [ref=f6e205]:
+              - text: 狀態：
+              - generic [ref=f6e206]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e207]
+            - cell "下一步：—" [ref=f6e208]
+          - row [ref=f6e209]:
+            - cell [ref=f6e210]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e211] [cursor=pointer]:
+                - /url: /customers/01M6AXPH5T4HE82VWRV9W9XFGZ
+            - cell [ref=f6e212]:
+              - text: 旅程：
+              - link "Demo long wait (PT2H) 079492" [ref=f6e213] [cursor=pointer]:
+                - /url: /enrollments/01M6AXPHXN5GPX2DN8PKRRZHTZ
+            - cell "狀態： 已走完" [ref=f6e214]:
+              - text: 狀態：
+              - generic [ref=f6e215]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e216]
+            - cell "下一步：—" [ref=f6e217]
+          - row [ref=f6e218]:
+            - cell [ref=f6e219]:
+              - text: 客戶：
+              - link "查看客戶" [ref=f6e220] [cursor=pointer]:
+                - /url: /customers/01M6AXPH5T7EM072M307DRJHJE
+            - cell [ref=f6e221]:
+              - text: 旅程：
+              - link "Demo short wait (15s) 079492" [ref=f6e222] [cursor=pointer]:
+                - /url: /enrollments/01M6AXPHWQXJ5Q3T1XX51ASA1Y
+            - cell "狀態： 已走完" [ref=f6e223]:
+              - text: 狀態：
+              - generic [ref=f6e224]: 已走完
+            - cell "目前在哪一步：旅程結束" [ref=f6e225]
+            - cell "下一步：—" [ref=f6e226]
+      - paragraph [ref=f6e227]:
+        - button "載入更多" [ref=f6e228] [cursor=pointer]

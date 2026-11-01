@@ -31,8 +31,6 @@ class DispatchPropertiesStartupAcceptanceTest {
                 "--cdp.relay.poll-interval=PT1H",
                 "--cdp.security.ingest-api-key=SECRET-aaaa-1111",
                 "--cdp.security.admin-api-key=SECRET-bbbb-2222",
-                "--cdp.security.support-username=agent",
-                "--cdp.security.support-password=SECRET-pppp-3333",
                 P + "max-attempts=5",
                 P + "backoff-initial=PT10S",
                 P + "backoff-max=PT10M")) {

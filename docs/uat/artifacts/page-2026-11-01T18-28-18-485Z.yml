@@ -1,0 +1,48 @@
+- generic [ref=f14e18]:
+  - link "跳到主要內容" [ref=f14e19] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=f14e20]:
+    - generic [ref=f14e21]: 客戶旅程平台
+    - navigation "主要導覽" [ref=f14e22]:
+      - list [ref=f14e23]:
+        - listitem [ref=f14e24]:
+          - link "旅程" [ref=f14e25] [cursor=pointer]:
+            - /url: /journeys
+        - listitem [ref=f14e26]:
+          - link "客戶" [ref=f14e27] [cursor=pointer]:
+            - /url: /customers
+        - listitem [ref=f14e28]:
+          - link "受眾 規劃中" [ref=f14e29] [cursor=pointer]:
+            - /url: /audience
+            - text: 受眾
+            - generic [ref=f14e30]: 規劃中
+    - generic [ref=f14e31]:
+      - generic [ref=f14e32]:
+        - text: 已登入：
+        - strong [ref=f14e33]: Demo viewer
+      - generic [ref=f14e34]: 角色：檢視者
+      - link "修改密碼" [ref=f14e35] [cursor=pointer]:
+        - /url: /account/password
+      - button "登出" [ref=f14e36] [cursor=pointer]
+  - main [ref=f14e38]:
+    - generic [ref=f14e39]:
+      - heading "旅程進度" [level=1] [ref=f14e40]
+      - paragraph [ref=f14e41]: 唯讀。查某位客戶走到哪、為什麼沒收到訊息。
+      - paragraph [ref=f14e42]:
+        - link "最近的旅程進度" [ref=f14e43] [cursor=pointer]:
+          - /url: /enrollments
+    - search "查詢旅程進度" [ref=f14e44]:
+      - generic [ref=f14e45]:
+        - generic [ref=f14e46]: 客戶 ID 或進度編號
+        - textbox "客戶 ID 或進度編號" [ref=f14e47]:
+          - /placeholder: 例：01JCXYZPROFILE00000000001（精確比對）
+      - generic [ref=f14e48]:
+        - generic [ref=f14e49]: 狀態
+        - combobox "狀態" [ref=f14e50]:
+          - option "全部" [selected]
+          - option "進行中"
+          - option "等待中"
+          - option "已走完"
+          - option "發生錯誤"
+      - button "查詢" [ref=f14e51] [cursor=pointer]
+    - paragraph [ref=f14e52]: 輸入客戶 ID 或進度編號開始查詢。

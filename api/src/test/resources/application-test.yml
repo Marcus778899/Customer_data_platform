@@ -10,10 +10,15 @@ spring:
     port: 5672
     username: test
     password: test
+    connection-timeout: PT5S
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
       mandatory: true
+  task:
+    scheduling:
+      pool:
+        size: 4
 server:
   port: 0
   servlet:
@@ -23,7 +28,6 @@ server:
         # 測試走 http，Secure cookie 不會被測試用戶端送回
         secure: false
 cdp:
-  tenant-id: 01JTESTTENANT0000000000001
   engine:
     poll-interval: PT0.2S
     batch-size: 100
@@ -35,13 +39,22 @@ cdp:
     poll-interval: PT0.2S
     batch-size: 100
     retry-delay: PT30S
+    confirm-timeout: PT5S
+    lease: PT30S
+  loop:
+    max-drain: PT10S
   delivery:
     requeue-delay: PT0.2S
+    shutdown-timeout: PT5S
   # 測試專用假憑證（非機密）；驗收測試以此呼叫各角色
   security:
     ingest-api-key: test-ingest-key
     admin-api-key: test-admin-key
-    support-username: test-support
-    support-password: test-support-password
+  # 登入限速：門檻放寬，免得共用 email 的測試互相鎖住；限速驗收自己覆蓋
+  login:
+    max-failures: 50
+    lockout: PT15M
+  phone:
+    default-country-code: 886
   trace:
     plain-keys: cart_id,cart_total

@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cdp.common.CdpProperties;
 import com.cdp.engine.model.EnrollmentStatus;
 
 /** 契約 §4（唯讀，D-005）。 */
@@ -17,25 +16,24 @@ import com.cdp.engine.model.EnrollmentStatus;
 public class EnrollmentQueryController {
 
     private final EnrollmentQueryService service;
-    private final CdpProperties properties;
 
-    public EnrollmentQueryController(EnrollmentQueryService service, CdpProperties properties) {
+    public EnrollmentQueryController(EnrollmentQueryService service) {
         this.service = service;
-        this.properties = properties;
     }
 
     @GetMapping
     public Page<EnrollmentSummary> list(
-            @RequestParam String q,
+            @RequestParam(required = false) String q,
+            @RequestParam(name = "journey_id", required = false) String journeyId,
             @RequestParam(required = false) Set<EnrollmentStatus> status,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        return service.list(properties.tenantId(), q, status, cursor, limit);
+        return service.list(q, journeyId, status, cursor, limit);
     }
 
     @GetMapping("/{enrollmentId}")
     public EnrollmentDetail detail(@PathVariable String enrollmentId) {
-        return service.detail(properties.tenantId(), enrollmentId);
+        return service.detail(enrollmentId);
     }
 
     @GetMapping("/{enrollmentId}/deliveries")
@@ -43,6 +41,6 @@ public class EnrollmentQueryController {
             @PathVariable String enrollmentId,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        return service.deliveries(properties.tenantId(), enrollmentId, cursor, limit);
+        return service.deliveries(enrollmentId, cursor, limit);
     }
 }

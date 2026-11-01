@@ -64,6 +64,12 @@
     details > summary { cursor: pointer; color: var(--color-primary); font-size: var(--text-sm); }
     details dl.kv { margin-top: var(--space-2); }
     .scroll { overflow-x: auto; }
+    /* UI-03：修正 #51（登入欄位間距過大：column 容器內 flex-basis 變成高度）與 #66（中螢幕欄位擠壓、窄螢幕觸控目標） */
+    .login .field { flex: none; }
+    td[data-label="時間"], td[data-label="訊息類型"], td[data-label="結果"], td[data-label="進入時間"], td[data-label="最後更新"] { white-space: nowrap; }
+    .check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 32px; }
+    .check input { width: 20px; height: 20px; min-height: 0; }
+    .tap { display: inline-flex; align-items: center; min-height: 32px; }
     .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-2) 0 var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
     .topbar .who { display: flex; gap: var(--space-3); align-items: center; }
     .login { max-width: 400px; margin: var(--space-6) auto 0; display: flex; flex-direction: column; gap: var(--space-4); }
@@ -81,6 +87,8 @@
       table.stack td { border: 0; padding: var(--space-1) var(--space-2); }
       table.stack td[data-label]::before { content: attr(data-label) "："; color: var(--color-text-muted); font-size: var(--text-sm); }
       .btn, input, select { min-height: 44px; }
+      .tap, .check, td a, p > a { display: inline-flex; align-items: center; min-height: 44px; }
+      table.stack td { white-space: normal !important; }
       dl.kv { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: no-preference) { .skel { animation: pulse 1.2s ease-in-out infinite; } }
@@ -263,7 +271,7 @@
   <section class="state" id="detail-loading">
     <h2>詳情：載入中</h2>
     <div class="app">
-      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <p><a class="tap" href="#list-filled">&larr; 回到列表</a></p>
       <div role="status" aria-live="polite" aria-busy="true" class="card"><span class="muted">載入軌跡中…</span><span class="skel" style="width:40%;height:1.5em"></span><span class="skel"></span><span class="skel"></span><span class="skel" style="width:60%"></span></div>
     </div>
   </section>
@@ -273,11 +281,11 @@
     <h2>詳情：等待中（進行中）</h2>
     <div class="app">
       <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
-      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <p><a class="tap" href="#list-filled">&larr; 回到列表</a></p>
       <header>
         <h1>棄單挽回（v2） <span class="badge b-warning">等待中</span></h1>
         <p class="muted mono">01JCXYZENROLL000000000001　客戶 01JCXYZPROFILE00000000001</p>
-        <p class="muted"><button class="btn secondary" type="button">重新整理</button>　資料更新於 2026-10-18 10:00:05（<code>as_of</code>）</p>
+        <p class="muted"><button class="btn secondary" type="button">重新整理</button>　資料更新於 2026-10-18 10:00:05（<code>as_of</code>）　<label class="check"><input type="checkbox">同時顯示 UTC 原值</label></p>
       </header>
       <p class="summary" role="status"><strong>目前狀況：</strong>停在「等 3 天」，預計 2026-10-21 10:00 繼續（實際喚醒最多晚一個輪詢間隔）。</p>
 
@@ -312,7 +320,7 @@
     <h2>詳情：Enrollment 已完成，訊息仍待送（回答「為什麼沒收到」）</h2>
     <div class="app">
       <div class="topbar"><strong>客戶旅程軌跡</strong><div class="who"><span class="muted">已登入：<span class="mono">support01</span></span><button class="btn secondary" type="button">登出</button></div></div>
-      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <p><a class="tap" href="#list-filled">&larr; 回到列表</a></p>
       <header>
         <h1>棄單挽回（v2） <span class="badge b-success">已完成</span></h1>
         <p class="muted mono">01JCXYZENROLL000000000002　客戶 01JCXYZPROFILE00000000001</p>
@@ -395,7 +403,7 @@
   <section class="state" id="detail-notfound">
     <h2>詳情：找不到</h2>
     <div class="app">
-      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <p><a class="tap" href="#list-filled">&larr; 回到列表</a></p>
       <div class="msg card" role="alert"><p><strong>找不到這筆 Enrollment</strong></p><p class="muted">ID 可能有誤，或這筆紀錄不存在。</p><a href="#search-initial">回到查詢</a></div>
     </div>
   </section>
@@ -404,7 +412,7 @@
   <section class="state" id="detail-error">
     <h2>詳情：載入失敗</h2>
     <div class="app">
-      <p><a href="#list-filled">&larr; 回到列表</a></p>
+      <p><a class="tap" href="#list-filled">&larr; 回到列表</a></p>
       <div class="msg error" role="alert"><p><strong>無法載入軌跡</strong></p><p>伺服器暫時無法回應，請稍後再試。若持續發生，請回報請求代碼 <span class="mono">01JCXYZREQ0000000000000002</span>。</p><button class="btn secondary" type="button">重試</button></div>
     </div>
   </section>

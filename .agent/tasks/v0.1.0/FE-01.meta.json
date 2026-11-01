@@ -1,0 +1,21 @@
+{
+  "task_id": "FE-01",
+  "kind": "feat",
+  "owner": "frontend",
+  "title": "依契約與 UI-01 實作唯讀軌跡查詢頁（登入、查詢列表、詳情），先接 mock",
+  "issue": 10,
+  "branch": "feat/fe-01",
+  "worktree": ".worktrees\\FE-01",
+  "pr": 11,
+  "qa": {
+    "result": "pass",
+    "sha": "21eacd8be6d116c34e8be88fb0270a4fa5bb9d63",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "21eacd8be6d116c34e8be88fb0270a4fa5bb9d63",
+    "by": "architect"
+  },
+  "merged": true
+}

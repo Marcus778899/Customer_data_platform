@@ -1,0 +1,60 @@
+- generic [ref=f3e3]:
+  - link "跳到主要內容" [ref=f3e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=f3e5]:
+    - generic [ref=f3e6]: 客戶旅程平台
+    - navigation "主要導覽" [ref=f3e7]:
+      - list [ref=f3e8]:
+        - listitem [ref=f3e9]:
+          - link "旅程" [ref=f3e10] [cursor=pointer]:
+            - /url: /journeys
+        - listitem [ref=f3e11]:
+          - link "客戶" [ref=f3e12] [cursor=pointer]:
+            - /url: /customers
+        - listitem [ref=f3e13]:
+          - link "受眾 規劃中" [ref=f3e14] [cursor=pointer]:
+            - /url: /audience
+            - text: 受眾
+            - generic [ref=f3e15]: 規劃中
+    - generic [ref=f3e16]:
+      - generic [ref=f3e17]:
+        - text: 已登入：
+        - strong [ref=f3e18]: Demo editor
+      - generic [ref=f3e19]: 角色：編輯者
+      - link "修改密碼" [ref=f3e20] [cursor=pointer]:
+        - /url: /account/password
+      - button "登出" [ref=f3e21] [cursor=pointer]
+  - main [ref=f3e23]:
+    - navigation "麵包屑" [ref=f3e24]:
+      - list [ref=f3e25]:
+        - listitem [ref=f3e26]:
+          - link "旅程" [ref=f3e27] [cursor=pointer]:
+            - /url: /journeys
+        - listitem [ref=f3e28]: 旅程進度
+    - generic [ref=f3e29]:
+      - generic [ref=f3e30]:
+        - heading "旅程進度" [level=1] [ref=f3e31]
+        - paragraph [ref=f3e32]: 最近加入旅程的客戶，新到舊。要查特定客戶，請用精確查詢。
+      - link "用客戶 ID 查詢" [ref=f3e33] [cursor=pointer]:
+        - /url: /
+    - form "篩選旅程進度" [ref=f3e34]:
+      - generic [ref=f3e35]:
+        - generic [ref=f3e36]: 旅程
+        - combobox "旅程" [ref=f3e37]:
+          - option "全部" [selected]
+      - generic [ref=f3e38]:
+        - generic [ref=f3e39]: 狀態
+        - combobox "狀態" [ref=f3e40]:
+          - option "全部" [selected]
+          - option "準備中"
+          - option "進行中"
+          - option "等待中"
+          - option "已暫停"
+          - option "已走完"
+          - option "已達成目標"
+          - option "已提前離開"
+          - option "發生錯誤"
+          - option "已中止"
+      - button "查詢中…" [disabled] [ref=f3e41]
+    - status [ref=f3e42]:
+      - generic [ref=f3e43]: 載入中

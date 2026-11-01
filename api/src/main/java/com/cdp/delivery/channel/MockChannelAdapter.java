@@ -34,12 +34,11 @@ public class MockChannelAdapter implements ChannelAdapter {
         Map<String, Object> variables =
                 message.variables() == null ? Map.of() : message.variables();
         jdbc.sql(
-                        "insert into mock_channel_message (idempotency_key, tenant_id, enrollment_id,"
-                                + " template_id, channel_id, variables, sent_at) values (:key, :tenant,"
+                        "insert into mock_channel_message (idempotency_key, enrollment_id,"
+                                + " template_id, channel_id, variables, sent_at) values (:key,"
                                 + " :enrollment, :template, :channel, cast(:variables as jsonb),"
                                 + " :sentAt) on conflict (idempotency_key) do nothing")
                 .param("key", message.idempotencyKey())
-                .param("tenant", message.tenantId())
                 .param("enrollment", message.enrollmentId())
                 .param("template", message.templateId())
                 .param("channel", message.channelId())

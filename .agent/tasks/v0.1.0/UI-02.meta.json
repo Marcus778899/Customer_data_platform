@@ -1,0 +1,21 @@
+{
+  "task_id": "UI-02",
+  "kind": "docs",
+  "owner": "designer",
+  "title": "依 D-028（F-8 選 B）修正畫面規格「詳情進入方式」：Enrollment ID 查到一筆時顯示一筆的列表，點擊進詳情",
+  "issue": 62,
+  "branch": "docs/ui-02",
+  "worktree": ".worktrees\\UI-02",
+  "pr": 64,
+  "qa": {
+    "result": "pass",
+    "sha": "23d06c9e234fbc726cbcaf21629257cb0d90fa86",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "23d06c9e234fbc726cbcaf21629257cb0d90fa86",
+    "by": "甲方"
+  },
+  "merged": true
+}

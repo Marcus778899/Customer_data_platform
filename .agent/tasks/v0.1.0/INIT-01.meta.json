@@ -1,0 +1,21 @@
+{
+  "task_id": "INIT-01",
+  "kind": "docs",
+  "owner": "architect",
+  "title": "定出專案技術棧與開發基礎設施（Makefile、.env.example、CI 安裝步驟）",
+  "issue": 1,
+  "branch": "docs/init-01",
+  "worktree": ".worktrees\\INIT-01",
+  "pr": 2,
+  "qa": {
+    "result": "pass",
+    "sha": "6f33923abd73c30e2e0ddb647b3ab64cadec25da",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "6f33923abd73c30e2e0ddb647b3ab64cadec25da",
+    "by": "甲方"
+  },
+  "merged": true
+}

@@ -1,0 +1,42 @@
+- generic [ref=f6e3]:
+  - link "跳到主要內容" [ref=f6e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f6e5]:
+    - banner [ref=f6e6]:
+      - strong [ref=f6e7]: 客戶旅程平台
+      - group [ref=f6e8]:
+        - generic "選單" [ref=f6e9] [cursor=pointer]
+    - main [ref=f6e10]:
+      - navigation "麵包屑" [ref=f6e11]:
+        - list [ref=f6e12]:
+          - listitem [ref=f6e13]:
+            - link "旅程" [ref=f6e14] [cursor=pointer]:
+              - /url: /journeys
+          - listitem [ref=f6e15]: 旅程進度
+      - generic [ref=f6e16]:
+        - generic [ref=f6e17]:
+          - heading "旅程進度" [level=1] [ref=f6e18]
+          - paragraph [ref=f6e19]: 最近加入旅程的客戶，新到舊。要查特定客戶，請用精確查詢。
+        - link "用客戶 ID 查詢" [ref=f6e20] [cursor=pointer]:
+          - /url: /
+      - form "篩選旅程進度" [ref=f6e21]:
+        - generic [ref=f6e22]:
+          - generic [ref=f6e23]: 旅程
+          - combobox "旅程" [ref=f6e24]:
+            - option "全部" [selected]
+        - generic [ref=f6e25]:
+          - generic [ref=f6e26]: 狀態
+          - combobox "狀態" [ref=f6e27]:
+            - option "全部" [selected]
+            - option "準備中"
+            - option "進行中"
+            - option "等待中"
+            - option "已暫停"
+            - option "已走完"
+            - option "已達成目標"
+            - option "已提前離開"
+            - option "發生錯誤"
+            - option "已中止"
+        - button "查詢中…" [disabled] [ref=f6e28]
+      - status [ref=f6e29]:
+        - generic [ref=f6e30]: 載入中

@@ -1,4 +1,6 @@
 package com.cdp.security;
 
-/** 契約 §1.2 GET /api/v1/auth/me。 */
-public record CurrentUserResponse(String username) {}
+import com.cdp.user.UserRole;
+
+/** auth.md §3 GET /api/v1/auth/me 的 CurrentUser。 */
+public record CurrentUserResponse(String userId, String email, String displayName, UserRole role) {}

@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.1.1</version>
+    <version>4.1.2</version>
     <relativePath/>
   </parent>
 
@@ -20,6 +20,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spotless.version>3.10.4</spotless.version>
     <archunit.version>1.5.1</archunit.version>
+    <rabbit-amqp-client.version>5.37.0</rabbit-amqp-client.version>
   </properties>
 
   <dependencies>
@@ -142,6 +143,38 @@
           </compilerArgs>
         </configuration>
       </plugin>
+      <!-- CI 加速（docs/design/ci-speedup.md 做法 2）：以類別為單位分到 2 個 JVM 平行跑；量過再調 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <forkCount>2</forkCount>
+          <reuseForks>true</reuseForks>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- 沒有 Docker 時（本機 sandbox）make test 用：略過需要容器的測試，完整測試走 compose.yaml 的 test 服務
+         （見 docs/design/INIT-01.md「驗證方式」）。需要容器的測試只能放 acceptance/ 或命名為 *IntegrationTest。 -->
+    <profile>
+      <id>unit-only</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>**/*$*</exclude>
+                <exclude>com/cdp/acceptance/**</exclude>
+                <exclude>**/*IntegrationTest.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

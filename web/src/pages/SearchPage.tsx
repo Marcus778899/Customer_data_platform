@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { ApiError, listEnrollments } from '../api/client'
 import type { EnrollmentSummary, Page } from '../api/types'
-import { Badge, ErrorBox, Loading, Time, Topbar } from '../components/ui'
-import { ENROLLMENT_STATUS } from '../format'
+import { AppLink } from '../components/AppLink'
+import { ErrorBox, Loading } from '../components/ui'
+import { enrollmentStatusText } from '../plain'
 import { lastNavigationWasPop, navigate, type Loc } from '../router'
 import { useFetch } from '../useFetch'
+import { CustomerLink, StatusBadge, nextText, stepText } from './EnrollmentBrowsePage'
 
 const STATUS_OPTIONS: [string, string][] = [
   ['', '全部'],
-  ['ACTIVE', '進行中（ACTIVE）'],
-  ['WAITING', '等待中（WAITING）'],
-  ['COMPLETED', '已完成（COMPLETED）'],
-  ['FAILED', '失敗（FAILED）'],
+  ...(['ACTIVE', 'WAITING', 'COMPLETED', 'FAILED'] as const).map((v): [string, string] => [v, enrollmentStatusText(v)]),
 ]
 
 const LAST_ROW_KEY = 'cdp.lastRow'
@@ -77,15 +76,17 @@ export function SearchPage({ loc }: { loc: Loc }) {
   }
 
   return (
-    <div className="app">
-      <Topbar />
+    <>
       <header>
-        <h1>客戶旅程軌跡</h1>
+        <h1>旅程進度</h1>
         <p className="muted">唯讀。查某位客戶走到哪、為什麼沒收到訊息。</p>
+        <p>
+          <AppLink to="/enrollments">最近的旅程進度</AppLink>
+        </p>
       </header>
       <SearchForm key={loc.search} q={q} status={status} busy={loading} onSubmit={submit} />
 
-      {!q && <p className="msg muted">輸入客戶 ID 或 Enrollment ID 開始查詢。</p>}
+      {!q && <p className="msg muted">輸入客戶 ID 或進度編號開始查詢。</p>}
       {q && loading && <Loading>載入中…</Loading>}
       {q && error && (
         <div style={{ marginTop: 'var(--space-4)' }}>
@@ -98,7 +99,7 @@ export function SearchPage({ loc }: { loc: Loc }) {
             <strong>找不到「{q}」的任何旅程紀錄</strong>
           </p>
           <p className="muted">
-            可能原因：ID 輸入有誤；這位客戶尚未觸發任何旅程；或該事件發生已超過 24 小時，系統收下但不建立旅程紀錄。
+            可能原因：輸入的編號有誤；這位客戶尚未觸發任何旅程；或該事件發生已超過 24 小時，系統收下但不建立旅程紀錄。
           </p>
         </div>
       )}
@@ -114,11 +115,11 @@ export function SearchPage({ loc }: { loc: Loc }) {
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">旅程（版本）</th>
+                  <th scope="col">客戶</th>
+                  <th scope="col">旅程</th>
                   <th scope="col">狀態</th>
-                  <th scope="col">目前節點</th>
-                  <th scope="col">進入時間</th>
-                  <th scope="col">最後更新</th>
+                  <th scope="col">目前在哪一步</th>
+                  <th scope="col">下一步</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,7 +143,7 @@ export function SearchPage({ loc }: { loc: Loc }) {
           )}
         </section>
       )}
-    </div>
+    </>
   )
 }
 
@@ -165,9 +166,9 @@ function SearchForm({
     onSubmit(qInput, statusInput)
   }
   return (
-    <form className="search card" role="search" aria-label="查詢 Enrollment" onSubmit={handle}>
+    <form className="search card" role="search" aria-label="查詢旅程進度" onSubmit={handle}>
       <div className="field">
-        <label htmlFor="q">客戶 ID 或 Enrollment ID</label>
+        <label htmlFor="q">客戶 ID 或進度編號</label>
         <input
           id="q"
           name="q"
@@ -176,6 +177,7 @@ function SearchForm({
           onChange={(e) => setQInput(e.target.value)}
         />
       </div>
+      {/* 狀態篩選永遠顯示（D-015） */}
       <div className="field field-status">
         <label htmlFor="status">狀態</label>
         <select id="status" value={statusInput} onChange={(e) => setStatusInput(e.target.value)}>
@@ -201,34 +203,21 @@ function Row({ r }: { r: EnrollmentSummary }) {
     sessionStorage.setItem(LAST_ROW_KEY, r.enrollment_id)
     navigate(href, { state: { fromList: true } })
   }
-  const st = ENROLLMENT_STATUS[r.status]
   return (
     <tr>
+      <td data-label="客戶">
+        <CustomerLink profileId={r.profile_id} />
+      </td>
       <td data-label="旅程">
         <a href={href} data-eid={r.enrollment_id} onClick={open}>
-          {r.journey_name}（v{r.journey_version}）
+          {r.journey_name}
         </a>
-        <br />
-        <span className="mono muted">{r.enrollment_id}</span>
       </td>
       <td data-label="狀態">
-        <Badge tone={st.tone}>{st.label}</Badge>
+        <StatusBadge status={r.status} />
       </td>
-      <td data-label="目前節點">
-        {r.current_node_name ?? r.current_node_type}
-        <br />
-        {r.current_node_name ? (
-          <span className="mono muted">{r.current_node_type}</span>
-        ) : (
-          <span className="muted">（未命名節點，以型別顯示）</span>
-        )}
-      </td>
-      <td data-label="進入時間">
-        <Time iso={r.enrolled_at} />
-      </td>
-      <td data-label="最後更新">
-        <Time iso={r.updated_at} />
-      </td>
+      <td data-label="目前在哪一步">{stepText(r)}</td>
+      <td data-label="下一步">{nextText(r.status)}</td>
     </tr>
   )
 }

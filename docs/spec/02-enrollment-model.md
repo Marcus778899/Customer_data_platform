@@ -24,7 +24,6 @@ Enrollment 是「某個客戶走某條旅程的某一次」，是整個引擎的
 ```java
 record EnrollmentState(
     String              enrollmentId,      // ULID
-    String              tenantId,
     String              journeyId,
     int                 journeyVersion,    // 建立當下綁定，終生不變
     String              profileId,
@@ -135,6 +134,8 @@ sealed interface WakeCondition {
 
 > 契約層用 `wakeAt`（語意：什麼時候該醒），實作層才有 `next_wake_at`（語意：掃描索引欄位）。名字不同是刻意的。
 
+**落地（`docs/design/DESIGN-03.md`）**：`Event` 的逾時由同一個 `next_wake_at` 承擔，到期時推進迴圈送 `WakeSignal.Timeout`（`Timer` 到期送 `TimerFired`）。事件只喚醒 `occurred_at` ≥ 該等待節點軌跡 `entered_at` 的 Enrollment（等待開始前發生的事件不算數）。事件與逾時同時到達時，先鎖到列者勝；後到者看到狀態已不是同一個等待即忽略（`StateStore.lockById`）。
+
 ---
 
 ## 5. G1 — 觸發事件快照
@@ -210,7 +211,7 @@ record TriggerSnapshot(
 
 ```sql
 CREATE UNIQUE INDEX uq_enrollment_dedup
-  ON enrollment (tenant_id, journey_id, profile_id, dedup_key)
+  ON enrollment (journey_id, profile_id, dedup_key)
   WHERE dedup_key IS NOT NULL;
 ```
 
@@ -228,6 +229,16 @@ CREATE UNIQUE INDEX uq_enrollment_dedup
 
 冷卻期從**上一次 Enrollment 的 `terminatedAt`** 起算，不是 `enrolledAt`。
 > 理由：一條跑 30 天的旅程，若從進入起算 7 天冷卻，客戶可能在還沒走完時就又被拉進來。
+
+### 落地（v0.2.0 第二版，`docs/design/DESIGN-03.md`）
+
+| 項目 | 規則 |
+|---|---|
+| 預設模式 | `settings.reentry` 省略 = `UNLIMITED`（與 v0.1.0 行為相同） |
+| 事件重派發的冪等 | 與 G3 分開：`enrollment_record.trigger_event_id` ＋ 唯一索引 `(journey_id, trigger_event_id)`。同一事件重試只會建一個 Enrollment，不論 `mode`。v0.1.0 以 `dedup_key = event_id` 承擔這件事，第二版起 `dedup_key` 只放 G3 的值 |
+| 冷卻期檢查 | `COOLDOWN`、`DEDUP_KEY_WITH_COOLDOWN` 在建立的交易內先取 `pg_advisory_xact_lock`（鍵 = `journey_id`＋`profile_id`），再查「最近一次 `terminated_at` ＋ 冷卻期 > 現在」或「有未結束的 Enrollment」→ 不建立；同一客戶併發觸發因此不會各自通過檢查 |
+| `DEDUP_KEY_WITH_COOLDOWN` | 同一個去重鍵永遠只進一次（唯一約束）；冷卻期擋的是「不同去重鍵」在冷卻期內再進入 |
+| 被擋下 | 不是錯誤；事件照常標 `DISPATCHED`，記 INFO 日誌（不寫軌跡，因為沒有 Enrollment） |
 
 ---
 
@@ -295,7 +306,6 @@ record EnrollmentTrace(
 ```sql
 CREATE TABLE enrollment (
     enrollment_id      TEXT PRIMARY KEY,
-    tenant_id          TEXT NOT NULL,
     journey_id         TEXT NOT NULL,
     journey_version    INT  NOT NULL,
     profile_id         TEXT NOT NULL,
@@ -321,7 +331,7 @@ CREATE TABLE enrollment (
 
 -- G3 去重
 CREATE UNIQUE INDEX uq_enrollment_dedup
-  ON enrollment (tenant_id, journey_id, profile_id, dedup_key)
+  ON enrollment (journey_id, profile_id, dedup_key)
   WHERE dedup_key IS NOT NULL;
 
 -- 計時器掃描（只掃 WAITING，避免全表）
@@ -331,15 +341,16 @@ CREATE INDEX ix_enrollment_wake
 
 -- 事件喚醒比對（必須含 profile_id：查的是「這位客戶在等這個事件」）
 CREATE INDEX ix_enrollment_wake_event
-  ON enrollment (tenant_id, profile_id, wake_event_name)
+  ON enrollment (profile_id, wake_event_name)
   WHERE status = 'WAITING' AND wake_event_name IS NOT NULL;
 
 -- 全域退出 / 緊急停止時依旅程批次操作
 CREATE INDEX ix_enrollment_journey_active
-  ON enrollment (tenant_id, journey_id)
+  ON enrollment (journey_id)
   WHERE terminated_at IS NULL;
 
-ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY;
+-- D-051 起單一租戶、D-063 起不帶 tenant_id：RLS 不排期；回到多租戶時先加回欄位並回填，再與 policy 同一支 migration 上（07 §2）
+-- ALTER TABLE enrollment ENABLE ROW LEVEL SECURITY;
 ```
 
 > `next_wake_at` 出現在資料表是允許的，出現在 `EnrollmentState` 或 `JourneyRuntime` 介面則是違規。

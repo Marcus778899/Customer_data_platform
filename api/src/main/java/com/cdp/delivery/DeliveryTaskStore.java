@@ -15,5 +15,5 @@ public interface DeliveryTaskStore {
     Optional<DeliveryTask> find(String idempotencyKey);
 
     /** 單一 UPDATE 追加並只保留最近 50 筆（02 §7），不與引擎的 save 互相覆蓋。 */
-    void appendDeliveryHistory(String tenantId, String enrollmentId, DeliveryRecord record);
+    void appendDeliveryHistory(String enrollmentId, DeliveryRecord record);
 }

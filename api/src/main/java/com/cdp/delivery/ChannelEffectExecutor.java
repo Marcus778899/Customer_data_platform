@@ -28,7 +28,7 @@ public class ChannelEffectExecutor implements EffectExecutor {
     }
 
     @Override
-    public void execute(String tenantId, String enrollmentId, Effect effect) {
+    public void execute(String enrollmentId, Effect effect) {
         if (!(effect instanceof Effect.SendMessage send)) {
             throw new IllegalArgumentException("unsupported effect: " + effect);
         }
@@ -42,7 +42,6 @@ public class ChannelEffectExecutor implements EffectExecutor {
                 channel.send(
                         new OutboundMessage(
                                 send.idempotencyKey(),
-                                tenantId,
                                 enrollmentId,
                                 send.templateId(),
                                 send.channelId(),
@@ -51,7 +50,6 @@ public class ChannelEffectExecutor implements EffectExecutor {
         tasks.update(
                 new DeliveryTask(
                         task.idempotencyKey(),
-                        task.tenantId(),
                         task.enrollmentId(),
                         task.journeyId(),
                         task.journeyVersion(),
@@ -68,7 +66,6 @@ public class ChannelEffectExecutor implements EffectExecutor {
                         task.createdAt(),
                         now));
         tasks.appendDeliveryHistory(
-                tenantId,
                 enrollmentId,
                 new DeliveryRecord(
                         task.nodeId(),
@@ -84,12 +81,12 @@ public class ChannelEffectExecutor implements EffectExecutor {
     }
 
     @Override
-    public void cancelPending(String tenantId, String enrollmentId) {
+    public void cancelPending(String enrollmentId) {
         throw new UnsupportedOperationException("v0.3.0 (G10)");
     }
 
     @Override
-    public void cancelPendingByJourney(String tenantId, String journeyId) {
+    public void cancelPendingByJourney(String journeyId) {
         throw new UnsupportedOperationException("v0.3.0 (G10)");
     }
 }

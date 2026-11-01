@@ -23,7 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class JdbcDeliveryTaskStore implements DeliveryTaskStore {
 
     private static final String COLUMNS =
-            "idempotency_key, tenant_id, enrollment_id, journey_id, journey_version, node_id,"
+            "idempotency_key, enrollment_id, journey_id, journey_version, node_id,"
                     + " visit_seq, template_id, channel_id, channel_type, message_type, status,"
                     + " skip_reason, delivery_id, attempted_at, created_at, updated_at";
 
@@ -38,13 +38,12 @@ public class JdbcDeliveryTaskStore implements DeliveryTaskStore {
     @Override
     public DeliveryTask insertIfAbsentAndLock(DeliveryTask t) {
         jdbc.sql(
-                        "insert into delivery_task (" + COLUMNS + ") values (:key, :tenant,"
+                        "insert into delivery_task (" + COLUMNS + ") values (:key,"
                                 + " :enrollment, :journey, :version, :node, :visitSeq, :template,"
                                 + " :channel, :channelType, :messageType, :status, :skipReason,"
                                 + " :deliveryId, :attemptedAt, :createdAt, :updatedAt)"
                                 + " on conflict (idempotency_key) do nothing")
                 .param("key", t.idempotencyKey())
-                .param("tenant", t.tenantId())
                 .param("enrollment", t.enrollmentId())
                 .param("journey", t.journeyId())
                 .param("version", t.journeyVersion())
@@ -99,7 +98,7 @@ public class JdbcDeliveryTaskStore implements DeliveryTaskStore {
     }
 
     @Override
-    public void appendDeliveryHistory(String tenantId, String enrollmentId, DeliveryRecord record) {
+    public void appendDeliveryHistory(String enrollmentId, DeliveryRecord record) {
         jdbc.sql(
                         "update enrollment_record set delivery_history = coalesce(("
                                 + " select jsonb_agg(s.e order by s.i) from ("
@@ -107,9 +106,8 @@ public class JdbcDeliveryTaskStore implements DeliveryTaskStore {
                                 + " || jsonb_build_array(cast(:record as jsonb)))"
                                 + " with ordinality as t(e, i) order by i desc limit 50) s),"
                                 + " '[]'::jsonb)"
-                                + " where tenant_id = :tenant and enrollment_id = :enrollment")
+                                + " where enrollment_id = :enrollment")
                 .param("record", json.writeValueAsString(record))
-                .param("tenant", tenantId)
                 .param("enrollment", enrollmentId)
                 .update();
     }
@@ -119,7 +117,6 @@ public class JdbcDeliveryTaskStore implements DeliveryTaskStore {
         String skipReason = rs.getString("skip_reason");
         return new DeliveryTask(
                 rs.getString("idempotency_key"),
-                rs.getString("tenant_id"),
                 rs.getString("enrollment_id"),
                 rs.getString("journey_id"),
                 rs.getInt("journey_version"),

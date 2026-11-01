@@ -7,10 +7,10 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.cdp.common.CdpProperties;
 import com.cdp.common.web.ApiException;
 import com.cdp.common.web.ErrorCode;
 import com.cdp.common.web.FieldError;
+import com.cdp.profile.ProfileWriter;
 
 /** 驗證 → 落地（去重）；不同步建立 Enrollment，由 EventDispatcher 非同步扇出。 */
 @Service
@@ -20,15 +20,15 @@ public class EventIngestionService {
 
     private final EventValidator validator;
     private final EventStore store;
-    private final CdpProperties properties;
     private final Clock clock;
+    private final ProfileWriter profiles;
 
     public EventIngestionService(
-            EventValidator validator, EventStore store, CdpProperties properties, Clock clock) {
+            EventValidator validator, EventStore store, Clock clock, ProfileWriter profiles) {
         this.validator = validator;
         this.store = store;
-        this.properties = properties;
         this.clock = clock;
+        this.profiles = profiles;
     }
 
     public IngestResult ingest(EventRequest event) {
@@ -38,11 +38,9 @@ public class EventIngestionService {
         if (!errors.isEmpty()) {
             return new IngestResult(eventId, IngestStatus.REJECTED, errors);
         }
-        // tenant_id 一律取設定，請求帶的忽略（契約 §1）
         NormalizedEvent normalized =
                 new NormalizedEvent(
                         event.eventId(),
-                        properties.tenantId(),
                         event.sourceType(),
                         event.sourceId(),
                         event.name(),
@@ -51,6 +49,8 @@ public class EventIngestionService {
                         event.identity(),
                         event.properties(),
                         event.context());
+        // profiles.md §2 末條：未知客戶同步建空白客戶；放在寫入事件之前，重送時也能補建
+        profiles.ensureExists(event.identity().profileId());
         boolean inserted = store.insertIfAbsent(normalized);
         return new IngestResult(
                 eventId, inserted ? IngestStatus.ACCEPTED : IngestStatus.DUPLICATE, List.of());

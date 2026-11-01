@@ -99,20 +99,19 @@ class NulParameterAcceptanceTest {
 
     private String seedEnrollment() {
         String jid = ulid();
-        String tenant = "01JTESTTENANT0000000000001";
         Timestamp now = Timestamp.from(Instant.parse("2026-10-18T02:00:00Z"));
         jdbc.update(
-                "insert into journey_definition(journey_id, tenant_id, version, name, status, settings,"
+                "insert into journey_definition(journey_id, version, name, status, settings,"
                         + " entry_node, nodes, created_at, published_at)"
-                        + " values (?,?,1,'nul-j','ACTIVE','{}'::jsonb,'start_1','[]'::jsonb,?,?)",
-                jid, tenant, now, now);
+                        + " values (?,1,'nul-j','ACTIVE','{}'::jsonb,'start_1','[]'::jsonb,?,?)",
+                jid, now, now);
         String eid = ulid();
         jdbc.update(
-                "insert into enrollment_record(enrollment_id, tenant_id, journey_id, journey_version,"
+                "insert into enrollment_record(enrollment_id, journey_id, journey_version,"
                         + " profile_id, status, current_node_id, trigger_snapshot, variables,"
                         + " enrolled_at, updated_at)"
-                        + " values (?,?,?,1,'nul-profile','WAITING','wait_1','{}'::jsonb,'{}'::jsonb,?,?)",
-                eid, tenant, jid, now, now);
+                        + " values (?,?,1,'nul-profile','WAITING','wait_1','{}'::jsonb,'{}'::jsonb,?,?)",
+                eid, jid, now, now);
         return eid;
     }
 

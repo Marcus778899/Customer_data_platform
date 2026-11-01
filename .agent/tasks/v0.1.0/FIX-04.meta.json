@@ -1,0 +1,22 @@
+{
+  "task_id": "FIX-04",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "認證強化：授權預設拒絕、機密不經 toString 外洩、啟動時驗證金鑰設定",
+  "issue": 29,
+  "branch": "fix/fix-04",
+  "worktree": ".worktrees\\FIX-04",
+  "pr": 30,
+  "qa": {
+    "result": "pass",
+    "sha": "43ca68644aebec3c72d5c911cebf9c7f077c2ce2",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "43ca68644aebec3c72d5c911cebf9c7f077c2ce2",
+    "by": "architect"
+  },
+  "merged": true,
+  "qa_fails": 1
+}

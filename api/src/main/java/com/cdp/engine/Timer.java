@@ -9,5 +9,5 @@ public interface Timer {
 
     void cancel(String enrollmentId);
 
-    void cancelAll(String tenantId, String journeyId);
+    void cancelAll(String journeyId);
 }

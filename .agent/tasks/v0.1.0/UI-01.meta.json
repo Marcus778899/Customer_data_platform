@@ -1,0 +1,22 @@
+{
+  "task_id": "UI-01",
+  "kind": "docs",
+  "owner": "designer",
+  "title": "出 v0.1.0 唯讀 Enrollment 軌跡查詢頁的畫面規格、靜態設計稿與設計 token",
+  "issue": 4,
+  "branch": "docs/ui-01",
+  "worktree": ".worktrees\\UI-01",
+  "pr": 8,
+  "qa": {
+    "result": "pass",
+    "sha": "e041e758bff94c3e1f2cb6222455b8848887a8e8",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "e041e758bff94c3e1f2cb6222455b8848887a8e8",
+    "by": "甲方"
+  },
+  "merged": true,
+  "qa_fails": 1
+}

@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-01",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "Spring MVC 內建例外（415 等）也回契約 §5 的 problem+json 格式",
+  "issue": 15,
+  "branch": "fix/fix-01",
+  "worktree": ".worktrees\\FIX-01",
+  "pr": 16,
+  "qa": {
+    "result": "pass",
+    "sha": "3eabd2dc9aee0f150770ed96435863da4935e290",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "3eabd2dc9aee0f150770ed96435863da4935e290",
+    "by": "architect"
+  },
+  "merged": true
+}

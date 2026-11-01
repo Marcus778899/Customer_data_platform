@@ -9,6 +9,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -19,7 +20,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * BE-04 驗收：契約 §1.1、§1.2、§5。只驗認證層：已通過認證的請求會進 controller（BE-01 未合併時為 500／400 等），
+ * user-auth-api 改寫（auth.md）：登入改 email＋密碼，帳號由管理金鑰經 POST /users 建立（VIEWER 取代 v0.1.0 的 SUPPORT）；
+ * session 寫入請求自動帶 X-XSRF-TOKEN。測試意圖不變。
+ *
+ * <p>BE-04 驗收：契約 §1.1、§1.2、§5。只驗認證層：已通過認證的請求會進 controller（BE-01 未合併時為 500／400 等），
  * 故一律只斷言「不是 401／403」。
  *
  * <p>閒置逾時（CDP_SESSION_IDLE_TIMEOUT）：Tomcat 逾時最小單位為分鐘，驗收測試無法快轉，改由 worker 單元測試與 verifier 手動驗證。
@@ -34,8 +38,7 @@ class AuthenticationAcceptanceTest {
 
     private static final String INGEST = "Bearer test-ingest-key";
     private static final String ADMIN = "Bearer test-admin-key";
-    private static final String USER = "test-support";
-    private static final String PASS = "test-support-password";
+    private static final String PASS = AuthHttp.PASSWORD;
     private static final String ID = "01JXXXXXXXXXXXXXXXXXXXXXXX";
 
     private final HttpClient http = HttpClient.newHttpClient();
@@ -43,24 +46,34 @@ class AuthenticationAcceptanceTest {
 
     @LocalServerPort int port;
 
+    private String user;
+
+    @BeforeEach
+    void createViewer() throws Exception {
+        user = AuthHttp.uniqueEmail();
+        AuthHttp.createUserId(port, user, "VIEWER");
+    }
+
     private HttpResponse<String> call(String method, String path, String auth, String cookie, String body)
             throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path));
         if (auth != null) b.header("Authorization", auth);
         if (cookie != null) b.header("Cookie", cookie);
+        if (cookie != null && !"GET".equals(method) && AuthHttp.xsrf(cookie) != null) {
+            b.header("X-XSRF-TOKEN", AuthHttp.xsrf(cookie));
+        }
         if (body != null) b.header("Content-Type", "application/json");
         b.method(method, body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body));
         return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    private String creds(String user, String pass) {
-        return "{\"username\":\"" + user + "\",\"password\":\"" + pass + "\"}";
+    private String creds(String email, String pass) {
+        return AuthHttp.credentials(email, pass);
     }
 
+    /** 登入並以 /auth/me 取得 XSRF-TOKEN；回傳 "CDP_SESSION=…; XSRF-TOKEN=…"。 */
     private String login() throws Exception {
-        HttpResponse<String> r = call("POST", "/api/v1/auth/login", null, null, creds(USER, PASS));
-        assertThat(r.statusCode()).isEqualTo(204);
-        return sessionCookie(r);
+        return AuthHttp.login(port, user, PASS);
     }
 
     private String setCookie(HttpResponse<String> r) {
@@ -153,7 +166,7 @@ class AuthenticationAcceptanceTest {
     }
 
     @Test
-    void support_session_is_get_only() throws Exception {
+    void viewer_session_is_read_only() throws Exception {
         String cookie = login();
         assertReachedController(call("GET", "/api/v1/enrollments?q=x", null, cookie, null));
         assertReachedController(call("GET", "/api/v1/enrollments/" + ID, null, cookie, null));
@@ -173,7 +186,7 @@ class AuthenticationAcceptanceTest {
 
     @Test
     void login_success_sets_hardened_cookie() throws Exception {
-        HttpResponse<String> r = call("POST", "/api/v1/auth/login", null, null, creds(USER, PASS));
+        HttpResponse<String> r = call("POST", "/api/v1/auth/login", null, null, creds(user, PASS));
         assertThat(r.statusCode()).isEqualTo(204);
         String sc = setCookie(r);
         assertThat(sc).containsIgnoringCase("HttpOnly");
@@ -184,18 +197,18 @@ class AuthenticationAcceptanceTest {
 
     @Test
     void each_login_issues_a_new_session_id() throws Exception {
-        String a = login();
-        assertThat(login()).isNotEqualTo(a);
+        String a = AuthHttp.cookieValue(login(), "CDP_SESSION");
+        assertThat(AuthHttp.cookieValue(login(), "CDP_SESSION")).isNotEqualTo(a);
         // 帶著舊 cookie 再登入也要換新 id（防 session fixation）
-        HttpResponse<String> r = call("POST", "/api/v1/auth/login", null, a, creds(USER, PASS));
+        HttpResponse<String> r = call("POST", "/api/v1/auth/login", null, "CDP_SESSION=" + a, creds(user, PASS));
         assertThat(r.statusCode()).isEqualTo(204);
-        assertThat(sessionCookie(r)).isNotEqualTo(a);
+        assertThat(sessionCookie(r)).isNotEqualTo("CDP_SESSION=" + a);
     }
 
     @Test
     void bad_credentials_are_401_invalid_credentials_and_indistinguishable() throws Exception {
-        HttpResponse<String> wrongPass = call("POST", "/api/v1/auth/login", null, null, creds(USER, "nope"));
-        HttpResponse<String> wrongUser = call("POST", "/api/v1/auth/login", null, null, creds("nobody", PASS));
+        HttpResponse<String> wrongPass = call("POST", "/api/v1/auth/login", null, null, creds(user, "nope"));
+        HttpResponse<String> wrongUser = call("POST", "/api/v1/auth/login", null, null, creds("nobody@example.com", PASS));
         assertProblem(wrongPass, 401, "INVALID_CREDENTIALS");
         assertProblem(wrongUser, 401, "INVALID_CREDENTIALS");
         assertThat(json.readTree(wrongPass.body()).path("detail"))
@@ -206,23 +219,24 @@ class AuthenticationAcceptanceTest {
     @Test
     void login_validation_and_media_type() throws Exception {
         HttpResponse<String> missing =
-                call("POST", "/api/v1/auth/login", null, null, "{\"username\":\"" + USER + "\"}");
+                call("POST", "/api/v1/auth/login", null, null, "{\"email\":\"" + user + "\"}");
         assertProblem(missing, 400, "VALIDATION_FAILED");
         assertThat(json.readTree(missing.body()).path("errors").toString()).contains("password");
         assertProblem(call("POST", "/api/v1/auth/login", null, null, creds("", "")), 400, "VALIDATION_FAILED");
 
         HttpRequest req = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/login"))
                 .header("Content-Type", "text/plain")
-                .POST(BodyPublishers.ofString("username=a&password=b"))
+                .POST(BodyPublishers.ofString("email=a&password=b"))
                 .build();
         assertProblem(http.send(req, HttpResponse.BodyHandlers.ofString()), 415, "UNSUPPORTED_MEDIA_TYPE");
     }
 
     @Test
-    void me_returns_username_with_session() throws Exception {
+    void me_returns_current_user_with_session() throws Exception {
         HttpResponse<String> r = call("GET", "/api/v1/auth/me", null, login(), null);
         assertThat(r.statusCode()).isEqualTo(200);
-        assertThat(json.readTree(r.body()).path("username").asText()).isEqualTo(USER);
+        assertThat(json.readTree(r.body()).path("email").asText()).isEqualTo(user.toLowerCase());
+        assertThat(json.readTree(r.body()).path("role").asText()).isEqualTo("VIEWER");
     }
 
     @Test

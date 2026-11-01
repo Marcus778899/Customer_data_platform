@@ -42,7 +42,6 @@ public class EngineJourneyRuntime implements JourneyRuntime {
     @Override
     @Transactional(propagation = Propagation.NESTED)
     public EnrollmentState start(
-            String tenantId,
             String journeyId,
             int version,
             String sourceNodeId,
@@ -53,7 +52,6 @@ public class EngineJourneyRuntime implements JourneyRuntime {
         EnrollmentState created =
                 new EnrollmentState(
                         ids.newId(),
-                        tenantId,
                         journeyId,
                         version,
                         profileId,
@@ -72,7 +70,7 @@ public class EngineJourneyRuntime implements JourneyRuntime {
             created = stateStore.create(created);
         } catch (DuplicateEnrollmentException e) {
             return stateStore
-                    .findById(tenantId, e.existingEnrollmentId())
+                    .findById(e.existingEnrollmentId())
                     .orElseThrow(() -> new IllegalStateException("duplicate enrollment vanished"));
         }
         return advancer.advance(created, null);
@@ -80,25 +78,25 @@ public class EngineJourneyRuntime implements JourneyRuntime {
 
     @Override
     @Transactional
-    public void signal(String tenantId, String enrollmentId, WakeSignal signal) {
+    public void signal(String enrollmentId, WakeSignal signal) {
         stateStore
-                .findById(tenantId, enrollmentId)
+                .findById(enrollmentId)
                 .filter(s -> s.status() == EnrollmentStatus.WAITING)
                 .ifPresent(s -> advancer.advance(s, signal));
     }
 
     @Override
-    public void cancel(String tenantId, String enrollmentId, String reason) {
+    public void cancel(String enrollmentId, String reason) {
         throw new UnsupportedOperationException("v0.3.0 (G10)");
     }
 
     @Override
-    public void cancelAll(String tenantId, String journeyId, String reason) {
+    public void cancelAll(String journeyId, String reason) {
         throw new UnsupportedOperationException("v0.3.0 (G10)");
     }
 
     @Override
-    public Optional<EnrollmentState> get(String tenantId, String enrollmentId) {
-        return stateStore.findById(tenantId, enrollmentId);
+    public Optional<EnrollmentState> get(String enrollmentId) {
+        return stateStore.findById(enrollmentId);
     }
 }

@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-02",
+  "kind": "chore",
+  "owner": "architect",
+  "title": "FIX-03 前置：V3 migration（事件派發重試）與設計補充",
+  "issue": 26,
+  "branch": "chore/chore-02",
+  "worktree": ".worktrees\\CHORE-02",
+  "pr": 28,
+  "qa": {
+    "result": "pass",
+    "sha": "4314c98ec95f3fae1e3550cee84b64fbd8c7a999",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "4314c98ec95f3fae1e3550cee84b64fbd8c7a999",
+    "by": "architect"
+  },
+  "merged": true
+}

@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.util.List;
 
@@ -18,7 +17,8 @@ import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/** FIX-04 回歸（qa FAIL 1）：enrollments 只放行契約 §4 的三個樣式，其餘子路徑對 SUPPORT 與 INGEST 回 403 §5 格式。 */
+/** user-auth-api 改寫：session 改為 email 登入的 VIEWER（取代 SUPPORT）。
+ * FIX-04 回歸（qa FAIL 1）：enrollments 只放行契約 §4 的三個樣式，其餘子路徑對 SUPPORT 與 INGEST 回 403 §5 格式。 */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.rabbitmq.listener.simple.auto-startup=false")
@@ -46,18 +46,7 @@ class EnrollmentsPathAcceptanceTest {
     }
 
     private String login() throws Exception {
-        HttpRequest r = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/login"))
-                .header("Content-Type", "application/json")
-                .POST(BodyPublishers.ofString(
-                        "{\"username\":\"test-support\",\"password\":\"test-support-password\"}"))
-                .build();
-        HttpResponse<String> res = http.send(r, HttpResponse.BodyHandlers.ofString());
-        assertThat(res.statusCode()).isEqualTo(204);
-        return res.headers().allValues("Set-Cookie").stream()
-                .filter(c -> c.startsWith("CDP_SESSION="))
-                .findFirst()
-                .orElseThrow()
-                .split(";")[0];
+        return AuthHttp.loginNewUser(port, "VIEWER");
     }
 
     private void assertForbidden(HttpResponse<String> r, String what) throws Exception {

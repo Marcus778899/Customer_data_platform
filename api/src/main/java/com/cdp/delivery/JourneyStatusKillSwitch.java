@@ -16,8 +16,8 @@ public class JourneyStatusKillSwitch implements KillSwitch {
     }
 
     @Override
-    public boolean isStopped(String tenantId, String journeyId, int journeyVersion) {
-        return journeys.find(tenantId, journeyId, journeyVersion)
+    public boolean isStopped(String journeyId, int journeyVersion) {
+        return journeys.find(journeyId, journeyVersion)
                 .map(d -> d.status() != JourneyStatus.ACTIVE)
                 .orElse(true);
     }

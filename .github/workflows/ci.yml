@@ -4,23 +4,66 @@ permissions:
   contents: read
 
 # PR 開到 develop / main 時先跑一次；合併（push）到 develop / main 後再跑一次
+# 檢查邏輯與工具版本在 agent-engineering 裡（ae ci …），升級工具就跟著更新；這裡只放專案自己的部分
 on:
   push:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
   pull_request:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
+
+env:
+  AE: .claude/skills/agent-engineering/bin/ae
+
+# 同一個 PR 有新 push 時取消舊 run（docs/design/ci-speedup.md #4）；只作用在 pull_request：
+# push 的 group 帶 run_id，每個 run 自成一組，develop／main 的 push 不會被取消或排隊
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # develop／main 的 push 只改文件時跳過 check（docs/design/ci-speedup.md #1、D-075）；security 不受影響
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # 白名單：docs/**、.agent/**、根目錄 README.md、BOARD.md（刻意不用 **/*.md）
+      # 照跑的情況：非 push 事件（PR 一律全套）、before 全 0（新分支）、before 不在歷史裡（強推）、diff 失敗或為空、任一檔不在白名單
+      # --no-renames：搬移檔案時列出舊路徑與新路徑，從 api/ 搬到 docs/ 也會照跑
+      - name: Detect docs-only push
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          code=true
+          if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+            && files=$(git diff --no-renames --name-only "$BEFORE" "$AFTER") && [ -n "$files" ]; then
+            if ! printf '%s\n' "$files" | grep -Ev '^(docs/|\.agent/|README\.md$|BOARD\.md$)' >/dev/null; then
+              code=false
+            fi
+          fi
+          echo "event=$EVENT before=$BEFORE after=$AFTER code=$code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   check:
     name: Check
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       # 專案初始化（INIT）合併前還沒有 Makefile，後續步驟全部跳過
       - name: Detect Makefile
         id: detect
@@ -46,6 +89,41 @@ jobs:
       - name: Install dependencies
         if: steps.detect.outputs.found == 'true'
         run: make ci-setup
+      # Actions 會設 CI=true：make test 一律跑含容器的全部測試（見 docs/design/INIT-01.md「驗證方式」）
       - name: Check
         if: steps.detect.outputs.found == 'true'
         run: make check
+      # 改到的程式碼覆蓋率（ae ci coverage-gate）：Makefile 還沒有 coverage target，加上後再補這一步
+
+  # 資安稽核：每個 PR 都跑，ae pr merge 要求所有 check 綠
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # 密鑰掃描要看整段歷史，刪掉的 secret 仍在 git 裡
+      # 工具本體（ae）：submodule 指到的版本。agent-engineering 是 private，用 repo secrets 的 AE_TOKEN
+      # （fine-grained token，只給 agent-engineering 的 Contents 唯讀）。不讓 checkout 順便抓 submodule：預設 token 讀不到別的 private repo
+      - name: Locate agent-engineering
+        id: ae
+        run: |
+          url=$(git config -f .gitmodules --get submodule..claude/skills/agent-engineering.url)
+          repo=${url#https://github.com/}
+          echo "repo=${repo%.git}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD:.claude/skills/agent-engineering)" >> "$GITHUB_OUTPUT"
+      - name: Checkout agent-engineering
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.ae.outputs.repo }}
+          ref: ${{ steps.ae.outputs.sha }}
+          path: .claude/skills/agent-engineering
+          token: ${{ secrets.AE_TOKEN || github.token }}
+          persist-credentials: false   # 後面會跑專案的程式，不留 token
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan (gitleaks, osv-scanner, semgrep)
+        run: '"$AE" ci security'

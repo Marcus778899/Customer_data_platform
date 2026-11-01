@@ -1,0 +1,21 @@
+{
+  "task_id": "INT-01",
+  "kind": "feat",
+  "owner": "frontend",
+  "title": "軌跡查詢頁改接真實後端 API（登入、列表、詳情、發送紀錄續查），移除 mock",
+  "issue": 22,
+  "branch": "feat/int-01",
+  "worktree": ".worktrees\\INT-01",
+  "pr": 23,
+  "qa": {
+    "result": "pass",
+    "sha": "6e10502dc9532e93d95ac4d57cc49393593cc9ae",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "6e10502dc9532e93d95ac4d57cc49393593cc9ae",
+    "by": "architect"
+  },
+  "merged": true
+}

@@ -38,14 +38,13 @@ public class JdbcEventStore implements EventStore {
     public boolean insertIfAbsent(NormalizedEvent event) {
         int rows =
                 jdbc.sql(
-                                "insert into event (event_id, tenant_id, source_type, source_id, name,"
+                                "insert into event (event_id, source_type, source_id, name,"
                                         + " occurred_at, received_at, identity, properties, context)"
-                                        + " values (:eventId, :tenant, :sourceType, :sourceId, :name,"
+                                        + " values (:eventId, :sourceType, :sourceId, :name,"
                                         + " :occurredAt, :receivedAt, cast(:identity as jsonb),"
                                         + " cast(:properties as jsonb), cast(:context as jsonb))"
-                                        + " on conflict (tenant_id, event_id) do nothing")
+                                        + " on conflict (event_id) do nothing")
                         .param("eventId", event.eventId())
-                        .param("tenant", event.tenantId())
                         .param("sourceType", event.sourceType().name())
                         .param("sourceId", event.sourceId())
                         .param("name", event.name())
@@ -61,7 +60,7 @@ public class JdbcEventStore implements EventStore {
     @Override
     public List<UndispatchedEvent> lockUndispatched(int limit, Instant now) {
         return jdbc.sql(
-                        "select event_id, tenant_id, source_type, source_id, name, occurred_at,"
+                        "select event_id, source_type, source_id, name, occurred_at,"
                                 + " received_at, identity, properties, context from event"
                                 + " where dispatched_at is null"
                                 + " and (next_dispatch_at is null or next_dispatch_at <= :now)"
@@ -75,51 +74,47 @@ public class JdbcEventStore implements EventStore {
 
     @Override
     public void markDispatched(
-            String tenantId, String eventId, Instant dispatchedAt, String outcome) {
+            String eventId, Instant dispatchedAt, String outcome) {
         jdbc.sql(
                         "update event set dispatched_at = :at, dispatch_outcome = :outcome"
-                                + " where tenant_id = :tenant and event_id = :id")
+                                + " where event_id = :id")
                 .param("at", ts(dispatchedAt))
                 .param("outcome", outcome)
-                .param("tenant", tenantId)
                 .param("id", eventId)
                 .update();
     }
 
     @Override
-    public int recordFailure(String tenantId, String eventId, String error) {
+    public int recordFailure(String eventId, String error) {
         String trimmed = error == null ? null : error.substring(0, Math.min(error.length(), 1000));
         return jdbc.sql(
                         "update event set dispatch_attempts = dispatch_attempts + 1,"
                                 + " last_dispatch_error = :error"
-                                + " where tenant_id = :tenant and event_id = :id"
+                                + " where event_id = :id"
                                 + " returning dispatch_attempts")
                 .param("error", trimmed)
-                .param("tenant", tenantId)
                 .param("id", eventId)
                 .query(Integer.class)
                 .single();
     }
 
     @Override
-    public void scheduleRetry(String tenantId, String eventId, Instant nextDispatchAt) {
+    public void scheduleRetry(String eventId, Instant nextDispatchAt) {
         jdbc.sql(
                         "update event set next_dispatch_at = :at"
-                                + " where tenant_id = :tenant and event_id = :id")
+                                + " where event_id = :id")
                 .param("at", ts(nextDispatchAt))
-                .param("tenant", tenantId)
                 .param("id", eventId)
                 .update();
     }
 
     private UndispatchedEvent mapSafely(ResultSet rs, int n) throws SQLException {
-        String tenant = rs.getString("tenant_id");
         String id = rs.getString("event_id");
         try {
-            return new UndispatchedEvent(tenant, id, map(rs), null);
+            return new UndispatchedEvent(id, map(rs), null);
         } catch (RuntimeException e) {
             return new UndispatchedEvent(
-                    tenant, id, null, e.getClass().getSimpleName() + ": unparsable event row");
+                    id, null, e.getClass().getSimpleName() + ": unparsable event row");
         }
     }
 
@@ -128,7 +123,6 @@ public class JdbcEventStore implements EventStore {
         String context = rs.getString("context");
         return new NormalizedEvent(
                 rs.getString("event_id"),
-                rs.getString("tenant_id"),
                 SourceType.valueOf(rs.getString("source_type")),
                 rs.getString("source_id"),
                 rs.getString("name"),

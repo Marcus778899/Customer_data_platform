@@ -3,7 +3,7 @@ package com.cdp.security;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Component;
 
-/** 啟動時驗證 cdp.security.*：金鑰與客服帳密不得空白、兩把金鑰不得相同。訊息只講設定名稱，不含值。 */
+/** 啟動時驗證 cdp.security.*：金鑰不得空白、兩把金鑰不得相同。訊息只講設定名稱，不含值。 */
 @Component
 class AuthPropertiesValidator implements InitializingBean {
 
@@ -17,8 +17,6 @@ class AuthPropertiesValidator implements InitializingBean {
     public void afterPropertiesSet() {
         require(properties.ingestApiKey(), "cdp.security.ingest-api-key（CDP_INGEST_API_KEY）");
         require(properties.adminApiKey(), "cdp.security.admin-api-key（CDP_ADMIN_API_KEY）");
-        require(properties.supportUsername(), "cdp.security.support-username（客服帳號）");
-        require(properties.supportPassword(), "cdp.security.support-password（客服密碼）");
         if (properties.ingestApiKey().equals(properties.adminApiKey())) {
             throw new IllegalStateException(
                     "cdp.security.ingest-api-key 與 cdp.security.admin-api-key 不可相同（兩把金鑰必須不同）");

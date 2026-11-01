@@ -47,10 +47,10 @@ public class JdbcJourneyDefinitionStore implements JourneyDefinitionStore {
             try {
                 Integer version =
                         jdbc.sql(
-                                        "insert into journey_definition (journey_id, tenant_id, version,"
+                                        "insert into journey_definition (journey_id, version,"
                                                 + " name, description, status, settings, entry_node, nodes,"
                                                 + " created_at, published_at)"
-                                                + " select cast(:id as text), cast(:tenant as text),"
+                                                + " select cast(:id as text),"
                                                 + " coalesce(max(version), 0) + 1, cast(:name as text),"
                                                 + " cast(:description as text), cast(:status as text),"
                                                 + " cast(:settings as jsonb), cast(:entry as text),"
@@ -58,7 +58,6 @@ public class JdbcJourneyDefinitionStore implements JourneyDefinitionStore {
                                                 + " from journey_definition where journey_id = :id"
                                                 + " returning version")
                                 .param("id", d.journeyId())
-                                .param("tenant", d.tenantId())
                                 .param("name", d.name())
                                 .param("description", d.description())
                                 .param("status", d.status().name())
@@ -71,7 +70,6 @@ public class JdbcJourneyDefinitionStore implements JourneyDefinitionStore {
                                 .single();
                 return new JourneyDefinition(
                         d.journeyId(),
-                        d.tenantId(),
                         version,
                         d.name(),
                         d.description(),
@@ -89,12 +87,11 @@ public class JdbcJourneyDefinitionStore implements JourneyDefinitionStore {
     }
 
     @Override
-    public Optional<JourneyDefinition> find(String tenantId, String journeyId, int version) {
+    public Optional<JourneyDefinition> find(String journeyId, int version) {
         return jdbc.sql(
-                        "select journey_id, tenant_id, version, name, description, status, settings,"
+                        "select journey_id, version, name, description, status, settings,"
                                 + " entry_node, nodes, created_at, published_at from journey_definition"
-                                + " where tenant_id = :tenant and journey_id = :id and version = :version")
-                .param("tenant", tenantId)
+                                + " where journey_id = :id and version = :version")
                 .param("id", journeyId)
                 .param("version", version)
                 .query((rs, n) -> map(rs))
@@ -102,18 +99,17 @@ public class JdbcJourneyDefinitionStore implements JourneyDefinitionStore {
     }
 
     @Override
-    public List<EventSourceBinding> findActiveEventSources(String tenantId, String eventName) {
+    public List<EventSourceBinding> findActiveEventSources(String eventName) {
         return jdbc.sql(
                         "select j.journey_id, j.version, n.node ->> 'id' as node_id"
                                 + " from journey_definition j"
                                 + " cross join lateral jsonb_array_elements(j.nodes) as n(node)"
-                                + " where j.tenant_id = :tenant and j.status = 'ACTIVE'"
+                                + " where j.status = 'ACTIVE'"
                                 + " and n.node ->> 'type' = 'EventSourceNode'"
                                 + " and n.node -> 'config' ->> 'event_name' = :name"
                                 + " and j.version = (select max(m.version) from journey_definition m"
-                                + " where m.journey_id = j.journey_id and m.tenant_id = j.tenant_id)"
+                                + " where m.journey_id = j.journey_id)"
                                 + " order by j.journey_id, node_id")
-                .param("tenant", tenantId)
                 .param("name", eventName)
                 .query(
                         (rs, i) ->
@@ -127,7 +123,6 @@ public class JdbcJourneyDefinitionStore implements JourneyDefinitionStore {
     private JourneyDefinition map(ResultSet rs) throws SQLException {
         return new JourneyDefinition(
                 rs.getString("journey_id"),
-                rs.getString("tenant_id"),
                 rs.getInt("version"),
                 rs.getString("name"),
                 rs.getString("description"),

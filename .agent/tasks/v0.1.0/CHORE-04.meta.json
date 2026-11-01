@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-04",
+  "kind": "chore",
+  "owner": "architect",
+  "title": "文件對齊 FIX-03b 已合併行為，並把 FIX-03 節收斂為已完成",
+  "issue": 45,
+  "branch": "chore/chore-04",
+  "worktree": ".worktrees\\CHORE-04",
+  "pr": 47,
+  "qa": {
+    "result": "pass",
+    "sha": "de3a46b1c8450726bba8cc8d7476a3b56516b527",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "de3a46b1c8450726bba8cc8d7476a3b56516b527",
+    "by": "architect"
+  },
+  "merged": true
+}

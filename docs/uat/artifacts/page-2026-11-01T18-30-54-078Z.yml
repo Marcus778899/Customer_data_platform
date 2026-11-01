@@ -1,0 +1,18 @@
+- generic [ref=f20e3]:
+  - link "跳到主要內容" [ref=f20e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f20e5]:
+    - banner [ref=f20e6]:
+      - strong [ref=f20e7]: 客戶旅程平台
+      - group [ref=f20e8]:
+        - generic "選單" [ref=f20e9] [cursor=pointer]
+    - main [ref=f20e10]:
+      - navigation "麵包屑" [ref=f20e11]:
+        - list [ref=f20e12]:
+          - listitem [ref=f20e13]:
+            - link "客戶" [ref=f20e14] [cursor=pointer]:
+              - /url: /customers
+          - listitem [ref=f20e15]: 載入中…
+      - heading "載入中…" [level=1] [ref=f20e16]
+      - status [ref=f20e17]:
+        - generic [ref=f20e18]: 載入中

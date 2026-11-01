@@ -8,7 +8,6 @@ import java.util.Optional;
 /** 旅程定義某一版（03 §2；表 journey_definition）。 */
 public record JourneyDefinition(
         String journeyId,
-        String tenantId,
         int version,
         String name,
         String description,

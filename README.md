@@ -2,17 +2,24 @@
 
 <!-- manager 維護。給第一次打開專案的人看：這是什麼、怎麼跑起來、現在做到哪 -->
 
-多租戶的客戶資料平台＋行銷自動化：圈出受眾、讓客戶走進可編排的旅程（等待、分支、動作），並透過 LINE、Email 等通道發送與回收成效。給品牌的行銷人員使用。
+客戶資料平台＋行銷自動化：整合各資料來源並歸戶、圈出受眾、讓客戶走進可編排的旅程（等待、分支、動作），並透過 LINE、Email 等通道發送與回收成效。給品牌的行銷人員使用；由團隊代管，每家客戶一套獨立環境（D-051）。
 
 ## 快速開始
 
 Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell／cmd 會失敗）。
 
-1. 設定：`python3 scripts/check_env.py`，依提示在 `.env` 填入缺少的值
-2. 安裝：`make setup`（需 Temurin 17、Node 24）；外部服務 `make infra-up`（需 Docker Desktop，起 PostgreSQL 與 RabbitMQ）
+1. 設定：`.claude/skills/agent-engineering/bin/ae check-env`，依提示在 `.env` 填入缺少的值（clone 後先 `git submodule update --init`）
+2. 安裝：`make setup`（需 Temurin 17、Node 24）；外部服務（需 Docker Desktop，起 PostgreSQL 與 RabbitMQ）：
+   `docker compose --env-file .env -f docker-compose.yml up -d --wait`
 3. 啟動：後端 `make api-run`、前端 `make web-dev`（各開一個終端機）
-4. 示範資料：後端啟動後 `make demo-seed`，會印出可在軌跡頁查詢的客戶 ID（D-031）
-5. 檢查：`make check`
+4. 示範資料：後端啟動後 `make demo-seed`（D-031），經公開 API 建立示範旅程、客戶（各種可搜尋識別碼）與檢視者／編輯者／管理員三個示範帳號，印出可查詢的客戶 ID 與登入帳號；密碼取 `.env` 的 `CDP_DEMO_PASSWORD`（可選，至少 12 字，不印出），沒設則每次隨機並印出一次。每次執行都是新的一批，不會撞到舊資料。之後 `make demo-verify` 以 API 驗證示範資料完整；**要跑 demo-verify，seed 前就要先在 `.env` 設好 `CDP_DEMO_PASSWORD`**（沒設時密碼隨機，verify 無法登入）
+5. 檢查（lint＋不需容器的測試）：後端 `cd api && ./mvnw -B -q spotless:check && ./mvnw -B -Punit-only verify`；前端 `npm run lint -w web && npm test -w web`
+6. 後端全部測試（含驗收，需 Docker）：
+   `docker compose --env-file .env -f compose.yaml run --rm test`
+7. 停止外部服務：
+   `docker compose --env-file .env -f docker-compose.yml down`
+
+主目錄有 `compose.yaml`（測試）與 `docker-compose.yml`（外部服務）兩份，手動下 `docker compose` 一律帶 `-f` 指定。
 
 ## 功能
 
@@ -22,6 +29,12 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | 旅程引擎直線流程：事件 → Enrollment → 等待 → 喚醒 → 發送 → 結束，可控時鐘、節點軌跡 | v0.1.0 | D-004；派發失敗退避重試，用完記錄放棄（D-024、D-026、D-027） |
 | Mock 發送管線：outbox → RabbitMQ → 冪等 consumer，中斷重啟恰好一則 | v0.1.0 | D-006 |
 | 唯讀 Enrollment 軌跡查詢頁：客戶 ID／Enrollment ID＋狀態篩選、節點軌跡、發送歷史、個資白名單遮罩、本地時區／UTC | v0.1.0 | D-005、D-013～D-016、D-020、D-021；規格 `docs/ui/enrollment-trace.md` |
+| 使用者登入與角色（檢視者／編輯者／管理員）、session、登入限速、修改密碼、管理員重設密碼強制登出；首位管理員由團隊建立、之後走 API | v0.2.0 | D-045、D-056、D-057、D-071；契約 `docs/contracts/auth.md` |
+| 外框導覽（旅程、客戶、受眾佔位），產品暫名「客戶旅程平台」 | v0.2.0 | D-034、D-049；規格 `docs/ui/journey-platform.md` |
+| 客戶資料庫＋搜尋（Email、手機、會員編號等完全比對，單筆直進客戶頁）＋客戶頁 | v0.2.0 | D-048；契約 `docs/contracts/profiles.md` |
+| 旅程列表（唯讀，不顯示人數）、唯讀旅程頁（標頭、版本切換、節點圖）、圖形軌跡（直線） | v0.2.0 | D-050、D-062；契約 `docs/contracts/journeys.md` |
+| relay／推進迴圈改寫、大量同時到期的效能修正與壓測（`make perf`） | v0.2.0 | D-036、D-038、D-077；報告 `docs/perf/v0.2.0.md` |
+| 示範資料（`make demo-seed`／`make demo-verify`） | v0.2.0 | D-031；見「快速開始」第 4 步 |
 
 ## 架構
 
@@ -32,11 +45,12 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | `docs/spec/` | 產品規格（事件契約、Enrollment、旅程定義、節點、發送管線、Segment DSL、資料表） |
 | `docs/design/` | 各設計單的設計文件（技術棧與分期見 `docs/design/INIT-01.md`） |
 | `docker-compose.yml` | 本機 PostgreSQL 18、RabbitMQ 4.3 |
-| `scripts/` | 團隊流程腳本（派工、PR、發版） |
+| `.claude/skills/agent-engineering/` | 團隊流程工具（git submodule，`ae` 指令：派工、PR、發版） |
+| `.agent/` | 團隊流程狀態：布告欄、派工單、回報 |
 
 ## 開發方式
 
-由 agent 團隊開發（規則見 `CLAUDE.md`）。分支：`main` ← `develop` ← `feat/…`、`fix/…`；每個階段合回 `main` 並打 tag。
+由 agent 團隊開發（[agent-engineering](https://github.com/Marcus778899/agent-engineering)，規則見 `CLAUDE.md`；`claude --agent manager` 開始）。分支：`main` ← `develop` ← `feat/…`、`fix/…`；每個階段合回 `main` 並打 tag。
 決策紀錄：`docs/decisions.md`；使用者測試：`docs/uat/`。
 
 ## 版本
@@ -44,6 +58,7 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | 版本 | 日期 | 內容 |
 |---|---|---|
 | v0.1.0 | 2026-10-18 | 旅程引擎直線流程、Mock 發送、事件攝取、唯讀軌跡查詢頁（UAT：`docs/uat/v0.1.0.md`；已知小問題見 GitHub `backlog` 標籤） |
+| v0.2.0 | （發版日） | 使用者登入與角色、外框導覽、客戶搜尋與客戶頁、旅程列表與唯讀旅程頁、圖形軌跡、relay／迴圈改寫與壓測（UAT：`docs/uat/v0.2.0.md`；壓測：`docs/perf/v0.2.0.md`；已知小問題見 `backlog` 標籤） |
 
 ## 授權
 

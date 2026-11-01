@@ -69,7 +69,7 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
         EnrollmentTrace open = null;
         if (signal != null) {
             // 等待節點被喚醒：沿用尚未離開的那列軌跡（07 §5 補完一次）
-            open = stateStore.findOpenTrace(state.tenantId(), state.enrollmentId()).orElse(null);
+            open = stateStore.findOpenTrace(state.enrollmentId()).orElse(null);
             if (open != null) {
                 seq = open.seq();
                 enteredAt = open.enteredAt();
@@ -78,7 +78,7 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
             }
         }
         JourneyDefinition journey =
-                journeys.find(state.tenantId(), state.journeyId(), state.journeyVersion())
+                journeys.find(state.journeyId(), state.journeyVersion())
                         .orElse(null);
         if (journey == null) {
             log.error(
@@ -128,7 +128,6 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
             try {
                 NodeContext context =
                         new NodeContext(
-                                current.tenantId(),
                                 current.enrollmentId(),
                                 current.profileId(),
                                 def.id(),
@@ -323,7 +322,6 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
             String terminationReason) {
         return new EnrollmentState(
                 s.enrollmentId(),
-                s.tenantId(),
                 s.journeyId(),
                 s.journeyVersion(),
                 s.profileId(),

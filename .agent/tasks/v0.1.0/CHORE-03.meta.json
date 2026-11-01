@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-03",
+  "kind": "chore",
+  "owner": "architect",
+  "title": "v0.1.0 收尾：V4 收緊 event 派發約束、文件與契約對齊已合併行為",
+  "issue": 34,
+  "branch": "chore/chore-03",
+  "worktree": ".worktrees\\CHORE-03",
+  "pr": 35,
+  "qa": {
+    "result": "pass",
+    "sha": "6a5beaa2f5ba29a8a840c8d26a2d47bdef5b1352",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "6a5beaa2f5ba29a8a840c8d26a2d47bdef5b1352",
+    "by": "architect"
+  },
+  "merged": true
+}

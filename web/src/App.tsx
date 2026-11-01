@@ -1,31 +1,93 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ApiError, getMe, logout, setUnauthorizedHandler } from './api/client'
+import { Component, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { ApiError, getMe, logout, setForbiddenHandler, setUnauthorizedHandler } from './api/client'
+import type { CurrentUser } from './api/types'
 import { AuthContext } from './auth'
+import { PRODUCT_NAME, Shell, type NavKey } from './components/Shell'
 import { ErrorBox } from './components/ui'
+import { AudiencePage } from './pages/AudiencePage'
+import { CustomerPage } from './pages/CustomerPage'
+import { CustomerSearchPage } from './pages/CustomerSearchPage'
+import { EnrollmentBrowsePage } from './pages/EnrollmentBrowsePage'
+import { ForbiddenPage } from './pages/ForbiddenPage'
+import { JourneyListPage } from './pages/JourneyListPage'
+import { JourneyPage } from './pages/JourneyPage'
 import { LoginPage } from './pages/LoginPage'
-import { DetailPage } from './pages/DetailPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { PasswordPage } from './pages/PasswordPage'
 import { SearchPage } from './pages/SearchPage'
+import { TracePage } from './pages/TracePage'
 import { navigate, safeNext, useLocation } from './router'
 import { consumeLoggedIn, markLoggedIn } from './sessionFlag'
 
 type AuthState =
   | { status: 'checking' }
-  | { status: 'in'; username: string }
+  | { status: 'in'; user: CurrentUser }
   | { status: 'out'; expired: boolean }
   | { status: 'error'; error: ApiError }
+
+function currentNav(pathname: string): NavKey {
+  if (pathname === '/' || pathname === '/enrollments' || pathname === '/journeys' || pathname.startsWith('/journeys/'))
+    return 'journeys'
+  if (pathname === '/customers' || pathname.startsWith('/customers/') || pathname.startsWith('/enrollments/'))
+    return 'customers'
+  if (pathname === '/audience') return 'audience'
+  return null
+}
+
+/** 頁面層級錯誤邊界：任何渲染例外都顯示錯誤狀態（外框仍在），換頁（key）後重置 */
+class PageBoundary extends Component<{ children: ReactNode; resetKey: string }, { failed: boolean }> {
+  state = { failed: false }
+  componentDidUpdate(prev: { resetKey: string }) {
+    if (this.state.failed && prev.resetKey !== this.props.resetKey) this.setState({ failed: false })
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    if (!this.state.failed) return this.props.children
+    return (
+      <div className="msg error" role="alert">
+        <p>
+          <strong>這個頁面無法顯示。</strong>
+        </p>
+        <p>資料格式異常，請稍後再試或回到上一頁。</p>
+        <p>
+          <button className="btn secondary" type="button" onClick={() => window.location.reload()}>
+            重新載入
+          </button>
+        </p>
+      </div>
+    )
+  }
+}
 
 export function App() {
   const loc = useLocation()
   const [auth, setAuth] = useState<AuthState>({ status: 'checking' })
   const [attempt, setAttempt] = useState(0)
+  // 資料請求 403 FORBIDDEN 時記下當下位置；離開該位置（任何導覽）即清除
+  const [forbiddenAt, setForbiddenAt] = useState<string | null>(null)
 
-  // 任何 API 回 401 → 回登入（契約 §1.2）
+  useEffect(() => {
+    document.title = PRODUCT_NAME
+  }, [])
+
+  // 任何 API 回 401 UNAUTHENTICATED → 回登入（auth.md §3）
   useEffect(() => {
     setUnauthorizedHandler(() => {
       consumeLoggedIn()
       setAuth({ status: 'out', expired: true })
     })
-    return () => setUnauthorizedHandler(null)
+    setForbiddenHandler(() => setForbiddenAt(window.location.pathname + window.location.search))
+    const clear = () => setForbiddenAt(null)
+    window.addEventListener('cdp:navigate', clear)
+    window.addEventListener('popstate', clear)
+    return () => {
+      setUnauthorizedHandler(null)
+      setForbiddenHandler(null)
+      window.removeEventListener('cdp:navigate', clear)
+      window.removeEventListener('popstate', clear)
+    }
   }, [])
 
   // 是否已登入：GET /auth/me（cookie 為 HttpOnly，前端讀不到）
@@ -35,7 +97,7 @@ export function App() {
       (me) => {
         if (cancelled) return
         markLoggedIn()
-        setAuth({ status: 'in', username: me.username })
+        setAuth({ status: 'in', user: me })
       },
       (e: unknown) => {
         if (cancelled) return
@@ -68,10 +130,7 @@ export function App() {
     navigate('/login', { replace: true })
   }, [])
 
-  const authInfo = useMemo(
-    () => (auth.status === 'in' ? { username: auth.username, logout: doLogout } : null),
-    [auth, doLogout],
-  )
+  const authInfo = useMemo(() => (auth.status === 'in' ? { user: auth.user, logout: doLogout } : null), [auth, doLogout])
 
   if (auth.status === 'checking') {
     return (
@@ -99,39 +158,37 @@ export function App() {
     return (
       <LoginPage
         expired={auth.expired}
-        onLoggedIn={(username) => {
+        onLoggedIn={(me) => {
           markLoggedIn()
-          setAuth({ status: 'in', username })
+          setAuth({ status: 'in', user: me })
         }}
       />
     )
   }
   if (!authInfo || pathname === '/login') return null
 
-  const detail = /^\/enrollments\/([^/]+)\/?$/.exec(pathname)
+  const trace = /^\/enrollments\/([^/]+)\/?$/.exec(pathname)
+  const journey = /^\/journeys\/([^/]+)\/?$/.exec(pathname)
+  const customer = /^\/customers\/([^/]+)\/?$/.exec(pathname)
+  const here = pathname + search
+  let page
+  if (forbiddenAt === here) page = <ForbiddenPage />
+  else if (pathname === '/') page = <SearchPage loc={loc} />
+  else if (pathname === '/journeys') page = <JourneyListPage loc={loc} />
+  else if (journey) page = <JourneyPage id={decodeURIComponent(journey[1])} loc={loc} />
+  else if (pathname === '/enrollments') page = <EnrollmentBrowsePage loc={loc} />
+  else if (trace) page = <TracePage id={decodeURIComponent(trace[1])} />
+  else if (pathname === '/customers') page = <CustomerSearchPage loc={loc} />
+  else if (customer) page = <CustomerPage id={decodeURIComponent(customer[1])} />
+  else if (pathname === '/audience') page = <AudiencePage />
+  else if (pathname === '/account/password') page = <PasswordPage />
+  else page = <NotFoundPage />
+
   return (
     <AuthContext.Provider value={authInfo}>
-      {pathname === '/' ? (
-        <SearchPage loc={loc} />
-      ) : detail ? (
-        <DetailPage id={decodeURIComponent(detail[1])} />
-      ) : (
-        <div className="app">
-          <p className="msg card">
-            <strong>找不到這個頁面</strong>
-            <br />
-            <a
-              href="/"
-              onClick={(e) => {
-                e.preventDefault()
-                navigate('/')
-              }}
-            >
-              回到查詢
-            </a>
-          </p>
-        </div>
-      )}
+      <Shell current={currentNav(pathname)} menuKey={here}>
+        <PageBoundary resetKey={here}>{page}</PageBoundary>
+      </Shell>
     </AuthContext.Provider>
   )
 }

@@ -1,0 +1,21 @@
+{
+  "task_id": "BE-02",
+  "kind": "feat",
+  "owner": "backend",
+  "title": "實作 v0.1.0 發送管線：OutboxRelay（publisher confirm）→ RabbitMQ → 冪等 DeliveryConsumer → MockChannelAdapter",
+  "issue": 21,
+  "branch": "feat/be-02",
+  "worktree": ".worktrees\\BE-02",
+  "pr": 24,
+  "qa": {
+    "result": "pass",
+    "sha": "e39e3c2f95b3968244f86e6d89248ca7f30582e2",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "e39e3c2f95b3968244f86e6d89248ca7f30582e2",
+    "by": "architect"
+  },
+  "merged": true
+}

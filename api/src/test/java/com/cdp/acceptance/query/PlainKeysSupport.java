@@ -21,7 +21,6 @@ import tools.jackson.databind.json.JsonMapper;
 /** 追加 1（CDP_TRACE_PLAIN_KEYS 解析規則）驗收測試共用工具。 */
 abstract class PlainKeysSupport {
 
-    static final String TENANT = "01JTESTTENANT0000000000001";
     private static final Instant T0 = Instant.parse("2026-10-18T02:00:00Z");
 
     @LocalServerPort int port;
@@ -36,11 +35,10 @@ abstract class PlainKeysSupport {
                 "[{\"id\":\"start_1\",\"type\":\"StartNode\",\"config\":{},\"outputs\":{\"next\":\"end_1\"}},"
                         + "{\"id\":\"end_1\",\"type\":\"EndNode\",\"config\":{},\"outputs\":{}}]";
         jdbc.update(
-                "insert into journey_definition(journey_id, tenant_id, version, name, status, settings,"
+                "insert into journey_definition(journey_id, version, name, status, settings,"
                         + " entry_node, nodes, created_at, published_at)"
-                        + " values (?,?,1,'j','ACTIVE','{}'::jsonb,'start_1',?::jsonb,?,?)",
+                        + " values (?,1,'j','ACTIVE','{}'::jsonb,'start_1',?::jsonb,?,?)",
                 jid,
-                TENANT,
                 nodes,
                 Timestamp.from(T0),
                 Timestamp.from(T0));
@@ -57,11 +55,10 @@ abstract class PlainKeysSupport {
         trig.put("source_type", "CUSTOMER_BEHAVIOR");
         trig.put("profile_snapshot", Map.of());
         jdbc.update(
-                "insert into enrollment_record(enrollment_id, tenant_id, journey_id, journey_version,"
+                "insert into enrollment_record(enrollment_id, journey_id, journey_version,"
                         + " profile_id, status, current_node_id, trigger_snapshot, variables, enrolled_at,"
-                        + " updated_at) values (?,?,?,1,?,'ACTIVE','start_1',?::jsonb,'{}'::jsonb,?,?)",
+                        + " updated_at) values (?,?,1,?,'ACTIVE','start_1',?::jsonb,'{}'::jsonb,?,?)",
                 eid,
-                TENANT,
                 jid,
                 EngineTestSupport.ulid(),
                 json.writeValueAsString(trig),

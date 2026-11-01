@@ -7,7 +7,6 @@ import java.util.Map;
 /** 契約層 Enrollment（02 §2）。不得引用 EnrollmentRecord 或 next_wake_at（ArchitectureTest）。 */
 public record EnrollmentState(
         String enrollmentId,
-        String tenantId,
         String journeyId,
         int journeyVersion,
         String profileId,

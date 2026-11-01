@@ -33,7 +33,6 @@
 | 欄位 | 型別 | 必填 | 說明 |
 |---|---|---|---|
 | `event_id` | ULID | ✅ | **由產生端提供**，用於去重。同 id 重送視為同一事件 |
-| `tenant_id` | ULID | ✅ | 由認證憑證推導，**不接受請求端指定** |
 | `source_type` | enum | ✅ | 見上表 |
 | `source_id` | String | 條件 | 哪個 SDK／哪個外部系統／哪個使用者，見 §4 |
 | `name` | String | ✅ | 事件名稱，`snake_case`，如 `order_completed` |
@@ -92,7 +91,7 @@ context: {
 Ingestion **不做**身分合併，只做兩件事：
 
 1. 驗證 `identity` 至少有一個可用識別碼
-2. 呼叫 `ProfileStore.resolve(tenantId, identity)` 取得 `profileId`
+2. 呼叫 `ProfileStore.resolve(identity)` 取得 `profileId`
 
 解析不到時的處理，依 `source_type`：
 
@@ -150,7 +149,7 @@ Ingestion **不做**身分合併，只做兩件事：
 
 ## 7. 冪等與去重
 
-- 去重鍵為 `(tenant_id, event_id)`
+- 去重鍵為 `event_id`（一套環境一家公司，不帶 `tenant_id`，D-063）
 - 重複的 `event_id` 直接丟棄並回 `200`（不是錯誤，是正常重試）
 - 去重視窗預設 **7 天**，超過視窗的重複視為新事件
 - 產生端**必須**提供穩定的 `event_id`。同一筆業務動作重送時要用同一個 id
@@ -164,7 +163,6 @@ Ingestion **不做**身分合併，只做兩件事：
 ```json
 {
   "event_id": "01JCXYZ8K3M4N5P6Q7R8S9T0AB",
-  "tenant_id": "01JCXYZ0000TENANT0000000001",
   "source_type": "CUSTOMER_BEHAVIOR",
   "source_id": "web-sdk@2.1.0",
   "name": "cart_item_added",
@@ -195,7 +193,6 @@ Ingestion **不做**身分合併，只做兩件事：
 ```json
 {
   "event_id": "01JCXYZ9M4N5P6Q7R8S9T0ABCD",
-  "tenant_id": "01JCXYZ0000TENANT0000000001",
   "source_type": "EXTERNAL_SYSTEM",
   "source_id": "coupon-service",
   "name": "coupon_redeemed",
@@ -216,7 +213,6 @@ Ingestion **不做**身分合併，只做兩件事：
 ```json
 {
   "event_id": "01JCXYZA5N6P7Q8R9S0T1ABCDE",
-  "tenant_id": "01JCXYZ0000TENANT0000000001",
   "source_type": "INTERNAL_OPERATION",
   "source_id": "user_01JCXYZSALES0000000000001",
   "name": "sales_contact_completed",

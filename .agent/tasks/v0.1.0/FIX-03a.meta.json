@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-03a",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "引擎穩健：事件派發退避重試與放棄、推進缺資料轉 FAILED、拒收 U+0000、effect_type 明確對照",
+  "issue": 31,
+  "branch": "fix/fix-03a",
+  "worktree": ".worktrees\\FIX-03a",
+  "pr": 32,
+  "qa": {
+    "result": "pass",
+    "sha": "954d2da30553c91494e0492363cda00cff9acfab",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "954d2da30553c91494e0492363cda00cff9acfab",
+    "by": "architect"
+  },
+  "merged": true
+}

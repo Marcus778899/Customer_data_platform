@@ -4,7 +4,6 @@ import java.util.Map;
 
 public record OutboundMessage(
         String idempotencyKey,
-        String tenantId,
         String enrollmentId,
         String templateId,
         String channelId,

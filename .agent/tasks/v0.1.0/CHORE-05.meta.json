@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-05",
+  "kind": "chore",
+  "owner": "backend",
+  "title": "新增 `make demo-seed`：對執行中的後端一次建好示範旅程與示範客戶，印出可在軌跡頁查詢的客戶 ID",
+  "issue": 67,
+  "branch": "chore/chore-05",
+  "worktree": ".worktrees\\CHORE-05",
+  "pr": 68,
+  "qa": {
+    "result": "pass",
+    "sha": "e6badc810dad0181c4b20b027efa73c9989382bd",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "e6badc810dad0181c4b20b027efa73c9989382bd",
+    "by": "architect"
+  },
+  "merged": true
+}

@@ -14,6 +14,20 @@
 | 6 | 相依只在用到的那張設計單加進 `api/pom.xml`（PostgreSQL、Flyway、AMQP 皆留給 v0.1.0 設計單，見 D-009） | 骨架不連外部服務，`make check` 不需 Docker |
 | 7 | spec 與本設計的已知差異，由 v0.1.0 設計單修訂 `docs/spec/`：README 第 4 行 `../plan/` 改指計劃書路徑；README「`next_wake_at` 供 db-scheduler」改依 R1；spec 05 管線入口改為「outbox → relay → RabbitMQ」 | spec 是前後端契約的上游，不可與設計矛盾 |
 
+## 驗證方式（compose-test-setup）
+| 情境 | 指令 | 跑什麼 |
+|---|---|---|
+| 本機全部後端測試（含 `acceptance/`） | 在主目錄單獨一行：`docker compose --env-file .env -f .worktrees/<id>/compose.yaml run --rm test`（主目錄本身用 `-f compose.yaml`） | `compose.yaml` 的 `test` 服務：`eclipse-temurin:17-jdk`，把唯讀掛載的 `api/`（不含 `target/`）複製進容器後 `mvnw verify`；不讀 `.env` 的值 |
+| `make check` | 照舊 | Docker 連得到（或 CI 變數非空）跑全部；連不到或 `CONTAINER_TESTS=skip` 改 `-Punit-only`（`api/pom.xml`，排除 `com/cdp/acceptance/**`、`*IntegrationTest`），並印出上一列指令 |
+| CI | `make check`（不變） | GitHub Actions 設 `CI=true`，一律全跑，Docker 壞了就紅燈 |
+
+| 項目 | 做法與取捨 |
+|---|---|
+| Testcontainers | 沿用（不改測試、`docker pause` 照常）：`test` 掛 `/var/run/docker.sock`，PG／RabbitMQ 是主機引擎上的兄弟容器，經 `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal`（Linux 由 `extra_hosts: host-gateway` 補）連對外 port；Ryuk 照常清理 |
+| 安全 | socket 等同主機 Docker root 權限，故只掛 `api/`、`.env.example`（皆唯讀）與 Maven 快取 volume，不寫回主機（所以以 root 跑、不需 `HOST_UID`）；Testcontainers 對外 port 與在主機直接跑時相同 |
+| 隔離與殘留 | 不設 `name:`，專案名 = worktree 目錄；`run --rm` 刪 `test` 容器，Testcontainers 容器由 Ryuk 收；留下的只有專案網路（`docker compose -f … down` 可刪）與共用快取 volume `cdp-test-m2` |
+| 新測試慣例 | 需要容器的測試只放 `acceptance/` 或命名 `*IntegrationTest`，否則 sandbox 的 `make check` 會失敗 |
+
 ## RabbitMQ（D-006；守計劃書 7.2.1 三條紅線）
 | 項目 | 設計 |
 |---|---|

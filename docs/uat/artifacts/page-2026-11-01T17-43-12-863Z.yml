@@ -1,0 +1,36 @@
+- generic [ref=f12e3]:
+  - link "跳到主要內容" [ref=f12e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=f12e5]:
+    - generic [ref=f12e6]: 客戶旅程平台
+    - navigation "主要導覽" [ref=f12e7]:
+      - list [ref=f12e8]:
+        - listitem [ref=f12e9]:
+          - link "旅程" [ref=f12e10] [cursor=pointer]:
+            - /url: /journeys
+        - listitem [ref=f12e11]:
+          - link "客戶" [ref=f12e12] [cursor=pointer]:
+            - /url: /customers
+        - listitem [ref=f12e13]:
+          - link "受眾 規劃中" [ref=f12e14] [cursor=pointer]:
+            - /url: /audience
+            - text: 受眾
+            - generic [ref=f12e15]: 規劃中
+    - generic [ref=f12e16]:
+      - generic [ref=f12e17]:
+        - text: 已登入：
+        - strong [ref=f12e18]: Demo viewer
+      - generic [ref=f12e19]: 角色：檢視者
+      - link "修改密碼" [ref=f12e20] [cursor=pointer]:
+        - /url: /account/password
+      - button "登出" [ref=f12e21] [cursor=pointer]
+  - main [ref=f12e23]:
+    - navigation "麵包屑" [ref=f12e24]:
+      - list [ref=f12e25]:
+        - listitem [ref=f12e26]:
+          - link "旅程" [ref=f12e27] [cursor=pointer]:
+            - /url: /journeys
+        - listitem [ref=f12e28]: 載入中…
+    - heading "載入中…" [level=1] [ref=f12e29]
+    - status [ref=f12e30]:
+      - generic [ref=f12e31]: 載入中

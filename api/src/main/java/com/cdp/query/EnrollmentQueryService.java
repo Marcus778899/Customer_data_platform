@@ -32,25 +32,44 @@ public class EnrollmentQueryService {
         this.masker = masker;
     }
 
+    /** q 省略（null）= 瀏覽最近的 Enrollment（D-030）；帶了但空白 = 400。 */
     public Page<EnrollmentSummary> list(
-            String tenantId, String q, Set<EnrollmentStatus> statuses, String cursor, Integer limit) {
-        if (q == null || q.isBlank()) {
-            throw invalid("q", "必填");
+            String q, String journeyId, Set<EnrollmentStatus> statuses, String cursor, Integer limit) {
+        if (q != null && q.isBlank()) {
+            throw invalid("q", "不可為空白；要瀏覽請省略 q");
         }
-        rejectNul("q", q);
+        String query = q;
+        rejectNul("q", query);
+        rejectNul("journey_id", journeyId);
+        return browse(null, query, journeyId, statuses, cursor, limit);
+    }
+
+    /** profiles.md §3：某位客戶的 Enrollment；呼叫端先確認客戶存在。 */
+    public Page<EnrollmentSummary> listByProfile(
+            String profileId, Set<EnrollmentStatus> statuses, String cursor, Integer limit) {
+        return browse(profileId, null, null, statuses, cursor, limit);
+    }
+
+    private Page<EnrollmentSummary> browse(
+            String profileId,
+            String q,
+            String journeyId,
+            Set<EnrollmentStatus> statuses,
+            String cursor,
+            Integer limit) {
         if (statuses != null && statuses.contains(null)) {
             throw invalid("status", "格式錯誤");
         }
         int size = limit(limit, DEFAULT_LIST_LIMIT);
         PageCursor after = cursor == null ? null : PageCursor.decode(cursor);
-        List<EnrollmentSummary> rows = store.list(tenantId, q, statuses, after, size + 1);
+        List<EnrollmentSummary> rows = store.list(q, profileId, journeyId, statuses, after, size + 1);
         return page(rows, size, r -> new PageCursor(r.enrolledAt(), r.enrollmentId()));
     }
 
     /** 不存在丟 ApiException(ENROLLMENT_NOT_FOUND)。 */
-    public EnrollmentDetail detail(String tenantId, String enrollmentId) {
-        EnrollmentDetail raw = loadOrThrow(tenantId, enrollmentId);
-        List<DeliveryEntry> rows = store.deliveries(tenantId, enrollmentId, null, HISTORY_SIZE + 1);
+    public EnrollmentDetail detail(String enrollmentId) {
+        EnrollmentDetail raw = loadOrThrow(enrollmentId);
+        List<DeliveryEntry> rows = store.deliveries(enrollmentId, null, HISTORY_SIZE + 1);
         Page<DeliveryEntry> history =
                 page(rows, HISTORY_SIZE, d -> new PageCursor(d.attemptedAt(), d.idempotencyKey()));
         return masker.mask(
@@ -79,16 +98,16 @@ public class EnrollmentQueryService {
     }
 
     public Page<DeliveryEntry> deliveries(
-            String tenantId, String enrollmentId, String cursor, Integer limit) {
+            String enrollmentId, String cursor, Integer limit) {
         int size = limit(limit, DEFAULT_DELIVERY_LIMIT);
         PageCursor after = cursor == null ? null : PageCursor.decode(cursor);
-        loadOrThrow(tenantId, enrollmentId);
-        List<DeliveryEntry> rows = store.deliveries(tenantId, enrollmentId, after, size + 1);
+        loadOrThrow(enrollmentId);
+        List<DeliveryEntry> rows = store.deliveries(enrollmentId, after, size + 1);
         return page(rows, size, d -> new PageCursor(d.attemptedAt(), d.idempotencyKey()));
     }
 
-    private EnrollmentDetail loadOrThrow(String tenantId, String enrollmentId) {
-        return store.detail(tenantId, enrollmentId)
+    private EnrollmentDetail loadOrThrow(String enrollmentId) {
+        return store.detail(enrollmentId)
                 .orElseThrow(
                         () -> new ApiException(ErrorCode.ENROLLMENT_NOT_FOUND, "找不到這筆 Enrollment。"));
     }

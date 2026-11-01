@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-07",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "查詢參數 `q` 含 NUL 字元（U+0000）時回 `400 VALIDATION_FAILED`，不回 500",
+  "issue": 60,
+  "branch": "fix/fix-07",
+  "worktree": ".worktrees\\FIX-07",
+  "pr": 65,
+  "qa": {
+    "result": "pass",
+    "sha": "5c3e9c5088d7ebab732d73c10bffea017e0af0b8",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "5c3e9c5088d7ebab732d73c10bffea017e0af0b8",
+    "by": "architect"
+  },
+  "merged": true
+}

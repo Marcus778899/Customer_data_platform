@@ -46,7 +46,7 @@ public class JourneyService {
         this.clock = clock;
     }
 
-    public JourneyCreatedResponse create(String tenantId, CreateJourneyRequest request) {
+    public JourneyCreatedResponse create(CreateJourneyRequest request) {
         List<FieldError> errors = new ArrayList<>();
         if (request == null) {
             errors.add(new FieldError("body", "請求內容不可為空"));
@@ -60,7 +60,7 @@ public class JourneyService {
         String journeyId = request.journeyId();
         if (journeyId == null) {
             journeyId = ids.newId();
-        } else if (store.find(tenantId, journeyId, 1).isEmpty()) {
+        } else if (store.find(journeyId, 1).isEmpty()) {
             throw new ApiException(ErrorCode.JOURNEY_NOT_FOUND, "找不到這個旅程，無法建立新版本。");
         }
 
@@ -69,7 +69,6 @@ public class JourneyService {
                 store.insertNewVersion(
                         new JourneyDefinition(
                                 journeyId,
-                                tenantId,
                                 0,
                                 request.name(),
                                 request.description(),
@@ -137,7 +136,6 @@ public class JourneyService {
         JourneyDefinition draft =
                 new JourneyDefinition(
                         request.journeyId(),
-                        null,
                         0,
                         request.name(),
                         request.description(),

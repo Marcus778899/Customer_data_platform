@@ -10,7 +10,6 @@ import com.cdp.engine.model.WakeSignal;
 
 /** 節點輸入，純資料（04 §3）。now 來自注入的 Clock。 */
 public record NodeContext(
-        String tenantId,
         String enrollmentId,
         String profileId,
         String nodeId,

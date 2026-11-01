@@ -8,7 +8,6 @@ import com.cdp.engine.model.SkipReason;
 /** 表 delivery_task 一列（07 §10）。 */
 public record DeliveryTask(
         String idempotencyKey,
-        String tenantId,
         String enrollmentId,
         String journeyId,
         int journeyVersion,

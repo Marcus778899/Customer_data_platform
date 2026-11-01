@@ -15,7 +15,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-/** FIX-04 驗收：logout 清 cookie 的名稱與路徑取自 server.servlet.session.cookie.*，不寫死。 */
+/** user-auth-api 改寫：登入改 email＋密碼（帳號經管理金鑰建立）。
+ * FIX-04 驗收：logout 清 cookie 的名稱與路徑取自 server.servlet.session.cookie.*，不寫死。 */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
@@ -41,10 +42,9 @@ class LogoutCookieConfigAcceptanceTest {
 
     @Test
     void logoutClearsCookieWithConfiguredNameAndPath() throws Exception {
-        HttpResponse<String> login = post(
-                "/api/v1/auth/login",
-                null,
-                "{\"username\":\"test-support\",\"password\":\"test-support-password\"}");
+        String email = AuthHttp.uniqueEmail();
+        AuthHttp.createUserId(port, email, "VIEWER");
+        HttpResponse<String> login = post("/api/v1/auth/login", null, AuthHttp.credentials(email, AuthHttp.PASSWORD));
         assertThat(login.statusCode()).isEqualTo(204);
         String issued = login.headers().allValues("Set-Cookie").stream()
                 .filter(c -> c.startsWith("CDP_ALT_SID="))

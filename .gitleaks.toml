@@ -1,0 +1,18 @@
+# gitleaks 設定：沿用預設規則，只加針對單一類誤判的窄 allowlist。
+# 每條 allowlist 附理由；發版前由 security 逐條追認（CLAUDE.md 決策分級④的誤判例外）。
+
+[extend]
+useDefault = true
+
+# 理由：驗收測試用來驗證 toString 不印出機密的虛構值，格式固定為 <小寫字>-SECRET-<4 英數>
+# （例：api/src/test/java/com/cdp/acceptance/security/SecretToStringAcceptanceTest.java:32，commit f50659a），
+# 被預設規則 generic-api-key 以熵值誤判。調查見 .agent/reports/develop-gitleaks-finding.md。
+# 三個條件同時成立（AND）才放過：規則是 generic-api-key、值完整符合格式（^...$ 錨定）、檔案在 api/src/test/ 底下；
+# 其他規則、其他路徑、不同格式的值照抓。
+[[allowlists]]
+description = "Test-only placeholder secrets <word>-SECRET-<4 alnum> in api/src/test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^[a-z]+-SECRET-[0-9a-z]{4}$''']
+paths = ['''^api/src/test/''']
