@@ -92,7 +92,7 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
             ・最後更新 <Time iso={detail.updated_at} />
           </p>
         </div>
-        <AppLink to={`/enrollments?journey_id=${encodeURIComponent(id)}`}>這個旅程的 Enrollment</AppLink>
+        <AppLink to={`/enrollments?journey_id=${encodeURIComponent(id)}`}>旅程進度</AppLink>
       </div>
       {detail.description && (
         <div className="card">

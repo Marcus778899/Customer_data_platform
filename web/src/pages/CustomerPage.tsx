@@ -95,7 +95,7 @@ export function CustomerPage({ id }: { id: string }) {
               <AppLink to="/customers">重新搜尋</AppLink>
             </p>
           )}
-          <div className="cols two">
+          <div className="cols two cust">
             <Basic p={data} />
             <Enrollments id={id} />
           </div>
@@ -221,7 +221,7 @@ function Enrollments({ id }: { id: string }) {
             </table>
           </div>
           <MoreControls next={next} busy={moreBusy} error={moreError} onMore={loadMore} />
-          <p className="muted">時間為瀏覽器時區（D-016）。點旅程名稱看這次的進度。</p>
+          <p className="muted">時間為瀏覽器時區。點旅程名稱看這次的進度。</p>
         </>
       )}
     </section>
