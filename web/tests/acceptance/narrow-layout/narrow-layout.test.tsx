@@ -145,11 +145,11 @@ describe('窄螢幕樣式規則（375px 生效）', () => {
     expect(effective(['table'], 'width', false)).toBe('100%')
   })
 
-  it('既有窄螢幕行為保留：表頭隱藏、卡片、觸控目標 44px、dl.kv 單欄、body 縮 padding', () => {
+  it('既有窄螢幕行為保留：表頭隱藏、卡片、觸控目標 44px、dl.kv 單欄、body 不留白（app-shell-fill 改寫）', () => {
     expect(effective(['table.stack thead'], 'position')).toBe('absolute')
     expect(effective(['.btn', 'input', 'select'], 'min-height')).toBe('44px')
     expect(effective(['dl.kv'], 'grid-template-columns')).toBe('1fr')
-    expect(effective(['body'], 'padding')).toBe('var(--space-4)')
+    expect(effective(['body'], 'padding') ?? '0').toMatch(/^0/) // app-shell-fill：body 不再留白
     expect(effective(['table.stack tr'], 'display')).toBe('block')
   })
 })

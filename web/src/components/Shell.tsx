@@ -86,9 +86,18 @@ export function Crumbs({ items }: { items: { label: string; to?: string }[] }) {
   return (
     <nav className="crumbs" aria-label="麵包屑">
       <ol>
-        {items.map((c) => (
-          <li key={c.label}>{c.to ? <AppLink to={c.to}>{c.label}</AppLink> : c.label}</li>
-        ))}
+        {items.map((c, i) => {
+          const last = i === items.length - 1
+          return last || !c.to ? (
+            <li key={c.label} aria-current={last ? 'page' : undefined}>
+              {c.label}
+            </li>
+          ) : (
+            <li key={c.label}>
+              <AppLink to={c.to}>{c.label}</AppLink>
+            </li>
+          )
+        })}
       </ol>
     </nav>
   )
