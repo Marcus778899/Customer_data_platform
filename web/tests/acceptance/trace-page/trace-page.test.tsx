@@ -276,7 +276,11 @@ describe('詳情', () => {
   it('COMPLETED 但有 PENDING 發送：摘要寫排隊中與聯絡技術人員，發送紀錄結果為「等待發送」', async () => {
     withDetail(detail({ status: 'COMPLETED', wake_condition: null, terminated_at: '2026-10-13T01:13:00Z', termination_reason: '已走到終點', delivery_history: [delivery(1, { status: 'PENDING', delivery_id: null })] }))
     start(`/enrollments/${EID}`)
-    const card = (await screen.findAllByRole('status')).find((s) => s.textContent?.includes('這位客戶現在在哪'))!
+    const card = await waitFor(() => {
+      const c = screen.getAllByRole('status').find((s) => s.textContent?.includes('這位客戶現在在哪'))
+      expect(c).toBeTruthy()
+      return c!
+    })
     expect(card.textContent).toContain('旅程已走完')
     expect(card.textContent).toContain('1 則訊息在排隊')
     expect(card.textContent).toContain('聯絡技術人員')
