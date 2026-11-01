@@ -138,7 +138,7 @@
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
-- v0.2.0 收尾：uat 三輪與資安補審皆 PASS；待甲方照 docs/uat/v0.2.0.md 驗收清單重新驗收並寫「甲方驗收：PASS」
+- 甲方驗收回饋（11-02）：軌跡頁麵包屑「客戶 / 這位客戶 / 旅程進度」無意義（trace-customer-label 處理中），其餘甲方認可
 
 ## 注意事項（踩過的坑）
 
