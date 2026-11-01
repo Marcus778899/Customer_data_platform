@@ -128,6 +128,8 @@
 | trace-node-overlap | frontend | done | 0 | PR #151 |
 | plain-ux-ui | designer | done | 1 | PR #162 |
 | journey-page-crash | frontend | done | 0 | PR #163 |
+| app-shell-fill | frontend | done | 0 | PR #167 |
+| plain-copy-glossary | frontend | done | 0 | PR #166 |
 
 ## 卡住／待甲方決定
 
