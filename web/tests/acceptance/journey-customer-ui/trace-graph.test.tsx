@@ -31,25 +31,48 @@ async function openTrace(routes: Parameters<typeof backend>[0] = {}) {
   return api
 }
 const node = (name: RegExp) => screen.findByRole('button', { name, hidden: true })
+/** 「走過的步驟」時間軸（不含麵包屑的 ol）；白話改版（trace-plain-rewrite）：已走過的步驟之後可能還有「接下來」的步驟 */
 const steps = async () => {
-  const h = await screen.findByRole('heading', { name: '逐步紀錄（舊到新）' })
-  return h.parentElement!.querySelector('ol')! as HTMLOListElement
+  const h = await screen.findByRole('heading', { name: '走過的步驟' })
+  let el: HTMLElement | null = h
+  while (el && el !== document.body) {
+    const ol = [...el.querySelectorAll('ol')].find((o) => !o.closest('nav'))
+    if (ol) return ol as HTMLOListElement
+    el = el.parentElement
+  }
+  throw new Error('找不到時間軸')
 }
+const advancedBox = () =>
+  [...document.querySelectorAll('details')].find((d) => d.querySelector('summary')?.textContent?.includes('進階資訊'))!
 
 describe('圖形軌跡：進行中', () => {
-  it('標頭：旅程名稱＋狀態徽章、客戶連結、依 v3 執行、Enrollment ID 與資料更新時間、目前狀況（role=status）', async () => {
+  it('標頭：「旅程名」旅程的進度＋狀態徽章、摘要卡（role=status）；版本與 ID 不在主要區、在進階資訊', async () => {
     await openTrace()
-    const title = await screen.findByRole('heading', { level: 1, name: /棄單挽回/ })
-    expect(title.textContent).toContain('等待中')
-    const text = bodyText()
-    expect(text).toContain('依 v3 執行')
-    expect(text).toContain(EID)
-    expect(text).toContain('2026-10-18 11:05') // as_of 2026-10-18T03:05:12Z
-    expect(screen.getAllByRole('link').some((a) => a.textContent?.includes('01JC'))).toBe(true) // 客戶連結（頭尾縮寫的客戶 ID）
-    const sum = screen.getAllByRole('status').find((s) => s.textContent?.includes('目前狀況'))
+    await screen.findByRole('heading', { level: 1, name: /「棄單挽回」旅程的進度/ })
+    expect(document.querySelector('main')!.textContent).toContain('等待中')
+    const sum = screen.getAllByRole('status').find((s) => s.textContent?.includes('這位客戶現在在哪'))
     expect(sum).toBeTruthy()
     expect(sum!.textContent).toContain('等 3 天')
     expect(screen.getByRole('button', { name: '重新整理' })).toBeTruthy()
+    const clone = document.querySelector('main')!.cloneNode(true) as HTMLElement
+    clone.querySelectorAll('details').forEach((n) => n.remove())
+    expect(clone.textContent).not.toContain(EID)
+    expect(clone.textContent).not.toContain('依 v3 執行')
+    const adv = advancedBox()
+    expect(adv.textContent).toContain(EID)
+    expect(adv.textContent).toContain('第 3 版')
+    expect(adv.textContent).toContain('2026-10-18 11:05') // as_of 2026-10-18T03:05:12Z
+  })
+
+  it('圖形軌跡元件改放時間軸下方、預設收合（在 <details> 裡，未展開）', async () => {
+    await openTrace()
+    await node(/加入購物車/)
+    const group = document.querySelector('[role="group"]')!
+    const wrap = group.closest('details')
+    expect(wrap).toBeTruthy()
+    expect(wrap!.open).toBe(false)
+    const ol = await steps()
+    expect(ol.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('節點三態：已經過（開始、加入購物車）、目前位置（等 3 天）、未經過（提醒信、結束）；狀態有文字', async () => {
@@ -79,19 +102,20 @@ describe('圖形軌跡：進行中', () => {
     expect([...document.querySelectorAll('summary')].some((s) => s.textContent?.includes('節點清單'))).toBe(true)
   })
 
-  it('逐步紀錄 <ol>：依 seq 舊到新、每步顯示節點名稱／型別／出口／原因；目前步驟 aria-current="step" 且只有一個', async () => {
+  it('步驟時間軸 <ol>：已完成 → 目前在這裡 → 接下來（來自綁定版本定義，不含開始節點）；目前步驟 aria-current="step" 且只有一個', async () => {
     await openTrace()
     const ol = await steps()
     const lis = [...ol.querySelectorAll(':scope > li')]
-    expect(lis).toHaveLength(2)
-    expect(lis[0].textContent).toContain('加入購物車')
-    expect(lis[0].textContent).toContain('EventSourceNode')
-    expect(lis[0].textContent).toContain('出口：next')
-    expect(lis[0].textContent).toContain('收到事件 cart_item_added，建立 Enrollment。')
-    expect(lis[0].textContent).toContain('2026-10-18 10:00:00')
+    expect(lis).toHaveLength(4)
+    expect(lis[0].textContent).toContain('加入購物車，進入旅程')
+    expect(lis[0].textContent).toContain('已完成')
     expect(lis[1].textContent).toContain('等 3 天')
-    expect(lis[1].textContent).toContain('WaitDelayNode')
-    expect(lis[1].textContent).toContain('等待 P3D，預計 2026-10-21T02:00:00Z 喚醒。')
+    expect(lis[1].textContent).toContain('目前在這裡')
+    expect(lis[2].textContent).toContain('發送訊息：提醒信')
+    expect(lis[2].textContent).toContain('接下來')
+    expect(lis[3].textContent).toContain('旅程結束')
+    expect(lis[3].textContent).toContain('接下來')
+    for (const li of lis) expect(li.textContent).not.toMatch(/StartNode|EventSourceNode|WaitDelayNode|SendMessageNode|EndNode|出口|P3D|Enrollment|\d{4}-\d{2}-\d{2}T/)
     expect(lis[0].getAttribute('aria-current')).toBeNull()
     expect(lis[1].getAttribute('aria-current')).toBe('step')
     expect(ol.querySelectorAll('[aria-current="step"]')).toHaveLength(1)
@@ -108,13 +132,14 @@ describe('圖形軌跡：進行中', () => {
           masked_paths: ['trace[0].evaluated.cart_id'],
         })),
     })
-    const first = (await steps()).querySelector(':scope > li')!
-    const dd = (key: string) => within(first as HTMLElement).getByText(key, { selector: 'dt' }).nextElementSibling as HTMLElement
+    await screen.findByRole('heading', { level: 1, name: /旅程的進度/ })
+    const dd = (key: string) => within(advancedBox()).getByText(key, { selector: 'dt' }).nextElementSibling as HTMLElement
     expect(dd('event_id').textContent).toContain('ev-plain-1')
     expect(within(dd('event_id')).queryByText('已遮罩')).toBeNull()
     expect(within(dd('cart_id')).getByText('已遮罩')).toBeTruthy()
     expect(dd('stars').textContent).toContain('***')
     expect(within(dd('stars')).queryByText('已遮罩')).toBeNull()
+    expect(dd('cart_id').querySelector('button')).toBeNull() // 遮罩值不可複製
     expect(bodyText()).toContain('遮罩值無法解除')
   })
 
@@ -139,10 +164,10 @@ describe('圖形軌跡：進行中', () => {
 })
 
 describe('圖形軌跡：終態', () => {
-  it('已完成：全部節點已經過、沒有目前位置、沒有 aria-current；顯示結束時間與結束原因', async () => {
+  it('已走完：全部節點已經過、沒有目前位置、沒有 aria-current、沒有「接下來」；結束原因（系統文字）收在進階資訊', async () => {
     await openTrace({ [`GET /api/v1/enrollments/${EID}`]: () => json(enrollmentDone()) })
-    const title = await screen.findByRole('heading', { level: 1, name: /棄單挽回/ })
-    expect(title.textContent).toContain('已完成')
+    await screen.findByRole('heading', { level: 1, name: /旅程的進度/ })
+    expect(document.querySelector('main')!.textContent).toContain('已走完')
     for (const n of [/開始/, /加入購物車/, /等 3 天/, /提醒信/, /結束/]) {
       const b = await node(n)
       expect(`${b.getAttribute('aria-label') ?? ''}${b.textContent}`).toContain('已經過')
@@ -150,39 +175,39 @@ describe('圖形軌跡：終態', () => {
     const ol = await steps()
     expect(ol.querySelectorAll(':scope > li')).toHaveLength(4)
     expect(ol.querySelector('[aria-current="step"]')).toBeNull()
+    expect(ol.textContent).not.toContain('接下來')
     expect(screen.queryByText('● 目前位置')).toBeNull()
-    const text = bodyText()
-    expect(text).toContain('結束時間')
-    expect(text).toContain('2026-10-21 10:00:03')
-    expect(text).toContain('結束原因')
-    expect(text).toContain('旅程走到結束節點，Enrollment 完成。')
+    const adv = advancedBox()
+    expect(adv.textContent).toContain('旅程走到結束節點，Enrollment 完成。')
+    expect(adv.textContent).toContain('2026-10-21 10:00:03')
   })
 })
 
 describe('圖形軌跡：定義取得失敗與資料對不上', () => {
-  it('定義 5xx：提示「無法顯示旅程圖」附 request_id 與重試，下方仍顯示逐步紀錄；重試成功後出現圖', async () => {
+  it('定義 5xx：警示條（暫時載入失敗）＋重試，只列已走過的步驟；重試成功後出現圖與接下來的步驟', async () => {
     let fail = true
     await openTrace({ [`GET ${VER}`]: () => (fail ? problemWithId(500, 'INTERNAL_ERROR', 'req_c4e2') : json(journeyVersion(3))) })
-    await screen.findByRole('heading', { level: 1, name: /棄單挽回/ })
+    await screen.findByRole('heading', { level: 1, name: /旅程的進度/ })
     const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('無法顯示旅程圖')
-    expect(alert.textContent).toContain('req_c4e2')
+    expect(alert.textContent).toContain('暫時載入失敗')
     expect((await steps()).querySelectorAll(':scope > li')).toHaveLength(2)
+    expect((await steps()).textContent).not.toContain('接下來')
     expect(screen.queryByRole('button', { name: /加入購物車/, hidden: true })).toBeNull()
     fail = false
     await userEvent.click(within(alert).getByRole('button', { name: '重試' }))
     await node(/加入購物車/)
     expect(screen.queryByRole('alert')).toBeNull()
+    expect((await steps()).querySelectorAll(':scope > li')).toHaveLength(4)
   })
 
-  it('定義 404：同樣退回逐步紀錄', async () => {
+  it('定義 404：同樣只列已走過的步驟', async () => {
     await openTrace({ [`GET ${VER}`]: () => problem(404, 'JOURNEY_NOT_FOUND') })
-    await screen.findByRole('heading', { level: 1, name: /棄單挽回/ })
-    expect((await screen.findByRole('alert')).textContent).toContain('無法顯示旅程圖')
+    await screen.findByRole('heading', { level: 1, name: /旅程的進度/ })
+    expect((await screen.findByRole('alert')).textContent).toContain('暫時載入失敗')
     expect((await steps()).querySelectorAll(':scope > li')).toHaveLength(2)
   })
 
-  it('軌跡的 node_id 不在定義裡（對不上）：不推測、退回逐步紀錄', async () => {
+  it('軌跡的 node_id 不在定義裡（對不上）：不推測，只列已走過的步驟', async () => {
     await openTrace({
       [`GET /api/v1/enrollments/${EID}`]: () =>
         json(enrollmentDetail({
@@ -192,16 +217,18 @@ describe('圖形軌跡：定義取得失敗與資料對不上', () => {
           ],
         })),
     })
-    await screen.findByRole('heading', { level: 1, name: /棄單挽回/ })
-    expect((await screen.findByRole('alert')).textContent).toContain('無法顯示旅程圖')
+    await screen.findByRole('heading', { level: 1, name: /旅程的進度/ })
+    await screen.findByRole('alert')
     const lis = (await steps()).querySelectorAll(':scope > li')
     expect(lis).toHaveLength(2)
-    expect(lis[0].textContent).toContain('幽靈節點')
+    expect(lis[0].textContent).toContain('幽靈節點，進入旅程')
+    expect(screen.queryByRole('button', { name: /加入購物車/, hidden: true })).toBeNull()
   })
 
-  it('Enrollment 404：「找不到這筆 Enrollment」，不顯示圖與逐步紀錄', async () => {
+  it('進度 404：「找不到這筆進度」，不顯示圖與步驟', async () => {
     await openTrace({ [`GET /api/v1/enrollments/${EID}`]: () => problem(404, 'ENROLLMENT_NOT_FOUND') })
-    await screen.findByRole('heading', { name: /找不到這筆 Enrollment/ })
-    expect(screen.queryByRole('heading', { name: '逐步紀錄（舊到新）' })).toBeNull()
+    await screen.findByRole('heading', { name: /找不到這筆進度/ })
+    expect(screen.queryByRole('heading', { name: '走過的步驟' })).toBeNull()
+    expect(bodyText()).not.toContain('Enrollment')
   })
 })

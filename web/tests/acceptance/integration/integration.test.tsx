@@ -104,7 +104,7 @@ describe('不載入 mock，打真實端點', () => {
     start(`/?q=${PID}`)
     await user.click(within(await screen.findByRole('table')).getAllByRole('link')[0])
     await user.click(await screen.findByRole('button', { name: '載入更早紀錄' }))
-    await waitFor(() => expect(screen.getByRole('table').textContent).toContain('tpl_2'))
+    await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)) // 表頭 + 2 筆（白話改版不再顯示模板 ID）
     await user.click(logoutControl())
     await screen.findByLabelText('Email')
     const paths = new Set(calls.map((c) => c.url.pathname))
@@ -164,7 +164,7 @@ describe('登入、401、登出、頁首', () => {
     })
     const user = userEvent.setup()
     start('/')
-    await user.type(await screen.findByLabelText('客戶 ID 或 Enrollment ID'), `${PID}{Enter}`)
+    await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
     await screen.findByRole('table')
     loggedIn = false // 後端重啟或逾時
     await user.click(screen.getByRole('button', { name: '查詢' }))
@@ -227,7 +227,7 @@ describe('登入、401、登出、頁首', () => {
     await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
-    await screen.findByLabelText('客戶 ID 或 Enrollment ID')
+    await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/)
     expect(window.location.pathname).toBe('/')
   })
 })
