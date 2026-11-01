@@ -1,6 +1,6 @@
 /* 畫面樣式：只用 tokens.css 的 token（不寫死顏色、字級、間距）。對應設計稿 docs/ui/enrollment-trace/index.html */
 * { box-sizing: border-box; }
-body { margin: 0; padding: var(--space-5); font-family: var(--font-body); font-size: var(--text-md); line-height: var(--line-height); background: var(--color-bg); color: var(--color-text); }
+body { margin: 0; padding: 0; font-family: var(--font-body); font-size: var(--text-md); line-height: var(--line-height); background: var(--color-bg); color: var(--color-text); }
 .app { max-width: var(--content-max-width); margin: 0 auto; }
 h1 { font-size: var(--text-xl); margin: 0 0 var(--space-1); }
 h3 { font-size: var(--text-lg); margin: var(--space-5) 0 var(--space-3); }
@@ -63,7 +63,6 @@ details dl.kv { margin-top: var(--space-2); }
 
 /* 窄螢幕：表格轉卡片，觸控目標 >= 44px（寬度界線同 --breakpoint-narrow；media query 不能用變數） */
 @media (max-width: 640px) {
-  body { padding: var(--space-4); }
   form.search { flex-direction: column; align-items: stretch; }
   form.search .field, form.search .field-status { flex-basis: auto; }
   table.stack caption { display: block; width: 100%; }
@@ -85,7 +84,7 @@ input[aria-invalid="true"] { border-color: var(--color-danger-fg); border-width:
 .msg.warn p { margin: 0; }
 .msg.success { background: var(--color-success-bg); color: var(--color-success-fg); border-radius: var(--radius-md); text-align: left; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); }
 .msg.success p { margin: 0; }
-.login-wrap { min-height: 80vh; display: grid; place-items: center; padding: var(--space-5); }
+.login-wrap { min-height: 100dvh; display: grid; place-items: center; padding: var(--space-5); }
 .login-wrap .login { width: 100%; margin: 0; }
 .login-lead { margin: 0; }
 .login-form .field, .pw-form .field { flex: 0 0 auto; }
@@ -98,13 +97,15 @@ input[aria-invalid="true"] { border-color: var(--color-danger-fg); border-width:
 .pagehead p { margin: 0; }
 .pw-form { max-width: 480px; display: flex; flex-direction: column; gap: var(--space-3); }
 .pw-alert { max-width: 480px; margin-bottom: var(--space-3); }
-.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
-.crumbs li + li::before { content: "/"; margin-right: var(--space-2); }
+.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); margin: 0 0 var(--space-3); padding: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--color-text-muted); }
+.crumbs li { display: flex; align-items: center; min-height: 32px; }
+.crumbs li + li::before { content: "/"; content: "/" / ""; margin-right: var(--space-2); }
+.crumbs a { display: inline-flex; align-items: center; min-height: 32px; }
 
-.shell { display: grid; grid-template-columns: var(--nav-width) minmax(0, 1fr); min-height: 640px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg); position: relative; }
+.shell { display: grid; grid-template-columns: var(--nav-width) minmax(0, 1fr); min-height: 100dvh; background: var(--color-bg); position: relative; }
 .skip { position: absolute; left: -9999px; }
 .skip:focus { left: var(--space-2); top: var(--space-2); z-index: 5; background: var(--color-surface); padding: var(--space-2); }
-.side { background: var(--color-nav-bg); color: var(--color-nav-text); display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4) var(--space-3); border-radius: var(--radius-md) 0 0 var(--radius-md); }
+.side { background: var(--color-nav-bg); color: var(--color-nav-text); display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4) var(--space-3); position: sticky; top: 0; height: 100dvh; overflow-y: auto; }
 .side a, .side summary, .side button { color: inherit; }
 .side :focus-visible, .top :focus-visible { box-shadow: 0 0 0 3px var(--color-nav-focus); }
 .brand { font-weight: 700; padding: 0 var(--space-2); }
@@ -116,14 +117,14 @@ input[aria-invalid="true"] { border-color: var(--color-danger-fg); border-width:
 .btn.ghost { background: transparent; border-color: var(--color-nav-muted); color: var(--color-nav-text); }
 .top { display: none; }
 .stage { min-width: 0; display: flex; flex-direction: column; }
-.page { padding: var(--space-5); max-width: var(--content-wide); width: 100%; margin: 0 auto; }
+.page { min-width: 0; overflow-wrap: anywhere; padding: var(--space-5); max-width: var(--content-wide); width: 100%; margin: 0 auto; }
 .page:focus { outline: none; }
 
 /* 1024px 以下：側欄改頂列＋「選單」（寬度界線同 --breakpoint-nav；media query 不能用變數） */
 @media (max-width: 1024px) {
   .shell { grid-template-columns: minmax(0, 1fr); }
   .side { display: none; }
-  .top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; background: var(--color-nav-bg); color: var(--color-nav-text); padding: var(--space-2) var(--space-4); min-height: var(--topbar-height); position: relative; border-radius: var(--radius-md) var(--radius-md) 0 0; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; background: var(--color-nav-bg); color: var(--color-nav-text); padding: var(--space-2) var(--space-4); min-height: var(--topbar-height); position: sticky; top: 0; z-index: 4; }
   .top strong { margin-right: auto; }
   .top .menu { order: 2; }
   .top .menu > summary { color: var(--color-nav-text); min-height: var(--touch-target); display: inline-flex; align-items: center; padding: 0 var(--space-3); border: 1px solid var(--color-nav-muted); border-radius: var(--radius-sm); font-size: var(--text-md); list-style: none; cursor: pointer; }
@@ -203,7 +204,7 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 @media (max-width: 640px) {
   .chip { min-height: 44px; }
   .tap, .check { min-height: 44px; }
-  .crumbs a { display: inline-flex; align-items: center; min-height: 44px; }
+  .crumbs li, .crumbs a { min-height: 44px; }
   .search-big .btn, .search-big input { min-height: 48px; }
   table.stack td.nw, table.stack td.nw a { white-space: normal; }
   table.stack td a { min-height: 44px; display: inline-flex; align-items: center; }
