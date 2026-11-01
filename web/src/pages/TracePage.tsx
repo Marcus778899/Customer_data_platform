@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
-import { ApiError, getEnrollment, getJourneyVersion } from '../api/client'
+import { ApiError, getEnrollment, getJourneyVersion, getProfile } from '../api/client'
 import type { EnrollmentDetail, JourneyVersion } from '../api/types'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
@@ -12,7 +12,7 @@ import { useFetch } from '../useFetch'
 import { Advanced } from './trace/Advanced'
 import { Deliveries } from './trace/Deliveries'
 import { Icon } from './trace/Icons'
-import { buildSteps, buildSummary, customerName, plainAt, type DefState } from './trace/model'
+import { buildSteps, buildSummary, customerLabel, customerName, plainAt, type DefState } from './trace/model'
 import { SummaryCard } from './trace/Summary'
 import { Timeline } from './trace/Timeline'
 
@@ -143,21 +143,25 @@ function DetailBody({
 
   const summary = buildSummary(d, okDef, defState, now)
   const steps = buildSteps(d, okDef, now)
-  const customer = customerName(d)
+  // 客戶資料只在軌跡沒姓名時才取；失敗就退回後面的標示，不影響頁面
+  const needProfile = customerName(d).name === null
+  const profileId = d.profile_id
+  const loadProfile = useMemo(() => (needProfile ? () => getProfile(profileId) : null), [needProfile, profileId])
+  const profile = useFetch(loadProfile)
+  const customer = customerLabel(d, profile.data)
   const customerTo = `/customers/${encodeURIComponent(d.profile_id)}`
-  const crumbName = customer.name ?? '這位客戶'
   const pendingMsgs = d.status === 'COMPLETED' && d.delivery_history.some((x) => x.status === 'PENDING')
 
   return (
     <div className="trace-page">
-      <Crumbs items={[{ label: '客戶', to: '/customers' }, { label: crumbName, to: customerTo }, { label: '旅程進度' }]} />
+      <Crumbs items={[{ label: '客戶', to: '/customers' }, { label: customer.text, to: customerTo }, { label: '旅程進度' }]} />
       <header className="pagehead">
         <div>
           <h1 tabIndex={-1} ref={h1Ref}>
             「{d.journey_name}」旅程的進度
           </h1>
           <p className="muted">
-            客戶：{customer.name ?? '未提供姓名'}
+            客戶：{customer.text}
             {customer.masked && '（部分資料已遮罩）'} · {plainAt(d.enrolled_at, now)} 加入
           </p>
         </div>
