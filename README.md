@@ -29,6 +29,12 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | 旅程引擎直線流程：事件 → Enrollment → 等待 → 喚醒 → 發送 → 結束，可控時鐘、節點軌跡 | v0.1.0 | D-004；派發失敗退避重試，用完記錄放棄（D-024、D-026、D-027） |
 | Mock 發送管線：outbox → RabbitMQ → 冪等 consumer，中斷重啟恰好一則 | v0.1.0 | D-006 |
 | 唯讀 Enrollment 軌跡查詢頁：客戶 ID／Enrollment ID＋狀態篩選、節點軌跡、發送歷史、個資白名單遮罩、本地時區／UTC | v0.1.0 | D-005、D-013～D-016、D-020、D-021；規格 `docs/ui/enrollment-trace.md` |
+| 使用者登入與角色（檢視者／編輯者／管理員）、session、登入限速、修改密碼、管理員重設密碼強制登出；首位管理員由團隊建立、之後走 API | v0.2.0 | D-045、D-056、D-057、D-071；契約 `docs/contracts/auth.md` |
+| 外框導覽（旅程、客戶、受眾佔位），產品暫名「客戶旅程平台」 | v0.2.0 | D-034、D-049；規格 `docs/ui/journey-platform.md` |
+| 客戶資料庫＋搜尋（Email、手機、會員編號等完全比對，單筆直進客戶頁）＋客戶頁 | v0.2.0 | D-048；契約 `docs/contracts/profiles.md` |
+| 旅程列表（唯讀，不顯示人數）、唯讀旅程頁（標頭、版本切換、節點圖）、圖形軌跡（直線） | v0.2.0 | D-050、D-062；契約 `docs/contracts/journeys.md` |
+| relay／推進迴圈改寫、大量同時到期的效能修正與壓測（`make perf`） | v0.2.0 | D-036、D-038、D-077；報告 `docs/perf/v0.2.0.md` |
+| 示範資料（`make demo-seed`／`make demo-verify`） | v0.2.0 | D-031；見「快速開始」第 4 步 |
 
 ## 架構
 
@@ -52,6 +58,7 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | 版本 | 日期 | 內容 |
 |---|---|---|
 | v0.1.0 | 2026-10-18 | 旅程引擎直線流程、Mock 發送、事件攝取、唯讀軌跡查詢頁（UAT：`docs/uat/v0.1.0.md`；已知小問題見 GitHub `backlog` 標籤） |
+| v0.2.0 | （發版日） | 使用者登入與角色、外框導覽、客戶搜尋與客戶頁、旅程列表與唯讀旅程頁、圖形軌跡、relay／迴圈改寫與壓測（UAT：`docs/uat/v0.2.0.md`；壓測：`docs/perf/v0.2.0.md`；已知小問題見 `backlog` 標籤） |
 
 ## 授權
 
