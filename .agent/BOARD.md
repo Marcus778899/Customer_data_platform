@@ -122,7 +122,7 @@
 | npm-minimatch-upgrade | frontend | done | 0 | PR #136 |
 | due-backlog-index | backend | done | 0 | PR #138 |
 | due-backlog-perf | backend | done | 0 | PR #141 |
-| trace-node-overlap | frontend | in-progress | 0 |  |
+| trace-node-overlap | frontend | done | 0 | PR #151 |
 
 ## 卡住／待甲方決定
 
