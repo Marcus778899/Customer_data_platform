@@ -102,6 +102,7 @@
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - 遮罩白名單改為程式內建預設（甲方 11-02 決定下一版做），issue #184
+- 下一階段開頭處理：uat 自動產生的 log／yml 移出版控並加 .gitignore（甲方 11-02 指示，issue #190）；遮罩改程式內建預設（#184）
 
 ## 注意事項（踩過的坑）
 
