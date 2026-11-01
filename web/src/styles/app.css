@@ -214,3 +214,11 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
   .cols, .cols.two { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 1100px) { .cols, .cols.two { grid-template-columns: minmax(0, 1fr); } }
+
+/* 客戶頁「參加過的旅程」表格：寬螢幕各欄不逐字換行、不出橫向捲軸 */
+@media (min-width: 641px) {
+  table.enr .badge { white-space: nowrap; }
+  table.enr th:nth-child(1), table.enr td:nth-child(1),
+  table.enr th:nth-child(3), table.enr td:nth-child(3) { min-width: 8em; }
+  table.enr th, table.enr td { padding-inline: var(--space-2); }
+}

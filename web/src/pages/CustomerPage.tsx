@@ -1,10 +1,10 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { getProfile, listProfileEnrollments } from '../api/client'
 import type { ProfileDetail } from '../api/types'
 import { AppLink } from '../components/AppLink'
 import { KeyValues } from '../components/KeyValues'
 import { Crumbs } from '../components/Shell'
-import { Badge, CopyButton, ErrorBox, MoreControls, Skeleton, Time, UtcContext } from '../components/ui'
+import { Badge, CopyButton, ErrorBox, MoreControls, Skeleton, Time } from '../components/ui'
 import { formatPlainTime, identifierLabel, shortId } from '../format'
 import { usePagedList } from '../hooks'
 import { useFetch } from '../useFetch'
@@ -20,7 +20,6 @@ interface NavState {
 export function CustomerPage({ id }: { id: string }) {
   const load = useCallback(() => getProfile(id), [id])
   const { data, error, reload } = useFetch(load)
-  const [showUtc, setShowUtc] = useState(false)
 
   const h1 = useRef<HTMLHeadingElement>(null)
   const focused = useRef<string | null>(null)
@@ -65,7 +64,7 @@ export function CustomerPage({ id }: { id: string }) {
   const crumbLast = !data ? '載入中…' : useName ? nameAttr : `客戶 ${shortId(id)}`
 
   return (
-    <UtcContext.Provider value={showUtc}>
+    <>
       <Crumbs items={[{ label: '客戶', to: '/customers' }, { label: crumbLast }]} />
       <div className="pagehead">
         <div>
@@ -86,14 +85,6 @@ export function CustomerPage({ id }: { id: string }) {
             </p>
           )}
         </div>
-        {data && (
-          <div className="row">
-            <label className="check">
-              <input type="checkbox" checked={showUtc} onChange={(e) => setShowUtc(e.target.checked)} />
-              同時顯示 UTC 原值
-            </label>
-          </div>
-        )}
       </div>
       {!data && <Skeleton lines={3} />}
       {data && (
@@ -110,7 +101,7 @@ export function CustomerPage({ id }: { id: string }) {
           </div>
         </>
       )}
-    </UtcContext.Provider>
+    </>
   )
 }
 
@@ -195,7 +186,7 @@ function Enrollments({ id }: { id: string }) {
       {data && items.length > 0 && (
         <>
           <div className="scroll">
-            <table className="stack">
+            <table className="stack enr">
               <caption>{next ? `參加過的旅程，已載入 ${items.length} 筆` : `參加過 ${items.length} 個旅程`}，新到舊</caption>
               <thead>
                 <tr>
@@ -237,15 +228,11 @@ function Enrollments({ id }: { id: string }) {
   )
 }
 
-/** 白話時間（D-079）：UTC 原值放 dateTime／title，勾選「同時顯示 UTC」時另顯示 */
+/** 白話時間（D-079）：UTC 原值只放 dateTime／title（D-016 另見軌跡頁進階資訊） */
 function PlainTime({ iso }: { iso: string }) {
-  const showUtc = useContext(UtcContext)
   return (
-    <>
-      <time dateTime={iso} title={iso}>
-        {formatPlainTime(iso, new Date(), { relative: false })}
-      </time>
-      {showUtc && <span className="muted mono">（UTC {iso}）</span>}
-    </>
+    <time dateTime={iso} title={iso}>
+      {formatPlainTime(iso, new Date(), { relative: false })}
+    </time>
   )
 }
