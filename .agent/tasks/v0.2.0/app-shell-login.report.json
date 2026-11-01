@@ -1,0 +1,33 @@
+{
+  "task_id": "app-shell-login",
+  "status": "done",
+  "files_changed": [
+    "web/src/App.tsx",
+    "web/src/auth.ts",
+    "web/src/api/client.ts",
+    "web/src/api/types.ts",
+    "web/src/components/AppLink.tsx",
+    "web/src/components/Shell.tsx",
+    "web/src/components/ui.tsx",
+    "web/src/pages/LoginPage.tsx",
+    "web/src/pages/PasswordPage.tsx",
+    "web/src/pages/AudiencePage.tsx",
+    "web/src/pages/ForbiddenPage.tsx",
+    "web/src/pages/NotFoundPage.tsx",
+    "web/src/pages/SearchPage.tsx",
+    "web/src/pages/DetailPage.tsx",
+    "web/src/styles/app.css"
+  ],
+  "verification": {
+    "command": "make check (worktree .worktrees/app-shell-login，commit e131d26)；另 npm test -w web 連跑 3 次全綠",
+    "exit_code": 0,
+    "tail": "Test Files  10 passed (10)\n      Tests  135 passed (135)\ncheck passed"
+  },
+  "open_questions": [
+    "導覽「客戶」連到 /customers，目前沒有該頁（屬其他張單），會顯示「找不到這個頁面」。",
+    "設計沒畫到：403 頁對非檢視者角色的文案（沿用「角色是X，不能使用這個功能。如需調整權限，請聯絡管理員。」），請 designer 補進 UI 規格。",
+    "qa 測試 trace-page 400 已改 email 空字串；LoginPage 仍把「空白或不含 @」視為 Email 欄錯誤。",
+    "client.ts 的 401 合併保留，測試穩定不依賴它。",
+    "web/tests/unit 無新增單元測試。"
+  ]
+}

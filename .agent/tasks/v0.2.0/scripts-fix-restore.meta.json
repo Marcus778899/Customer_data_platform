@@ -1,0 +1,21 @@
+{
+  "task_id": "scripts-fix-restore",
+  "kind": "chore",
+  "owner": "backend",
+  "title": "在範本更新（aa2bfc0）後的 `scripts/` 上補回兩項專案修正：中文編碼、決策表「版本」欄",
+  "issue": 89,
+  "branch": "chore/scripts-fix-restore",
+  "worktree": ".worktrees\\scripts-fix-restore",
+  "pr": 90,
+  "qa": {
+    "result": "pass",
+    "sha": "2571995f5c380eb53deef5a15728080bd1913268",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "2571995f5c380eb53deef5a15728080bd1913268",
+    "by": "architect"
+  },
+  "merged": true
+}

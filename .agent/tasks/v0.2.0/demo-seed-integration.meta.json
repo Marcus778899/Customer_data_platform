@@ -1,0 +1,23 @@
+{
+  "task_id": "demo-seed-integration",
+  "kind": "chore",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "DESIGN-03 批 5 INT-02：前後端整合與 demo-seed 端到端——前端各頁接上已合併的真實後端（`auth.md`、`profiles.md`、`journeys.md` §2、`/enrollments` 瀏覽），demo-seed 建出足以操作所有第一版功能的示範資料",
+  "issue": 127,
+  "branch": "chore/demo-seed-integration",
+  "worktree": ".worktrees\\demo-seed-integration",
+  "pr": 133,
+  "qa": {
+    "result": "pass",
+    "sha": "d12af9a910897298c252cd3614a12782aebc1041",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "d12af9a910897298c252cd3614a12782aebc1041",
+    "by": "architect"
+  },
+  "merged": true,
+  "amend_sha": "6da0cc18b22004475ab4d41814e2b27e9d10496b"
+}

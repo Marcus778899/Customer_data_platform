@@ -1,0 +1,34 @@
+{
+  "task_id": "relay-loop-rewrite",
+  "status": "done",
+  "files_changed": [
+    "api/src/main/java/com/cdp/common/fault/FaultPoint.java",
+    "api/src/main/java/com/cdp/delivery/DeliveryConsumer.java",
+    "api/src/main/java/com/cdp/delivery/DeliveryListenerConfig.java",
+    "api/src/main/java/com/cdp/delivery/DeliveryProperties.java",
+    "api/src/main/java/com/cdp/delivery/LoopProperties.java",
+    "api/src/main/java/com/cdp/delivery/LoopStartupValidator.java",
+    "api/src/main/java/com/cdp/delivery/OutboxStore.java",
+    "api/src/main/java/com/cdp/delivery/relay/OutboxRelay.java",
+    "api/src/main/java/com/cdp/delivery/relay/RelayProperties.java",
+    "api/src/main/java/com/cdp/engine/runtime/AdvanceLoop.java",
+    "api/src/main/java/com/cdp/ingest/EventDispatcher.java",
+    "api/src/main/java/com/cdp/persistence/JdbcOutboxStore.java",
+    "api/src/main/resources/application.yml",
+    "api/src/test/resources/application-test.yml",
+    "api/src/test/java/com/cdp/delivery/DeliveryConsumerTest.java",
+    "api/src/test/java/com/cdp/ingest/EventDispatcherBackoffTest.java",
+    "api/src/test/java/com/cdp/ingest/EventDispatcherUnparsableRowTest.java"
+  ],
+  "verification": {
+    "command": "cd api && ./mvnw -q spotless:check && ./mvnw -B verify",
+    "exit_code": 0,
+    "tail": "spotless:check exit 0; Tests run: 204, Failures: 0, Errors: 0, Skipped: 0; BUILD SUCCESS"
+  },
+  "open_questions": [
+    "StateStore.lockDue / EventStore.lockUndispatched are outside my files and have no exclude list; AdvanceLoop and EventDispatcher fetch (failed+1) rows and skip failed ones instead (locks failed rows for that small tx). OK, or should the interfaces get an exclude parameter?",
+    "CDP_LOOP_MAX_DRAIN is bound by a new com.cdp.delivery.LoopProperties (cdp.loop.max-drain) because EngineProperties is not in my files; move it if preferred.",
+    "Design says drop rabbit.invoke, but sending each message on its own channel hangs when the broker is paused (channel with pending confirms is not returned to the cache, a new channel RPC blocks ~130s, breaking DeliveryResilience). The relay therefore sends and awaits confirms inside one rabbit.invoke, still outside any DB transaction.",
+    "Pool-size validator uses a constant of 3 loops (LoopStartupValidator.LOOP_COUNT); must become 4 when JourneyStopSweeper is added."
+  ]
+}

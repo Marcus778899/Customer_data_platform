@@ -1,0 +1,27 @@
+{
+  "task_id": "tenant-id-drop",
+  "status": "done",
+  "files_changed": [
+    "api/src/main/resources/db/migration/V5__drop_tenant_id.sql",
+    "api/src/main/java/com/cdp/ (common/CdpProperties 刪除；delivery、engine、ingest、journey、persistence、query 共約 35 檔)",
+    "api/src/main/resources/application.yml",
+    "api/src/test/resources/application-test.yml",
+    "api/src/test/java/com/cdp/delivery/DeliveryConsumerTest.java",
+    "api/src/test/java/com/cdp/engine/NodesTest.java",
+    "api/src/test/java/com/cdp/ingest/EventDispatcherUnparsableRowTest.java",
+    "api/src/test/java/com/cdp/journey/JourneyServiceTest.java",
+    "Makefile",
+    ".env.example"
+  ],
+  "verification": {
+    "command": "make check（@5922144，architect 三項修正後）",
+    "exit_code": 0,
+    "tail": "Tests run: 191, Failures: 0, Errors: 0, Skipped: 0; BUILD SUCCESS; make check exit=0。修正前先跑 JourneyServiceTest.suppliedJourneyIdReachesNodeValidation：expected 01HZZZ... but was: null（失敗），修正後通過。grep -rni tenant api/src/main 只剩 V1～V4 migration（禁區，歷史檔）與 V5。"
+  },
+  "open_questions": [
+    "api 對外請求若仍帶 tenant_id 欄位，行為未改（原本即忽略）。",
+    "review 修正 1：JourneyService 草稿 JourneyDefinition 第一參數改 request.journeyId()（原誤留 null；現為 journeyId,0,name,...）",
+    "review 修正 2：JourneyServiceTest 新增 suppliedJourneyIdReachesNodeValidation，用 SpyEndNode 記錄 validate 收到的 journeyId，已確認修正前失敗",
+    "review 修正 3：寫腳本比對 09ae1d4 與 HEAD 每個 java 檔的 new X(...) 引數列（去掉含 tenant 的引數後應等於新引數）；共 30 個改動呼叫，只有 JourneyDefinition 一處不符（即修正 1），OutboxEntry、NodeContext、UndispatchedEvent、NormalizedEvent、EnrollmentDetail 人工確認只刪 tenant 引數、順序不變。未涵蓋：非 new 的方法呼叫（靠編譯期型別與 191 測試把關）"
+  ]
+}

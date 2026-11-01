@@ -1,0 +1,17 @@
+{
+  "task_id": "ci-speedup-design",
+  "status": "done",
+  "files_changed": ["docs/design/ci-speedup.md"],
+  "verification": {
+    "command": "gh run list --workflow ci.yml -L 200 --json databaseId,event,headSha,createdAt,updatedAt,conclusion ; gh run view <id> --json jobs (41088821210, 41091268596, 40068852878, 41054164223, 41091700568) ; gh api repos/{owner}/{repo}/actions/runs/41054164223/attempts/{1,2}/jobs ; gh api repos/{owner}/{repo}/actions/jobs/<id>/logs (124176967558, 124185448861, 120797730587, 124057360904, 124060408623, 124186952613), parsed with a Python script for Maven/Testcontainers/Vitest timestamps",
+    "exit_code": 0,
+    "tail": "Check job 403/409/413s; make check: spotless 3.5s, eslint+tsc 8.9s, mvn start+testCompile 6.9s, surefire 339-354s, vitest 19.8s. Testcontainers: rabbitmq 33 starts 101.8s + postgres 39 starts 60.1s = 162s (48% of surefire); 23 Spring contexts. Maven/npm cache hit, 0 downloads. Queue: median 3s, max 71s (37 jobs). 200 runs since 10-18: 95 (48%) docs-only develop pushes (456 min). 13-min run 41054164223 = attempt 1 (12:16:58-12:23:24) + manual re-run (12:24:12-12:30:10), both failed on LoginSessionAcceptanceTest.role_change_takes_effect_on_next_request. Design doc 56 lines, commit 9bf84b7. make check in the worktree: not measured (stopped on manager request; doc-only change)."
+  },
+  "open_questions": [
+    "Pending decision (category 4): proposal #1 skips the check job for docs-only develop pushes (Security still runs). It shrinks what gets verified, so the client needs to approve it.",
+    "Needs research: when a job is skipped via if:, does gh pr checks exit with 0? This decides whether #1 can be extended to docs-only PRs.",
+    "Side finding: LoginSessionAcceptanceTest.role_change_takes_effect_on_next_request also fails on develop push runs 41090470053 and 41091700568. develop Check is currently red.",
+    "Side finding: ci.yml has no make coverage / ae ci coverage-gate step yet (INIT requirement). Adding it will lengthen CI. Suggest doing it in the same ticket as #5 (ci-web-split).",
+    "make check was not run to completion in the worktree (stopped on manager request). Only docs/design/ci-speedup.md changed, so no code was affected."
+  ]
+}

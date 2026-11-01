@@ -1,0 +1,26 @@
+{
+  "task_id": "relay-perf-bench",
+  "status": "done",
+  "files_changed": [
+    "Makefile",
+    "tools/perf/pg.py",
+    "tools/perf/run.py",
+    "docs/perf/v0.2.0.md",
+    "docs/perf/last-run.md"
+  ],
+  "verification": {
+    "command": "make perf (PERF_SIZES default 10000,100000; run from .worktrees/relay-perf-bench, backend on API_PORT, infra up)",
+    "exit_code": 0,
+    "tail": "perf: cleanup dispatch n=100000 / perf: final cleanup (perf-* rows only) / perf: report written to docs\\perf\\last-run.md. Non-perf row counts before == after ({'journey_definition': 13, 'enrollment_record': 46, 'event': 46, 'profile': 20}). advance n=100000 hit PERF_TIMEOUT 3600s (18944/100000 done) - this is a finding, not a script failure."
+  },
+  "open_questions": [
+    "Key finding: lockDue/claimDue ORDER BY (next_wake_at, enrollment_id) / (available_at, idempotency_key) read all rows tied on the first column (O(N) per call): 10k simultaneous-due enrollments take 300s, 100k does not finish in 1h. Recommend a follow-up task (partial index on both columns, needs migration) - not started per ticket.",
+    "Other recommendations in docs/perf/v0.2.0.md: consumer is fixed at ~115/s (concurrency tuning), no backend confirm-latency metric hook (report uses a DB proxy value).",
+    "make perf talks to PostgreSQL via a stdlib-only wire-protocol client (tools/perf/pg.py) because docker cannot be called from make/sandbox and no host psql or Python driver exists. Environment info (CPU/memory/cgroup) is read via pg_read_file from the container, not `docker info` (hook only allows docker compose).",
+    "Tested backend was the pre-existing process on API_PORT, started from .worktrees/demo-seed-integration/api/target/classes (its api/src is identical to develop); its start-time env vars could not be verified, report records the .env values read by make perf.",
+    "Makefile .PHONY line and an appended perf target conflict textually with demo-seed-integration's uncommitted Makefile change; resolve at merge.",
+    "Optional make variables PERF_SIZES, PERF_TIMEOUT, PERF_OUT are not in .env.example (not config of the app); no new .env.example variable added. Full run takes about 2h because of the advance 100k timeout.",
+    "Dev DB tables stay larger after the run (VACUUM does not shrink; VACUUM FULL not done). Pre-run dead-tuple baselines can include residue from the previous scenario's cleanup (noted in report). Checklist items about endpoints/migrations are not applicable (no api/src change).",
+    "Review follow-up done: docs/perf/v0.2.0.md rerun command now uses -f docker-compose.yml from the main directory; added pg.py limits (loopback only, no SCRAM server signature check, no SASLprep). Docs only, make perf not rerun."
+  ]
+}

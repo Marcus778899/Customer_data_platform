@@ -1,0 +1,19 @@
+{
+  "task_id": "scripts-fix-restore",
+  "status": "done",
+  "files_changed": [
+    "scripts/_common.py",
+    "scripts/board.py",
+    "scripts/guard_paths.py",
+    "scripts/validate_report.py"
+  ],
+  "verification": {
+    "command": "暫存 git repo（無 origin、未設任何 PYTHON* 變數）：board.py check / decision add / archive；docs.py commit 與 task.py amend 帶中文；worktree 內 python3 scripts/board.py check",
+    "exit_code": 0,
+    "tail": "decision add 寫四欄（D-066 取本輪 v0.2.0；D-067 --version v0.3.0），重複編號與壞版本號回錯誤 exit 1；archive 後新布告欄決策表仍四欄、62 筆決策全沿用，本輪未設定時 decision add 要求 --version；docs.py commit 中文訊息 commit 正常、amend 中文正常；對 BOARD.md 副本 diff 僅多兩列新決策。make check 通過（76 tests passed，耗時超過 120 秒）。"
+  },
+  "open_questions": [
+    "BOARD.md 開頭註解仍寫「上限 80 行」，與 D-054 不符；非負責檔案，未改",
+    "board.py 新增 BOARD_FILE 環境變數（沿用舊版測試用）；TASKS_DIR 仍固定專案根目錄"
+  ]
+}

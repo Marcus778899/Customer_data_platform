@@ -1,0 +1,21 @@
+{
+  "task_id": "demo-seed-integration",
+  "status": "done",
+  "files_changed": [
+    ".env.example",
+    "Makefile",
+    "tools/demo-seed/seed.py",
+    "tools/demo-seed/verify.py"
+  ],
+  "verification": {
+    "command": "make demo-seed (x3 against live make api-run, reruns OK); make -f <tmp include Makefile> verify => python3 tools/demo-seed/verify.py; make check",
+    "exit_code": 0,
+    "tail": "Review fixes (commit e5d48cb): .env.example '# CDP_DEMO_PASSWORD=' (commented; check_env.parse skips '# KEY=' lines via OPTIONAL_RE so not required); Makefile 'export CDP_DEMO_PASSWORD' (no recipe prefix). seed.py: fixed password not printed ('(CDP_DEMO_PASSWORD)'), headings accurate, PHONE = 8 digits mapped 1:1 to tag (+886912/+886913 + 8 digits, within regex). verify.py: missing prerequisites recorded as FAIL and run continues. Runs: make demo-seed without CDP_DEMO_PASSWORD (random passwords printed) and with temp command-line value (passwords hidden), both 'Verified via API'; make demo-verify with the temp value: RESULT all checks passed. make check: web 16 files/196 tests passed, 'check passed' (a first make check failed only because my leftover api on 8888 was still running; passed after stopping it). | Merge develop (due-backlog-design/index): Makefile conflict resolved (.PHONY has demo-seed demo-verify perf; targets demo-verify and perf both kept). Commits f90a308 (merge; accidentally contained markers) + d12af9a (markers removed). Verified: grep markers=0; make -n demo-seed demo-verify perf => python3 tools/demo-seed/seed.py / verify.py / tools/perf/run.py; py_compile of the 3 scripts ok. make check not re-run."
+  },
+  "open_questions": [
+    "No contract mismatches found between web/src/api (client.ts, types.ts) and the real backend; web/src not changed. Mapping: getMe/login/logout/changePassword = auth.md 3; listEnrollments/getEnrollment/listDeliveries = journey-engine 4; listJourneys/getJourney/getJourneyVersion = journeys.md 2; searchProfiles/getProfile/listProfileEnrollments = profiles.md 3. All exercised live by verify.py (identifiers masked in responses, e.g. c***@example.com). Not covered live: changePassword success path (would rotate the demo password) and the 429 login rate limit; frontend rendering is left to uat (D-069).",
+    "Observation: trace for a completed enrollment starts at EventSourceNode 'src' (no StartNode entry); the graph derivation in journey-engine 4.5 must tolerate that - existing acceptance tests pass, not verified in a browser.",
+    "README to add: CDP_DEMO_PASSWORD is optional (12-72 chars; unset = random per run printed once); make demo-seed prints searchable identifiers (email/phone/member/LINE/device); make demo-verify (backend running, same CDP_DEMO_PASSWORD exported) runs API-level checks.",
+    "Cleanup done: my make api-run (PID 22312) stopped, port 8888 free; removed main-dir .agent/api-run-demo.log (it was my api-run output). Containers left running."
+  ]
+}

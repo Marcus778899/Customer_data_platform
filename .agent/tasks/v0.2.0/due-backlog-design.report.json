@@ -1,0 +1,15 @@
+{
+  "task_id": "due-backlog-design",
+  "status": "done",
+  "files_changed": ["docs/design/due-backlog.md"],
+  "verification": {
+    "command": "make check（worktree .worktrees/due-backlog-design，commit 818977b）；wc -l docs/design/due-backlog.md",
+    "exit_code": 0,
+    "tail": "60 docs/design/due-backlog.md\n...\ncheck passed\n[exited with code 0]"
+  },
+  "open_questions": [
+    "待決定（① 範圍）：consumer（約 115/s）與派發（約 210/s）的吞吐調校要不要納入 v0.2.0；建議不納入、排 backlog（兩者 O(N)、不隨積壓退化，D-038 無流量目標）",
+    "due-backlog-perf 相依 relay-perf-bench（PR #129）先合併，才有 make perf 與 docs/perf/",
+    "due-backlog-index 的 qa 驗收測試會引用 JdbcStateStore.LOCK_DUE_SQL、JdbcOutboxStore.CLAIM_DUE_SQL（設計做法 #6），worker 加上常數前驗收測試編譯不過（red 狀態）"
+  ]
+}

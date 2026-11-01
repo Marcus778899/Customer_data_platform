@@ -1,0 +1,29 @@
+{
+  "task_id": "due-backlog-index",
+  "kind": "fix",
+  "owner": "backend",
+  "lane": "full",
+  "title": "D-077：修正大量 Enrollment／outbox 同時到期時推進迴圈與 relay 的 O(N²)：V7_2 以原名重建 `ix_enrollment_wake`、`ix_effect_outbox_due`，各補第二排序欄；`lockDue`、`claimDue` 的 SQL 抽成 public 常數供驗收測試 EXPLAIN",
+  "issue": 135,
+  "branch": "fix/due-backlog-index",
+  "worktree": ".worktrees\\due-backlog-index",
+  "pr": 138,
+  "qa": {
+    "result": "pass",
+    "sha": "3b740d3a26c72e777a3f656f807e9a4204e318a0",
+    "by": "qa",
+    "carried_from": "1134da0821bd4b7964b38d95a8af9b56a968521d"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "3b740d3a26c72e777a3f656f807e9a4204e318a0",
+    "by": "architect",
+    "carried_from": "1134da0821bd4b7964b38d95a8af9b56a968521d"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "35101ee4337be89e0d4e1941e9e3cd9eba26fc6c",
+    "sha": "3b740d3a26c72e777a3f656f807e9a4204e318a0",
+    "carried_from": "1134da0821bd4b7964b38d95a8af9b56a968521d"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "auth-session-design",
+  "kind": "docs",
+  "owner": "architect",
+  "lane": "full",
+  "title": "更新 `auth.md` 與 DESIGN-03，補上 user-auth-api review 留下的契約缺口並納入 D-071",
+  "issue": 105,
+  "branch": "docs/auth-session-design",
+  "worktree": ".worktrees\\auth-session-design",
+  "pr": 107,
+  "qa": {
+    "result": "pass",
+    "sha": "262c306422df5203615715e1a46e1c768630361c",
+    "by": "qa",
+    "carried_from": "a3f1ab79d6609eb6c90abc60a1e44bd2dcd3b7c5"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "262c306422df5203615715e1a46e1c768630361c",
+    "by": "甲方",
+    "carried_from": "a3f1ab79d6609eb6c90abc60a1e44bd2dcd3b7c5"
+  },
+  "merged": true
+}

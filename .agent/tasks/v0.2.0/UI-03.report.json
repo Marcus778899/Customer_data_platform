@@ -1,0 +1,19 @@
+{
+  "task_id": "UI-03",
+  "status": "done",
+  "files_changed": [
+    "docs/ui/journey-platform.md",
+    "docs/ui/journey-platform/index.html",
+    "docs/ui/enrollment-trace.md",
+    "docs/ui/enrollment-trace/index.html",
+    "web/src/styles/tokens.css"
+  ],
+  "verification": {
+    "command": "make check（在 .worktrees/UI-03）",
+    "exit_code": 0,
+    "tail": "Test Files  6 passed (6) / Tests  76 passed (76) / check passed"
+  },
+  "open_questions": [
+    "甲方：要顯示客戶姓名須把 name 列入 CDP_TRACE_PLAIN_KEYS，否則客戶頁標題一律是客戶 ID（D-014／D-021 白名單）"
+  ]
+}

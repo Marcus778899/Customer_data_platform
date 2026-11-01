@@ -1,0 +1,11 @@
+{
+  "task_id": "trace-customer-name",
+  "status": "done",
+  "files_changed": ["web/src/pages/TracePage.tsx", "web/src/pages/trace/model.ts"],
+  "verification": {
+    "command": "make check",
+    "exit_code": 0,
+    "tail": "Test Files 32 passed (32); Tests 413 passed (413); check passed"
+  },
+  "open_questions": []
+}

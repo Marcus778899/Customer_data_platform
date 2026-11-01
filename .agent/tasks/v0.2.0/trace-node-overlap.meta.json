@@ -1,0 +1,19 @@
+{
+  "task_id": "trace-node-overlap",
+  "kind": "fix",
+  "owner": "frontend",
+  "lane": "fast",
+  "title": "v0.2.0 uat F-1（major）：圖形軌跡節點卡片在「已經過／目前位置」時，狀態標籤蓋住節點名稱與類型；修成三態都能完整顯示分類、名稱、類型與狀態標示",
+  "issue": 143,
+  "branch": "fix/trace-node-overlap",
+  "worktree": ".worktrees\\trace-node-overlap",
+  "pr": 151,
+  "qa": {
+    "result": "pass",
+    "sha": "eaf0efee860459e939e68a0ee4492c628ed5a449",
+    "by": "qa",
+    "carried_from": "602e9ab64ebe4e8eaf2df7d9826ec1d5a7a75128"
+  },
+  "review": null,
+  "merged": true
+}

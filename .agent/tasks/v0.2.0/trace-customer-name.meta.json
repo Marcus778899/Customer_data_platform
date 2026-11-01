@@ -1,0 +1,33 @@
+{
+  "task_id": "trace-customer-name",
+  "kind": "fix",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "甲方驗收回饋（2026-11-02）：軌跡頁麵包屑「客戶 / 這位客戶 / 旅程進度」與副標「客戶：未提供姓名」沒有意義，看不出是哪位客戶；改成顯示可辨識的客戶標示（以姓名優先，D-082）",
+  "issue": 183,
+  "branch": "fix/trace-customer-name",
+  "worktree": ".worktrees\\trace-customer-name",
+  "pr": 185,
+  "qa": {
+    "result": "pass",
+    "sha": "4fb70288edcf71cb5aa0ccb6514dd2d53edb56a0",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "4fb70288edcf71cb5aa0ccb6514dd2d53edb56a0",
+    "by": "architect"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "3ec4ecbb86f1fc89a89cf79dd79f49021b856dca",
+    "sha": "8242e165bf25f72dd99f19d4b893692b699074c1"
+  },
+  "rulings": 1,
+  "ruling": {
+    "result": "test_wrong",
+    "sha": "c517fbe40094c507e24f85511ac09b6e5bd6aec8",
+    "after_fails": 0
+  },
+  "amend_extra": true
+}

@@ -1,0 +1,15 @@
+{
+  "task_id": "CHORE-06",
+  "status": "done",
+  "files_changed": ["scripts/board.py", "scripts/docs.py"],
+  "verification": {
+    "command": "make check（.worktrees/CHORE-06，追加 1 之 commit）；另以 BOARD_FILE、JOB_HISTORY_DIR 指向 scratchpad 副本實測 board.py task archive v0.1.0",
+    "exit_code": 0,
+    "tail": "副本實測：BOARD 80 行 -> 55 行；移除 25 張 done（INIT-01 ... CHORE-05）；快照 jh/v0.1.0.md 與原 BOARD 的 diff 僅開頭多一行『<!-- 封存 v0.1.0，2026-10-18 -->』；BOARD diff 僅任務表 48-72 行 25 列刪除。版本 '0.1' -> exit 1；重複 v0.1.0 -> 拒絕 exit 1，BOARD 與快照目錄不變；無 done（v0.1.1）-> 說明並 exit 0、不寫快照；封存後 task set X-1 todo --owner backend 成功 OK；快照目錄無法建立 -> exit 1，BOARD 不變（cmp 相同）。docs.py DOC_PATHS 含 tasks/job_history/（第 13 行）。主目錄與 worktree 的 BOARD.md、tasks/job_history/ 皆未產生或修改。\nvitest: 6 files 76 tests passed\ncheck passed"
+  },
+  "open_questions": [
+    "新增選用環境變數 JOB_HISTORY_DIR（與 BOARD_FILE 並列，測試用）可覆蓋快照目錄，預設 tasks/job_history/；未加入 .env.example。",
+    "無 done 列時不寫快照（避免產生無意義檔），exit 0。",
+    "目前 BOARD.md 有 25 張 done（派工單寫 21）。"
+  ]
+}

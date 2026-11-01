@@ -1,0 +1,18 @@
+{
+  "task_id": "due-backlog-index",
+  "status": "done",
+  "files_changed": [
+    "api/src/main/resources/db/migration/V7_2__due_queue_tiebreak_index.sql",
+    "api/src/main/java/com/cdp/persistence/JdbcStateStore.java",
+    "api/src/main/java/com/cdp/persistence/JdbcOutboxStore.java",
+    "docs/spec/07-database-schema.md"
+  ],
+  "verification": {
+    "command": "docker compose --env-file .env -f .worktrees/due-backlog-index/compose.yaml run --rm test",
+    "exit_code": 0,
+    "tail": "DueQueueIndexAcceptanceTest Tests run: 5, Failures: 0; DueQueueUpgradeAcceptanceTest Tests run: 1, Failures: 0; Tests run: 397, Failures: 0, Errors: 0, Skipped: 0; BUILD SUCCESS"
+  },
+  "open_questions": [
+    "make check（lint/單元）未另外跑，只跑了 compose test（含全部驗收）；spec 07 §12 另加 V7_2 小節、§10 與 relay 搶列敘述補第二排序欄"
+  ]
+}

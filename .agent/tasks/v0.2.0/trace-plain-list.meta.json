@@ -1,0 +1,33 @@
+{
+  "task_id": "trace-plain-list",
+  "kind": "feat",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "D-079、D-080：進度列表、軌跡查詢頁與客戶頁改用白話用詞——Enrollment 改稱「旅程進度」、ID 不當主要欄位、狀態與步驟用白話",
+  "issue": 171,
+  "branch": "feat/trace-plain-list",
+  "worktree": ".worktrees\\trace-plain-list",
+  "pr": 175,
+  "qa": {
+    "result": "pass",
+    "sha": "0dff1171f848ad2d47fb7db8565fac453d1e1624",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "0dff1171f848ad2d47fb7db8565fac453d1e1624",
+    "by": "architect"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "cc3b191af6a825522359bd887222ea8230de12f8",
+    "sha": "3481a9d6b1928910b37917810942520d72d966d0"
+  },
+  "amend_sha": "8a0e61ab067f2cb8dac2567a2073984ea2599677",
+  "rulings": 1,
+  "ruling": {
+    "result": "test_wrong",
+    "sha": "8a0e61ab067f2cb8dac2567a2073984ea2599677",
+    "after_fails": 0
+  }
+}

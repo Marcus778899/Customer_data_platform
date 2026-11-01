@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-06",
+  "kind": "chore",
+  "owner": "backend",
+  "title": "`scripts/board.py` 新增「封存已完成任務」指令，把狀態為 done 的任務列從布告欄移除",
+  "issue": 70,
+  "branch": "chore/chore-06",
+  "worktree": ".worktrees\\CHORE-06",
+  "pr": 71,
+  "qa": {
+    "result": "pass",
+    "sha": "931d1672fbc2d4137b5021efcc42d05d7cfd0ec8",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "931d1672fbc2d4137b5021efcc42d05d7cfd0ec8",
+    "by": "architect"
+  },
+  "merged": true
+}

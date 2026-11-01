@@ -1,0 +1,23 @@
+{
+  "task_id": "app-shell-login",
+  "kind": "feat",
+  "owner": "frontend",
+  "title": "產品外框（導覽：旅程、客戶、受眾〔規劃中〕）、email 登入／修改密碼／登出、受眾佔位頁與 403 無權限頁，API client 帶 `X-XSRF-TOKEN`",
+  "issue": 88,
+  "branch": "feat/app-shell-login",
+  "worktree": ".worktrees\\app-shell-login",
+  "pr": 91,
+  "qa": {
+    "result": "pass",
+    "sha": "e131d264dbc20c7e8e3ae73059a511b589c1f6ee",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "e131d264dbc20c7e8e3ae73059a511b589c1f6ee",
+    "by": "architect"
+  },
+  "merged": true,
+  "amend_sha": "4ced49875a758ae2cddc5bad227fca6064ffc9f8",
+  "qa_fails": 1
+}

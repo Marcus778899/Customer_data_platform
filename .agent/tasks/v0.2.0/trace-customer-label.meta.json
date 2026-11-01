@@ -1,0 +1,15 @@
+{
+  "task_id": "trace-customer-label",
+  "kind": "fix",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "甲方驗收回饋（2026-11-02）：軌跡頁麵包屑「客戶 / 這位客戶 / 旅程進度」與副標「客戶：未提供姓名」沒有意義，看不出是哪位客戶；改成顯示可辨識的客戶標示",
+  "issue": 182,
+  "branch": "fix/trace-customer-label",
+  "worktree": ".worktrees\\trace-customer-label",
+  "pr": null,
+  "qa": null,
+  "review": null,
+  "merged": false,
+  "cancelled": true
+}

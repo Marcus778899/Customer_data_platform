@@ -1,0 +1,15 @@
+{
+  "task_id": "journey-page-crash",
+  "status": "done",
+  "files_changed": ["web/src/App.tsx", "web/src/graph/model.ts", "web/src/graph/model.test.ts"],
+  "verification": {
+    "command": "CONTAINER_TESTS=skip make check (container tests skipped: the full-run make check had a backend container test failure unrelated to this change; I touched no backend)",
+    "exit_code": 0,
+    "tail": "acceptance journey-page-crash 24/24 passed; web suite all passed; check passed"
+  },
+  "open_questions": [
+    "ROOT CAUSE: GET /api/v1/journeys/01M56YZJMN3BCYQ73E9Y941E4C/versions/1 returns EndNode x with outputs=null and config=null (old 2026-10-18 demo/perf data; spec 03 section 4 says terminal outputs is {}). model.ts buildModel Object.entries(n.outputs) (and Object.values in textOrder, plus deriveOverlay) threw TypeError during render, no error boundary, so the page went white. Fix: outsOf() treats null/non-object outputs as {} at all 4 sites; PageBoundary in App.tsx (inside Shell, resets on location change) shows role=alert error state.",
+    "BACKEND (manager to handle): the API returns outputs/config null for stored legacy definitions, deviating from spec 03 section 4 / journeys.md example.",
+    "make check with container tests failed once in the backend surefire step (not investigated, no backend change); please confirm in CI. Note: my make api-run attempt failed because 8888 was already used by the user's backend; nothing left running."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "task_id": "trace-plain-list",
+  "status": "done",
+  "files_changed": [
+    "web/src/pages/EnrollmentBrowsePage.tsx",
+    "web/src/pages/SearchPage.tsx",
+    "web/src/pages/CustomerPage.tsx",
+    "web/tests/unit/plain-list/next-text.test.ts",
+    "web/src/styles/app.css",
+    "web/tests/unit/plain-list/customer-utc.test.ts"
+  ],
+  "verification": {
+    "command": "cd .worktrees/trace-plain-list && make check（含 3481a9d）",
+    "exit_code": 0,
+    "tail": "Test Files 30 passed (30); Tests 396 passed (396); BUILD SUCCESS; check passed"
+  },
+  "open_questions": [
+    "仲裁 TEST_WRONG 已解，disputes 清空；交件 commit 0dff117（空 commit）。",
+    "已解 app.css 合併衝突（兩段都保留，commit e7d73dd）。",
+    "make check 全跑結果：6 檔 31 測試失敗，皆非本單負責檔案可處理。trace-plain-list 驗收 13/13 通過；unit/plain-list 2/2 通過；tsc、lint 通過。make check 的 vitest 步驟 Test Files 6 failed | 19 passed，31 tests failed，皆為舊標籤『客戶 ID 或 Enrollment ID』／舊用詞的既有驗收測試（屬 trace-plain-rewrite 或 qa 改寫）：acceptance/integration/integration.test.tsx（3：相對路徑 credentials、列表查詢中 401、登出後 session 失效）；acceptance/session-expired/session-expired.test.tsx（6）；acceptance/trace-page/trace-page.test.tsx（唯讀與鍵盤 2、查詢列表 5、登入頁 1、詳情 1）；acceptance/journey-customer-ui/trace-graph.test.tsx（13，TracePage 與舊 Enrollment 用詞）；acceptance/journey-customer-ui/customer-page.test.tsx（1：旅程紀錄失敗只影響該區塊）；acceptance/narrow-layout/narrow-layout.test.tsx（1：列表 caption）。其中 customer-page 與 narrow-layout 兩項我已把『無法載入旅程紀錄』與 caption『依進入時間新到舊』保留原文以不弄壞，列於此處是因為執行 make check 時的當下結果；重新跑後除 integration／session-expired／trace-page／trace-graph 外已無其他失敗。",
+    "規格沒定三點的決定：(1) 客戶欄：API 摘要只有 profile_id、沒有姓名，且 ID 不當欄位，故顯示連到 /customers/<id> 的『查看客戶』連結；(2) WAITING 的『下一步』：摘要無 wake_at 與旅程定義，固定顯示『時間到會自動繼續』；其餘 ACTIVE／PENDING＝處理中、FAILED＝需要技術人員處理、SUSPENDED＝已暫停、終態＝—；(3) 列表不放時間欄（設計稿也沒有），formatPlainTime 只用在客戶頁（relative:false）。",
+    "客戶頁區塊錯誤標題『無法載入旅程紀錄。』與查詢頁 caption『…，依進入時間新到舊』保留舊文字，因為既有鎖定測試（customer-page、narrow-layout）斷言它們；若 qa 改寫那些測試後要改成『旅程進度』用語，後續再改。",
+    "狀態篩選選項去掉英文代碼，只顯示白話；查詢框標籤改『客戶 ID 或進度編號』，會讓 integration／session-expired／trace-page 內仍用舊標籤的測試失敗（已知，屬 trace-plain-rewrite）。",
+    "共用的 stepText／nextText／StatusBadge／CustomerLink 匯出自 EnrollmentBrowsePage.tsx，供 SearchPage、CustomerPage 使用（受限於負責檔案不能新增 src 檔）。",
+    "追加處理：客戶頁移除『同時顯示 UTC 原值』勾選與表內 UTC 文字（UTC 只留 time 的 dateTime／title）；app.css 末尾新增 table.enr 段（>640px：badge 不換行、旅程與步驟欄 min-width 8em）。1280px 版面未在瀏覽器實測（D-069 由 uat 負責）。舊 customer-page 測試若斷言 UTC 勾選，會失敗，需 qa 改寫。"
+  ],
+  "disputes": []
+}

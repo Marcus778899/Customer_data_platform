@@ -2,10 +2,12 @@
 
 <!-- 只記關鍵事項，上限 80 行；只有 manager 透過 scripts/board.py 修改 -->
 
+> 上一階段：`.agent/tasks/v0.2.0.md`（派工單在 `.agent/tasks/v0.2.0/`）
+
 ## 目標與範圍
 
-- 本輪：v0.2.0（單一租戶，D-051；拆版 D-055）：relay／迴圈改寫與壓測、使用者登入與角色、客戶資料庫＋搜尋＋客戶頁、外框＋受眾佔位、旅程列表（唯讀）、圖形軌跡（直線）
-- 不做：多租戶與 RLS（D-051）、畫布／分支節點／旅程審核（v0.3.0，D-055、D-056）、資料來源串接（D-052、D-059）、受眾實作、真實通道、Redis、CDC
+- 本輪：（尚未設定）
+- 不做：（尚未設定）
 
 ## 已定案決策（細節見 docs/decisions.md；要改先問甲方）
 
@@ -94,48 +96,6 @@
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
-| CHORE-06 | backend | done | 0 | PR #71 |
-| DESIGN-03 | architect | done | 2 | PR #77 |
-| UI-03 | designer | done | 1 | PR #76 |
-| CHORE-07 | backend | done | 1 | PR #79 |
-| FIX-09 | backend | done | 0 | PR #84 |
-| DESIGN-04 | architect | done | 1 | PR #83 |
-| CHORE-09 | backend | done | 0 | PR #86 |
-| tenant-id-drop | backend | done | 2 | PR #92 |
-| app-shell-login | frontend | done | 1 | PR #91 |
-| scripts-fix-restore | backend | done | 0 | PR #90 |
-| merge-cleanup-resume | backend | blocked | 0 | 作廢（D-067） |
-| relay-loop-rewrite | backend | done | 0 | PR #99 |
-| journey-customer-ui | frontend | done | 0 | PR #98 |
-| compose-test-setup | architect | done | 0 | PR #97 |
-| user-auth-api | backend | done | 0 | PR #104 |
-| auth-session-design | architect | done | 0 | PR #107 |
-| profile-store-api | backend | blocked | 0 | 作廢（D-072） |
-| user-session-revoke | backend | done | 0 | PR #110 |
-| profile-search-api | backend | done | 0 | PR #111 |
-| ci-speedup-design | architect | done | 0 | PR #114 |
-| deps-security-upgrade | backend | done | 0 | PR #117 |
-| ci-docs-skip | architect | done | 0 | PR #116 |
-| ci-surefire-fork | backend | done | 0 | PR #120 |
-| gitleaks-test-allowlist | architect | done | 0 | PR #122 |
-| ci-container-share | qa | done | 0 | PR #124 |
-| relay-perf-test | qa | blocked | 0 | 作廢：負責角色開錯，改 relay-perf-bench |
-| demo-seed-integration | frontend | done | 0 | PR #133 |
-| relay-perf-bench | backend | done | 0 | PR #129 |
-| due-backlog-design | architect | done | 0 | PR #131 |
-| npm-minimatch-upgrade | frontend | done | 0 | PR #136 |
-| due-backlog-index | backend | done | 0 | PR #138 |
-| due-backlog-perf | backend | done | 0 | PR #141 |
-| trace-node-overlap | frontend | done | 0 | PR #151 |
-| plain-ux-ui | designer | done | 1 | PR #162 |
-| journey-page-crash | frontend | done | 0 | PR #163 |
-| app-shell-fill | frontend | done | 0 | PR #167 |
-| plain-copy-glossary | frontend | done | 0 | PR #166 |
-| trace-plain-rewrite | frontend | done | 0 | PR #172 |
-| trace-plain-list | frontend | done | 0 | PR #175 |
-| customer-table-fit | frontend | done | 0 | PR #181 |
-| trace-customer-label | frontend | blocked | 0 | 作廢：驗收測試路徑寫錯，改 trace-customer-name |
-| trace-customer-name | frontend | done | 0 | PR #185 |
 
 ## 卡住／待甲方決定
 

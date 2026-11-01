@@ -1,0 +1,24 @@
+{
+  "task_id": "ci-docs-skip",
+  "kind": "chore",
+  "owner": "architect",
+  "lane": "full",
+  "title": "CI 加速 #1、#4：develop 上只改文件的 push 跳過 `check` job（`security` 照跑，D-075）；PR 的 run 加 `concurrency`，同一 PR 有新 push 取消舊 run",
+  "issue": 115,
+  "branch": "chore/ci-docs-skip",
+  "worktree": ".worktrees\\ci-docs-skip",
+  "pr": 116,
+  "qa": {
+    "result": "pass",
+    "sha": "fce958275f223d9466b1f5de20f51ff57a4c91b1",
+    "by": "qa",
+    "carried_from": "0c44074df7bfaca5202b1f7aaef867ccd6040a6e"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "fce958275f223d9466b1f5de20f51ff57a4c91b1",
+    "by": "architect",
+    "carried_from": "0c44074df7bfaca5202b1f7aaef867ccd6040a6e"
+  },
+  "merged": true
+}

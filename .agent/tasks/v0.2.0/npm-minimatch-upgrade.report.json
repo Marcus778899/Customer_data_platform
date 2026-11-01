@@ -1,0 +1,15 @@
+{
+  "task_id": "npm-minimatch-upgrade",
+  "status": "done",
+  "files_changed": ["package.json", "package-lock.json"],
+  "verification": {
+    "command": "npm ci; npm ls minimatch; (web) npm run lint; npm test  -- run in a scratch copy outside the repo",
+    "exit_code": 0,
+    "tail": "npm ci: found 0 vulnerabilities. npm ls minimatch: eslint>minimatch@11.0.3, @eslint/config-array>minimatch@11.0.3 deduped, typescript-estree>minimatch@11.0.3 deduped. lint (eslint + tsc) clean, no output. vitest: 16 files, 196 tests passed."
+  },
+  "open_questions": [
+    "Upstream eslint 10.14.0 and typescript-eslint 8.72.1 still declare minimatch ^10.2.6, so a root overrides entry (minimatch ^11.0.1) was used. It resolves to 11.0.3. Please re-check upstream later and drop the override once they raise the range.",
+    "make check was not run in the worktree: node_modules there is a symlink to the main directory (still minimatch 10.2.6), and I did not run npm install there. I ran the equivalent lint and test in a scratch copy with a clean npm ci. The main directory needs npm ci after merge.",
+    "The Security job in CI is not yet confirmed green. It needs the PR to run."
+  ]
+}

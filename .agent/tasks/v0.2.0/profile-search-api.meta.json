@@ -1,0 +1,30 @@
+{
+  "task_id": "profile-search-api",
+  "kind": "feat",
+  "owner": "backend",
+  "lane": "full",
+  "title": "實作 DESIGN-03 批 4（BE-07）：V7、客戶資料庫與搜尋（`profiles.md`）、旅程列表與唯讀旅程頁 API（`journeys.md` §2）、`/enrollments` 瀏覽（q 選填）",
+  "issue": 108,
+  "branch": "feat/profile-search-api",
+  "worktree": ".worktrees\\profile-search-api",
+  "pr": 111,
+  "qa": {
+    "result": "pass",
+    "sha": "572a04537a7cd4f3cc4cff3cb5c4a13f63efa214",
+    "by": "qa",
+    "carried_from": "ac20c3a8d0f03a1632126291b95efc858f164d76"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "572a04537a7cd4f3cc4cff3cb5c4a13f63efa214",
+    "by": "architect",
+    "carried_from": "ac20c3a8d0f03a1632126291b95efc858f164d76"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "4e9904d7fcfb2b8fc9367ddefd08711834ba7243",
+    "sha": "572a04537a7cd4f3cc4cff3cb5c4a13f63efa214",
+    "carried_from": "ac20c3a8d0f03a1632126291b95efc858f164d76"
+  },
+  "amend_sha": "d090bc34964201308c3097934db6a50125817d8b"
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "ci-container-share",
+  "kind": "chore",
+  "owner": "qa",
+  "lane": "full",
+  "title": "CI 加速 #3：驗收測試改成一個 JVM 只起一組共用的 PostgreSQL 與 RabbitMQ，每個 Spring context 用自己的 database 與 vhost；減少 Testcontainers 重複啟動（設計量測 162 秒、佔 surefire 48%）",
+  "issue": 123,
+  "branch": "chore/ci-container-share",
+  "worktree": ".worktrees\\ci-container-share",
+  "pr": 124,
+  "qa": {
+    "result": "pass",
+    "sha": "954164c9906dd4a15a932aa4eeeef7d131f40993",
+    "by": "qa",
+    "carried_from": "f8e18e5fefb570bdbac1a5ce085b7ec43c6a4073"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "954164c9906dd4a15a932aa4eeeef7d131f40993",
+    "by": "architect",
+    "carried_from": "f8e18e5fefb570bdbac1a5ce085b7ec43c6a4073"
+  },
+  "merged": true
+}

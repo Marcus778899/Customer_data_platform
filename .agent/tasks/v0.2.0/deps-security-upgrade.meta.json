@@ -1,0 +1,30 @@
+{
+  "task_id": "deps-security-upgrade",
+  "kind": "chore",
+  "owner": "backend",
+  "lane": "full",
+  "title": "把 CI 資安掃描（osv-scanner）抓到的後端相依漏洞全部升到修正版，讓 CI 的 Security job 轉綠（D-074）",
+  "issue": 113,
+  "branch": "chore/deps-security-upgrade",
+  "worktree": ".worktrees\\deps-security-upgrade",
+  "pr": 117,
+  "qa": {
+    "result": "pass",
+    "sha": "c3887f14a638cb33b808d100929497a7500a98ac",
+    "by": "qa",
+    "carried_from": "7a0c69ff18376a5c45aa7d601c8879a9fcc8ced9"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "c3887f14a638cb33b808d100929497a7500a98ac",
+    "by": "architect",
+    "carried_from": "7a0c69ff18376a5c45aa7d601c8879a9fcc8ced9"
+  },
+  "merged": true,
+  "amend_sha": "27cb351b56002cdafc3d907fba9b3ca41431796b",
+  "acceptance_lock": {
+    "patch": "a7532f5b40d8bd433d108e9acb9175d181ad8f24",
+    "sha": "c3887f14a638cb33b808d100929497a7500a98ac",
+    "carried_from": "7a0c69ff18376a5c45aa7d601c8879a9fcc8ced9"
+  }
+}

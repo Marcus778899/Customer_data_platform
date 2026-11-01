@@ -1,0 +1,30 @@
+{
+  "task_id": "journey-customer-ui",
+  "kind": "feat",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "旅程列表與唯讀旅程頁、最近 Enrollment 瀏覽、客戶搜尋→客戶頁→圖形軌跡（直線）",
+  "issue": 95,
+  "branch": "feat/journey-customer-ui",
+  "worktree": ".worktrees\\journey-customer-ui",
+  "pr": 98,
+  "qa": {
+    "result": "pass",
+    "sha": "063f44cb3fcc675eccd269ff7de1f6b2b579b6d9",
+    "by": "qa",
+    "carried_from": "08b0c8960c43d5e7658c6a81cea382b6ab35ce33"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "063f44cb3fcc675eccd269ff7de1f6b2b579b6d9",
+    "by": "architect",
+    "carried_from": "08b0c8960c43d5e7658c6a81cea382b6ab35ce33"
+  },
+  "merged": true,
+  "amend_sha": "dffac42c81677e1e23ab6819bb4bc9ade6c49fd7",
+  "acceptance_lock": {
+    "patch": "9e97d3b8ca5c41cd7754356aaca2596b9e23091c",
+    "sha": "063f44cb3fcc675eccd269ff7de1f6b2b579b6d9",
+    "carried_from": "08b0c8960c43d5e7658c6a81cea382b6ab35ce33"
+  }
+}

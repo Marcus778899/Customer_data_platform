@@ -1,0 +1,24 @@
+{
+  "task_id": "due-backlog-perf",
+  "kind": "chore",
+  "owner": "backend",
+  "lane": "full",
+  "title": "D-077：due-backlog-index（PR #138）修正後重跑 relay 與推進迴圈壓測，證明大量同時到期不再是 O(N²)，報告加「修正後對照」",
+  "issue": 139,
+  "branch": "chore/due-backlog-perf",
+  "worktree": ".worktrees\\due-backlog-perf",
+  "pr": 141,
+  "qa": {
+    "result": "pass",
+    "sha": "b06b3322110c787cff7e5dc5dfbe4f136df99408",
+    "by": "qa",
+    "carried_from": "b436ca259b3cfc7047696c6a6822cdae3cc02713"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "b06b3322110c787cff7e5dc5dfbe4f136df99408",
+    "by": "architect",
+    "carried_from": "b436ca259b3cfc7047696c6a6822cdae3cc02713"
+  },
+  "merged": true
+}

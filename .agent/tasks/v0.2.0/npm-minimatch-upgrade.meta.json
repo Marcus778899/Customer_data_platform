@@ -1,0 +1,24 @@
+{
+  "task_id": "npm-minimatch-upgrade",
+  "kind": "chore",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "讓 CI 的 Security job（osv-scanner）不再因 npm `minimatch` 漏洞失敗：升到修正版",
+  "issue": 134,
+  "branch": "chore/npm-minimatch-upgrade",
+  "worktree": ".worktrees\\npm-minimatch-upgrade",
+  "pr": 136,
+  "qa": {
+    "result": "pass",
+    "sha": "4eb8670662dc01628c2b78148333d6250b46d98f",
+    "by": "qa",
+    "carried_from": "a089d9a42ce41dcf0834b1d3d834924ffa11c0fd"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "4eb8670662dc01628c2b78148333d6250b46d98f",
+    "by": "architect",
+    "carried_from": "a089d9a42ce41dcf0834b1d3d834924ffa11c0fd"
+  },
+  "merged": true
+}

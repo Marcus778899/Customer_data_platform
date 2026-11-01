@@ -1,0 +1,15 @@
+{
+  "task_id": "merge-cleanup-resume",
+  "kind": "chore",
+  "owner": "backend",
+  "lane": "full",
+  "title": "`pr.py merge` 能續做已合併 PR 的本機清理；提供腳本清掉 `.worktrees/` 殘留資料夾；補回範本更新再次蓋掉的決策「版本」欄",
+  "issue": 93,
+  "branch": "chore/merge-cleanup-resume",
+  "worktree": ".worktrees\\merge-cleanup-resume",
+  "pr": null,
+  "qa": null,
+  "review": null,
+  "merged": false,
+  "cancelled": true
+}

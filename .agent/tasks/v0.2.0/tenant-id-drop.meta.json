@@ -1,0 +1,23 @@
+{
+  "task_id": "tenant-id-drop",
+  "kind": "refactor",
+  "owner": "backend",
+  "title": "依 D-063 從 schema、程式與單元測試移除 `tenant_id`／`tenantId`，對外 API 不變",
+  "issue": 87,
+  "branch": "refactor/tenant-id-drop",
+  "worktree": ".worktrees\\tenant-id-drop",
+  "pr": 92,
+  "qa": {
+    "result": "pass",
+    "sha": "592214415adeb593b734c15c6d46f8bfba711f36",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "592214415adeb593b734c15c6d46f8bfba711f36",
+    "by": "architect"
+  },
+  "merged": true,
+  "amend_sha": "e2e9061983c465cc6ffda84b1cee305c4074800c",
+  "qa_fails": 1
+}

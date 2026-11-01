@@ -1,0 +1,23 @@
+{
+  "task_id": "plain-ux-ui",
+  "status": "done",
+  "files_changed": [
+    "docs/ui/design-system/customer-journey-platform/MASTER.md",
+    "docs/ui/enrollment-trace.md",
+    "docs/ui/enrollment-trace/plain.html",
+    "docs/ui/journey-platform.md",
+    "docs/ui/journey-platform/index.html"
+  ],
+  "verification": {
+    "command": "playwright 開 http://127.0.0.1:8765/docs/ui/enrollment-trace/plain.html 與 journey-platform/index.html，1280、500、375px 截圖",
+    "exit_code": 0,
+    "tail": "截圖：.agent/reports/plain-ux-ui-1280-waiting.png、plain-ux-ui-500-pending.png、plain-ux-ui-375-compare.png、plain-ux-ui-500-journeys.png；側欄撐滿 800px 視窗高度、500px 與 375px 外框填滿寬度、無橫向捲動（以截圖目視確認；未跑自動化量測）。已關閉瀏覽器與 http.server。commit 75e9823"
+  },
+  "open_questions": [
+    "需調查：契約沒有事件顯示名稱（node_name 可用）；decision_reason 含 ISO UTC，若改結構化可省前端正規式；成效分析 #157 另案",
+    "窄螢幕右側留白的真正原因未能在無後端環境重現，已改以規則防止並在設計稿驗證；frontend 實作後需在真實頁面 500px 再確認",
+    "追加（MASTER.md 補進負責檔案）：本輪無內容修改；分支上 5 個檔案都在範圍內；已補空 commit 說明",
+    "qa FAIL 已修：journey-platform/index.html 1024px 以下 .top 改 position: sticky; top: 0; z-index: 4（與 plain.html、規格、MASTER.md 一致）",
+    "甲方意見輪（D-079～D-081 已定案，無待決定）已修：1) 麵包屑錯位：連結 inline-flex+min-height 比純文字 li 高 → ol/li 皆 flex+align-items:center、li 高 32px（<640px 44px）、分隔符 content:\"/\" / \"\"（讀屏不唸）、最後一段 aria-current=\"page\"（兩份設計稿共 60 處）；2) journey-platform/index.html 窄螢幕 dl 單欄時 dd 無下間距，標籤貼著上一個值 → 加 dd margin；3) 圖形軌跡頁（trace-*）與客戶頁的 Enrollment 全改「旅程進度」並修正中英間多餘空格（「建立 旅程進度」）；4) 依 D-080 移除客戶頁旅程表「Enrollment ID」欄（3 th、9 td）與軌跡頁標頭的 Enrollment ID（5 處）；trace-* 的客戶 ID 改顯示「陳＊＊」，標題加註頁面外框以 plain.html 為準；5) plain.html 進階資訊「進度編號（Enrollment ID）」改「進度編號」；6) 規格：enrollment-trace.md 新增「麵包屑」規則、待決定改已定案 D-079～D-081；journey-platform.md 派工單移除待決定前置；MASTER.md 補麵包屑與 dl 間距規則"
+  ]
+}

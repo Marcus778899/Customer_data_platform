@@ -1,0 +1,22 @@
+{
+  "task_id": "DESIGN-03",
+  "kind": "docs",
+  "owner": "architect",
+  "title": "出 v0.2.0 的設計：範圍拆版提案、架構、API 契約、資料模型與 migration 規劃、實作派工順序",
+  "issue": 74,
+  "branch": "docs/design-03",
+  "worktree": ".worktrees\\DESIGN-03",
+  "pr": 77,
+  "qa": {
+    "result": "pass",
+    "sha": "da5e786bbc140a7ea38eabf89fdb9af8d4aca194",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "da5e786bbc140a7ea38eabf89fdb9af8d4aca194",
+    "by": "甲方"
+  },
+  "merged": true,
+  "qa_fails": 2
+}

@@ -1,0 +1,27 @@
+{
+  "task_id": "app-shell-fill",
+  "kind": "fix",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "甲方驗收回饋：外框撐滿視窗（桌面側欄下方不再留白、不再呈現浮動卡片）、窄螢幕外框填滿寬度無橫向捲動、全站麵包屑對齊",
+  "issue": 164,
+  "branch": "fix/app-shell-fill",
+  "worktree": ".worktrees\\app-shell-fill",
+  "pr": 167,
+  "qa": {
+    "result": "pass",
+    "sha": "007f77c659a241b2cad8770ecfba672fb79218ee",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "007f77c659a241b2cad8770ecfba672fb79218ee",
+    "by": "architect"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "8ce0fc612e8d35b2b8b51ae4d09da33eee1d130e",
+    "sha": "91eea5f78f56a7a4278e2deb1021994f0109ad4f"
+  },
+  "amend_sha": "d5e28bc7207691c313395f63da34fb0d9ba2afdd"
+}

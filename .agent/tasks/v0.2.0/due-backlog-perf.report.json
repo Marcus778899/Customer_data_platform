@@ -1,0 +1,19 @@
+{
+  "task_id": "due-backlog-perf",
+  "status": "done",
+  "files_changed": [
+    "docs/perf/v0.2.0.md",
+    "docs/perf/last-run.md"
+  ],
+  "verification": {
+    "command": "PERF_SIZES=10000,100000 PERF_TIMEOUT=3600 make perf",
+    "exit_code": 0,
+    "tail": "perf: final cleanup (perf-* rows only); perf: report written to docs/perf/last-run.md. All design targets met: lockDue 0.064/0.092 ms, claimDue 3.889/2.203 ms (no Sort, no temp, rows<=limit); advance 100k cleared in 1702.9 s, avg 58.7/s vs 53.2/s, time ratio 9.06; relay avg 3232.6 vs 2571.9/s."
+  },
+  "open_questions": [
+    "advance 穩定約 55-60 筆/s，遠低於設計推估的派發同量級 (約 210/s)；報告已列建議 (先量單筆交易內各步驟耗時)，未開工，屬 D-078 範圍，待 manager 決定是否開單。",
+    "後端啟動當下的環境變數未另行驗證，假設與 .env 相同；已記在報告。",
+    "我起的 PG/RabbitMQ 容器仍在執行，後端已停止；commit b436ca2 在 chore/due-backlog-perf，未 push。",
+    "僅文件變更，未跑 make check，單元測試與覆蓋率不適用。"
+  ]
+}

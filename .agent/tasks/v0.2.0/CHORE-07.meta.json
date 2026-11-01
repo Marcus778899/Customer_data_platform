@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-07",
+  "kind": "chore",
+  "owner": "backend",
+  "title": "已發版的派工單依版本歸檔到 `tasks/<版本>/`，並讓歸檔目錄進 git",
+  "issue": 78,
+  "branch": "chore/chore-07",
+  "worktree": ".worktrees\\CHORE-07",
+  "pr": 79,
+  "qa": {
+    "result": "pass",
+    "sha": "225ec087694a63a11702a8330ae0bd5c336a59c1",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "225ec087694a63a11702a8330ae0bd5c336a59c1",
+    "by": "architect"
+  },
+  "merged": true
+}

@@ -1,0 +1,30 @@
+{
+  "task_id": "plain-copy-glossary",
+  "kind": "feat",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "D-079～D-081：建立白話術語與時間格式模組，供軌跡頁改版（trace-plain-page）與列表改詞（trace-plain-list）共用",
+  "issue": 165,
+  "branch": "feat/plain-copy-glossary",
+  "worktree": ".worktrees\\plain-copy-glossary",
+  "pr": 166,
+  "qa": {
+    "result": "pass",
+    "sha": "bcf0b5964b6598e83f2ffdef7ecdc26d3676a93b",
+    "by": "qa",
+    "carried_from": "149d51c39af62759492608863d145bfa5a54ce7a"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "bcf0b5964b6598e83f2ffdef7ecdc26d3676a93b",
+    "by": "architect",
+    "carried_from": "149d51c39af62759492608863d145bfa5a54ce7a"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "dc6102653b876207f22404dba179477be14ce690",
+    "sha": "bcf0b5964b6598e83f2ffdef7ecdc26d3676a93b",
+    "carried_from": "149d51c39af62759492608863d145bfa5a54ce7a"
+  },
+  "amend_sha": "640ccc8046b410fb0dc3f6135843da8ab7fd64fc"
+}

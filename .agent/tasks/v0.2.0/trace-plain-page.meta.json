@@ -1,0 +1,15 @@
+{
+  "task_id": "trace-plain-page",
+  "kind": "feat",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "D-081（方案 A）：軌跡頁白話改版——首屏三問摘要卡、白話步驟時間軸、訊息發送紀錄、技術細節收進「進階資訊」，讓行銷、業務不需教育訓練就看得懂",
+  "issue": 169,
+  "branch": "feat/trace-plain-page",
+  "worktree": ".worktrees\\trace-plain-page",
+  "pr": null,
+  "qa": null,
+  "review": null,
+  "merged": false,
+  "cancelled": true
+}

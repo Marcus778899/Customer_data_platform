@@ -1,0 +1,21 @@
+{
+  "task_id": "FIX-09",
+  "kind": "fix",
+  "owner": "backend",
+  "title": "修正 CI 間歇失敗：`DeliveryResilienceAcceptanceTest.consumer_cannotCreateTransaction_waitsRequeueDelay_noBusySpin_thenExactlyOnce` 第 451 行 `mockCount` 期望 0 實得 1",
+  "issue": 80,
+  "branch": "fix/fix-09",
+  "worktree": ".worktrees\\FIX-09",
+  "pr": 84,
+  "qa": {
+    "result": "pass",
+    "sha": "b8c109ced22a70a6418f2175adbc0b1d1513b017",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "b8c109ced22a70a6418f2175adbc0b1d1513b017",
+    "by": "architect"
+  },
+  "merged": true
+}

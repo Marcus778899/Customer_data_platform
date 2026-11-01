@@ -1,0 +1,16 @@
+{
+  "task_id": "DESIGN-04",
+  "status": "done",
+  "files_changed": [
+    "docs/design/DESIGN-04.md（§2 #12 改為「不帶 tenant_id」：全系統不帶、回到多租戶時引用 D-063〔先加回欄位並回填〕；§4 #1 匯出表 audience_export、audience_export_member 不帶 tenant_id；§5 預留表刪除「做法 #1 註明例外」；依據加 D-063、刪過時的「後三者待決定」、spec README 節名改為「租戶」；全文仍是 120 行）"
+  ],
+  "verification": {
+    "command": "make check（於 .worktrees/DESIGN-04；完整 log 在 scratchpad/check04.log）",
+    "exit_code": 0,
+    "tail": "[INFO] Tests run: 182, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS\n[INFO] Total time:  05:39 min\n Test Files  6 passed (6)\n      Tests  76 passed (76)\ncheck passed\nEXIT=0"
+  },
+  "open_questions": [
+    "給 manager：§6 開頭仍以「D-055 選 A 或 B／D-059 選 B 時…」條件寫版號前提；D-055、D-059 都已定案 A，這次追加沒有要求修改，所以維持原文。要清掉的話，下一輪改成直接寫 v0.4.0／v0.5.0／v0.6.0",
+    "給 manager：已 commit 6428ef9，尚未推送；PR 需透過 scripts/ 更新"
+  ]
+}

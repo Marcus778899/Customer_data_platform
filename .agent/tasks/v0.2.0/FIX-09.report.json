@@ -1,0 +1,16 @@
+{
+  "task_id": "FIX-09",
+  "status": "done",
+  "files_changed": [
+    "api/src/test/java/com/cdp/acceptance/delivery/DeliveryResilienceAcceptanceTest.java"
+  ],
+  "verification": {
+    "command": "(api) for i in 1..20: mvn -q -Dtest=DeliveryResilienceAcceptanceTest test; then make test (api+web)",
+    "exit_code": 0,
+    "tail": "20 runs: pass=20 fail=0; make test exit=0 (web 76 passed). make check lint step fails only on spotless: DeliveryResilienceAcceptanceTest.java in the worktree has CRLF line endings (committed blob b8c109c is LF, core.autocrlf=true), not a CI issue"
+  },
+  "open_questions": [
+    "根因同意 qa：測試競態，產品無問題。DeliveryConsumer.onMessage 以單一 TransactionTemplate 交易包住 handle()；handle() 內 insertIfAbsentAndLock(任務列)與 EffectExecutor→MockChannelAdapter.send(insert mock_channel_message)同交易，無 REQUIRES_NEW，故任務紀錄與發送同生共死、提交才可見。測試釋放連線後才斷言，等連線的 consumer 提交後 mockCount=1，而 taskStatus 較早查詢仍為 null，與觀察的矛盾現象一致。無需改產品程式，files_changed 列的是 qa 提交的測試檔（qa 提交、產品程式未改）。",
+    "本機 make check 的 lint（spotless:check）失敗：qa 修改後工作目錄的 DeliveryResilienceAcceptanceTest.java 為 CRLF（提交的 blob 是 LF，git 會正規化，CI 不受影響）。我不可改驗收測試目錄；請 qa 在 worktree 對該檔轉 LF 或執行 spotless:apply 後再確認 make check 全綠。make test（api 與 web 測試）已通過。"
+  ]
+}

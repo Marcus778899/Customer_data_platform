@@ -1,0 +1,22 @@
+{
+  "task_id": "UI-03",
+  "kind": "docs",
+  "owner": "designer",
+  "title": "出 v0.2.0 的畫面規格、靜態設計稿與設計 token 增補：產品外框、旅程列表與畫布、客戶搜尋與客戶頁、圖形軌跡、登入與工作區切換",
+  "issue": 75,
+  "branch": "docs/ui-03",
+  "worktree": ".worktrees\\UI-03",
+  "pr": 76,
+  "qa": {
+    "result": "pass",
+    "sha": "6fca684f8a59419c934534749e3b27f37034ae55",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "6fca684f8a59419c934534749e3b27f37034ae55",
+    "by": "甲方"
+  },
+  "merged": true,
+  "qa_fails": 1
+}

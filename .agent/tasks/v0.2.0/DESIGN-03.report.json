@@ -1,0 +1,26 @@
+{
+  "task_id": "DESIGN-03",
+  "status": "done",
+  "files_changed": [
+    "docs/design/DESIGN-03.md（做法 #1 改為全系統不帶 tenant_id〔D-051、D-063〕、刪介面表例外；拆版 12→14＋9、驗收加 QA-09；派工表加批 1 REFACTOR-01＋QA-09，後續順延為批 2～5；migration 版號 V5 drop、BE-06 V6、BE-07 V7、BE-08 V8；FE-03＋QA-05a 範圍加唯讀旅程頁〔D-062〕、驗收目錄加 journey-detail/；設定表把 CDP_TENANT_ID 移到「REFACTOR-01 移除」；刪 D-062 待決定段，已定案影響加 D-062、D-063；風險表改寫）",
+    "docs/spec/07-database-schema.md（§1 版號；§2 改為「不帶 tenant_id」＋RLS 改寫為回到多租戶時的做法；§3～§6、§9、§10 拿掉 tenant_id 欄位、PK、索引；§7 #4；§8 台帳加 V5__drop_tenant_id、其他順延；§12 新表拿掉 tenant_id、新增「V5：移除 tenant_id」小節〔7 張表、event PK、7 個索引、失敗處理、QA-09 驗收〕）",
+    "docs/spec/README.md（識別碼表刪 tenantId 列；「多租戶」改為「租戶（D-051、D-063）」＋回到多租戶時的做法〔先加回欄位並回填〕）",
+    "docs/spec/01～06（01 欄位表、resolve 簽名、去重鍵、範例；02 EnrollmentState、DDL、索引、advisory lock 鍵；03 範例；04 NodeContext 與全部介面簽名；05 Redis 鍵、killJourney、SendRequest、MessageTemplate；06 FieldDefinition、EventDefinition、Segment、SegmentEngine，SegmentTemplate 改為 builtIn 旗標）",
+    "docs/contracts/journey-engine.md（§1 沒有租戶欄位：body 帶 tenant_id 忽略、回應不含；§3.1 Request 描述）、docs/contracts/auth.md（:7）、docs/contracts/journeys.md（V7→V8）",
+    "docs/design/DESIGN-01.md（設定表 CDP_TENANT_ID 標 D-063 廢除、REFACTOR-01 刪除）",
+    ".env.example（CDP_TENANT_ID 說明改為已廢除、REFACTOR-01 合併時刪除）"
+  ],
+  "verification": {
+    "command": "make check（於 .worktrees/DESIGN-03，commit da5e786 前的工作樹；完整 log 在 scratchpad/check03.log）",
+    "exit_code": 0,
+    "tail": "[INFO] Tests run: 182, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS\n[INFO] Total time:  05:53 min\n Test Files  6 passed (6)\n      Tests  76 passed (76)\ncheck passed\nEXIT=0"
+  },
+  "open_questions": [
+    "給 manager：.env.example 的 CDP_TENANT_ID 沒有在本單刪除，只把說明改為已廢除，刪除授權給 REFACTOR-01。原因：Makefile 只 export .env.example 列出的變數，application.yml 讀 ${CDP_TENANT_ID} 且沒有預設值，本單先刪的話，REFACTOR-01 合併前 make api-run 會起不來（BE-06 刪 CDP_SUPPORT_* 也是同樣做法）。如果一定要本單就刪，請告知",
+    "給 manager：docs/design/INIT-01.md:40、:50 仍寫 tenant_id／app.tenant_id（v0.1.0 歷史規劃），不在本單負責檔案，沒有改",
+    "給 manager：REFACTOR-01 的配套 qa 單編號暫用 QA-09（QA-01 已用於 v0.1.0，QA-02～QA-08 已有安排）；要改編號請告知，只需改 DESIGN-03 派工表與 spec 07 §12 兩處",
+    "給 manager：依指示沒有與 develop 同步（追加第 3 點），PR diff 可能顯示 develop 已有的變更（.env.example、DeliveryResilienceAcceptanceTest）",
+    "需調查 1（不變）：json-schema-validator 3.0.8 能否與 Boot BOM 管理的 Jackson 並用，BE-08 開工時實測",
+    "給 manager：已 commit da5e786，尚未推送；PR 需透過 scripts/ 更新"
+  ]
+}

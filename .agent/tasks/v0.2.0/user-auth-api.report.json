@@ -1,0 +1,31 @@
+{
+  "task_id": "user-auth-api",
+  "status": "done",
+  "files_changed": [
+    ".env.example",
+    "api/src/main/java/com/cdp/security/ (改寫 AuthController、SecurityConfig、AuthProperties、AuthPropertiesValidator、Role、LoginRequest、CurrentUserResponse、ApiKeyAuthenticationFilter；新增 AccessRule、Credential、LoginProperties、LoginRateLimiter、PasswordChangeRequest、SessionAuthenticationFilter、SessionCsrfTokenRepository、SessionUser)",
+    "api/src/main/java/com/cdp/user/ (新：AppUser、AppUserStore、UserService、UserController、PasswordHasher、PasswordPolicy 與請求／回應 record)",
+    "api/src/main/java/com/cdp/common/web/ErrorCode.java (超出負責檔案，見 open_questions)",
+    "api/src/main/resources/db/migration/V6__app_user.sql",
+    "api/src/main/resources/application.yml",
+    "api/src/test/resources/application-test.yml",
+    "tools/demo-seed/seed.py",
+    "api/src/test/java/com/cdp/security/ (ApiKeyAuthenticationFilterTest、AuthControllerTest、AuthPropertiesValidatorTest 改寫；LoginRateLimiterTest、SessionCsrfTokenRepositoryTest 新增)",
+    "api/src/test/java/com/cdp/user/ (新：PasswordPolicyTest、UserServiceTest)"
+  ],
+  "verification": {
+    "command": "docker compose --env-file .env -f .worktrees/user-auth-api/compose.yaml run --rm test；另跑 make check",
+    "exit_code": 0,
+    "tail": "[INFO] Tests run: 297, Failures: 0, Errors: 0, Skipped: 0\n[INFO] BUILD SUCCESS\nmake check: check passed"
+  },
+  "open_questions": [
+    "review 退回的修正已完成並 commit（b88b7e0），全部已測試：PasswordHasher 過長密碼也跑一次 BCrypt；LoginRateLimiter 改 tryBegin/finish 原子化（並行單元測試）；登入 email 超過 254 字元回 400 且不進限速表；登出 cookie secure 跟 session cookie 設定。暫停時沒有未提交或做到一半的修改，沒有剩餘工作。",
+    "我改了 api/src/main/java/com/cdp/common/web/ErrorCode.java（不在負責檔案）：加 CSRF_INVALID(403)、LOGIN_RATE_LIMITED(429)、EMAIL_TAKEN(409)、LAST_ADMIN(409)、USER_NOT_FOUND(404) 五個錯誤碼。ApiException 與 ApiExceptionHandler 都吃 ErrorCode，不加就無法回這些碼；只加列舉值，既有碼不動。請 manager 追認或指示改法。",
+    "429 回應不走 ApiException：ApiException 不能帶標頭，所以 AuthController 先設 Retry-After 再用 SecurityProblemWriter 寫 problem+json（格式與其他錯誤相同）。",
+    "CSRF 沒有直接用 Spring 內建的 cookie 重複提交驗證：驗收要求「登入後舊值失效」「只有標頭沒有 XSRF cookie 也要拒絕」，純 cookie==header 做不到。改為 csrf.spa() 加自訂 CsrfTokenRepository，要求 cookie、session 內存值、標頭三者一致；/auth/me 與登入成功才發新值。CSRF 只檢查 session 認證的非 GET 請求，所以匿名請求仍回 401 而不是 403 CSRF_INVALID。",
+    "限速屬性用 cdp.login.max-failures／cdp.login.lockout（對應 CDP_LOGIN_MAX_FAILURES／CDP_LOGIN_LOCKOUT，.env.example 原本就有）；application-test.yml 預設 50／PT15M 避免其他測試互鎖，限速驗收自行覆蓋。啟動時 max-failures < 1 或 lockout 非正值會拒絕啟動。",
+    "demo-seed 建立 demo-viewer／demo-editor／demo-admin@example.com；密碼每次執行隨機產生並印出（不新增 .env 變數）；重跑時 POST 回 409 就改用 PATCH 重設密碼並設為 ACTIVE。",
+    "AppUserStore.lockActiveAdminIds 會鎖住所有啟用中的 ADMIN（依 user_id 排序）；管理員人數很少，這樣並行降級／停用能逐一序列化。若日後 ADMIN 人數變多再改為 advisory lock。",
+    "Windows 上用 python 寫檔會把換行寫成 CRLF，spotless 抓到後已用 spotless:apply 修成 LF；請留意 git 的 CRLF 警告只是 autocrlf 的提示。"
+  ]
+}

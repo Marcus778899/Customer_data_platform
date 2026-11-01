@@ -1,0 +1,26 @@
+{
+  "task_id": "trace-plain-rewrite",
+  "status": "done",
+  "files_changed": [
+    "web/src/pages/TracePage.tsx",
+    "web/src/pages/trace/model.ts",
+    "web/src/pages/trace/Summary.tsx",
+    "web/src/pages/trace/Timeline.tsx",
+    "web/src/pages/trace/Deliveries.tsx",
+    "web/src/pages/trace/Advanced.tsx",
+    "web/src/pages/trace/Icons.tsx",
+    "web/src/styles/app.css",
+    "web/src/graph/GraphSection.tsx",
+    "web/tests/unit/trace/model.test.ts"
+  ],
+  "verification": {
+    "command": "make check",
+    "exit_code": 0,
+    "tail": "Tests 379 passed (379); check passed。另跑完整前端套件 31 次（vitest run）：30 次全過，1 次 1 failed | 378 passed（第一批第 6 次，失敗測試名未記錄）；其後 20 次連續全過"
+  },
+  "open_questions": [
+    "review 4 項必改已處理：TracePage 的 DetailBody 外包 div.trace-page，app.css 新段落所有選擇器（含 h2.sec、.hint、.btn svg、reduced-motion、.q/.a/.step/.dot 等）加 .trace-page 前綴",
+    "architect 已裁定：GraphSection 狀態句接受；fetchEnrollment 去重本單不改，已開 backlog #173",
+    "h1 焦點改 useLayoutEffect（review 第 2 輪）。改後連跑 31 次，僅 1 次偶發失敗且未捕捉到測試名，之後 20 次全過；若 CI 仍偶發，請 qa 檢視 advanced-states 的等待寫法（不是本單可改範圍）"
+  ]
+}

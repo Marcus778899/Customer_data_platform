@@ -1,0 +1,33 @@
+{
+  "task_id": "relay-loop-rewrite",
+  "kind": "feat",
+  "owner": "backend",
+  "lane": "full",
+  "title": "依 DESIGN-03「relay 與迴圈」改寫 outbox relay（搶列→交易外整批送出→小交易條件式回寫）、迴圈小交易與滿批續做、broker 逾時與關機設定",
+  "issue": 94,
+  "branch": "feat/relay-loop-rewrite",
+  "worktree": ".worktrees\\relay-loop-rewrite",
+  "pr": 99,
+  "qa": {
+    "result": "pass",
+    "sha": "921c51de277c4eab880e429fd9543e610e16ebd3",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "921c51de277c4eab880e429fd9543e610e16ebd3",
+    "by": "architect"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "2484f6c4e69c5552ec04b278d6d876f5b588fba9",
+    "sha": "921c51de277c4eab880e429fd9543e610e16ebd3",
+    "carried_from": "f6a908ad9a0d3eb2db6ebf030a3efe8e2790fe41"
+  },
+  "rulings": 1,
+  "ruling": {
+    "result": "test_wrong",
+    "sha": "526ab1098cd141f6b8e755731102a5456b9926b6",
+    "after_fails": 0
+  }
+}

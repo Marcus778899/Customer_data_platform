@@ -1,0 +1,15 @@
+{
+  "task_id": "relay-perf-test",
+  "kind": "chore",
+  "owner": "qa",
+  "lane": "full",
+  "title": "DESIGN-03 批 5 QA-06：relay 與推進迴圈壓測，產出 `make perf` 與壓測報告（D-038：不設流量目標，先量）",
+  "issue": 126,
+  "branch": "chore/relay-perf-test",
+  "worktree": ".worktrees\\relay-perf-test",
+  "pr": null,
+  "qa": null,
+  "review": null,
+  "merged": false,
+  "cancelled": true
+}

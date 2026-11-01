@@ -1,0 +1,29 @@
+{
+  "task_id": "journey-page-crash",
+  "kind": "fix",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "甲方驗收回饋（2026-11-01）：點進旅程 `01M56YZJMN3BCYQ73E9Y941E4C` 的旅程頁出現白畫面（整頁崩潰），修正並確保任何旅程資料都不會讓頁面整頁白掉",
+  "issue": 159,
+  "branch": "fix/journey-page-crash",
+  "worktree": ".worktrees\\journey-page-crash",
+  "pr": 163,
+  "qa": {
+    "result": "pass",
+    "sha": "b81e441e259ee9641c4fc7a515c76b47ae4a873f",
+    "by": "qa",
+    "carried_from": "fc208570c557384fe642508f13c00c9434babd0a"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "b81e441e259ee9641c4fc7a515c76b47ae4a873f",
+    "by": "architect",
+    "carried_from": "fc208570c557384fe642508f13c00c9434babd0a"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "64a0598432238b8fa179b8026ec0aa3a458a1513",
+    "sha": "b81e441e259ee9641c4fc7a515c76b47ae4a873f",
+    "carried_from": "fc208570c557384fe642508f13c00c9434babd0a"
+  }
+}

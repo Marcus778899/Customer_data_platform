@@ -1,0 +1,21 @@
+{
+  "task_id": "user-session-revoke",
+  "status": "done",
+  "files_changed": [
+    "api/src/main/java/com/cdp/security/SessionAuthenticationFilter.java",
+    "api/src/main/java/com/cdp/security/AuthController.java",
+    "api/src/main/java/com/cdp/user/AppUser.java",
+    "api/src/main/java/com/cdp/user/AppUserStore.java",
+    "api/src/main/java/com/cdp/user/UserService.java",
+    "api/src/main/resources/db/migration/V7_1__app_user_session_epoch.sql",
+    "docs/spec/07-database-schema.md",
+    "api/src/test/java/com/cdp/security/AuthControllerTest.java",
+    "api/src/test/java/com/cdp/user/UserServiceTest.java"
+  ],
+  "verification": {
+    "command": "make check (在 .worktrees/user-session-revoke)",
+    "exit_code": 0,
+    "tail": "Tests run: 311, Failures: 0, Errors: 0, Skipped: 0\nBUILD SUCCESS\ncheck passed"
+  },
+  "open_questions": ["V7_1 在 profile-search-api 的 V7 之前不存在於本分支；合併須排在它之後（派工單已載明）"]
+}

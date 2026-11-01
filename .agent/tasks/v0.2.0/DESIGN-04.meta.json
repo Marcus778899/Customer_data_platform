@@ -1,0 +1,22 @@
+{
+  "task_id": "DESIGN-04",
+  "kind": "docs",
+  "owner": "architect",
+  "title": "提出「客製資料整合以 PostgreSQL 與核心解耦」的方案比較與建議（只出方案，不實作）",
+  "issue": 81,
+  "branch": "docs/design-04",
+  "worktree": ".worktrees\\DESIGN-04",
+  "pr": 83,
+  "qa": {
+    "result": "pass",
+    "sha": "6428ef948a0347940173bc8a0767d98fc31ad387",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "6428ef948a0347940173bc8a0767d98fc31ad387",
+    "by": "甲方"
+  },
+  "merged": true,
+  "qa_fails": 1
+}

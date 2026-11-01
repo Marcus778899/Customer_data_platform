@@ -1,0 +1,19 @@
+{
+  "task_id": "ci-docs-skip",
+  "status": "done",
+  "files_changed": [
+    ".github/workflows/ci.yml"
+  ],
+  "verification": {
+    "command": "bash $SCRATCH/sim.sh <event> <before> <after>（與 ci.yml『Detect docs-only push』同一段邏輯，內含 git diff --no-renames --name-only <before> <after>），於 .worktrees/ci-docs-skip；HEAD=0c44074",
+    "exit_code": 0,
+    "tail": "# docs-only\nbefore=bd85440 after=b164bcb files=[.agent/BOARD.md docs/decisions.md] code=false\nbefore=bc29e6f after=41e30a5 files=[BOARD.md] code=false\nbefore=30aa45a after=f504f09 files=[BOARD.md README.md] code=false\nbefore=d4a284a after=bb0607b (多 commit) code=false\n# api\nbefore=4dd7a44 after=b88b7e0 files=[api/src/...6 檔] code=true\n# mixed\nbefore=f6a908a after=921c51d (.github BOARD.md Makefile api docs web...) code=true\nbefore=bae3e35 after=58443a9 (.agent .claude .github ...) code=true\nbefore=fa358d7 after=027e9d4 (.env.example api tools) code=true\nbefore=4dd7a44 after=bae3e35 (多 commit，BOARD.md+api) code=true\n# before 全 0 → code=true；before 不在歷史（強推）→ code=true；pull_request → code=true\n# 搬檔 api/x.md→docs/x.md（暫存 repo）：files=[api/x.md docs/x.md] code=true（不加 --no-renames 只會列 docs/x.md 而誤跳過）\n# api/README.md、web/docs/x.md 不符白名單（只認根目錄）"
+  },
+  "open_questions": [
+    "改動前後差異（只增 41 行，原 check、security 步驟不動）：(1) 工作流程層級加 concurrency：group 在 pull_request 時為 ci-pr-<PR 號>，其他事件為 ci-run-<run_id>（每個 run 自成一組，develop／main push 不會被取消也不會排隊）；cancel-in-progress 只在 pull_request 為 true。(2) 新增 job `changes`（Checkout fetch-depth 0＋判斷一步，輸出 code=true/false）；(3) `check` 加 `needs: changes` 與 `if: needs.changes.outputs.code == 'true'`；`security` 沒有 needs、沒有 if，一律照跑。",
+    "判斷條件：只有 push 事件、before 非空非全 0、before 在 clone 的歷史裡、diff 成功且非空、且每個檔都符合 ^(docs/|\\.agent/|README\\.md$|BOARD\\.md$) 才 code=false；其他一律照跑（fail open 成跑測試）。自行決定：用 --no-renames，避免把程式檔搬進 docs/ 的 push 被誤判成只改文件；用獨立 job 而非在 check 內逐步加 if，讓跳過時 check 在 Actions 顯示為 skipped。",
+    "本機沒有 actionlint／YAML 解析器，ci.yml 語法由這張單的 PR CI 驗證；驗收條件 3（PR run 連結與 job 列表）要等 manager 用 ae pr open 開 PR 後由 qa 以 `gh run view <id> --json jobs` 取得，預期 Changes、Check、Security 三個 job 都跑（Changes log 會印 event=pull_request ... code=true）。",
+    "合併後如何確認：合併本身那次 push 改到 .github/ → 三個 job 都跑；下一次 `ae docs commit`（只動 docs/、.agent/）的 develop run 用 `gh run view <id> --json jobs` 應看到 Changes success、Check skipped、Security success，Changes 步驟 log 印 code=false。之後若同一 PR 連續 `ae pr sync`，舊 run 應顯示 cancelled。",
+    "注意：PR 的 required check 若設了 `Check`，被跳過的 job 在 GitHub 視為通過；目前只有 push 會跳過，PR 一律跑，不受影響（設計『需調查』那項維持不變）。"
+  ]
+}

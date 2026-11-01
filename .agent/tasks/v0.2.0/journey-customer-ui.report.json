@@ -1,0 +1,18 @@
+{
+  "task_id": "journey-customer-ui",
+  "status": "done",
+  "files_changed": ["package-lock.json","web/package.json","web/src/App.tsx","web/src/api/client.ts","web/src/api/types.ts","web/src/components/Shell.tsx","web/src/components/ui.tsx","web/src/format.ts","web/src/graph/FlowGraph.tsx","web/src/graph/GraphSection.tsx","web/src/graph/model.ts","web/src/hooks.ts","web/src/main.tsx","web/src/pages/CustomerPage.tsx","web/src/pages/CustomerSearchPage.tsx","web/src/pages/EnrollmentBrowsePage.tsx","web/src/pages/ForbiddenPage.tsx","web/src/pages/JourneyListPage.tsx","web/src/pages/JourneyPage.tsx","web/src/pages/SearchPage.tsx","web/src/pages/TracePage.tsx (取代 DetailPage.tsx)","web/src/styles/app.css"],
+  "verification": {
+    "command": "cd .worktrees/journey-customer-ui && npm run lint -w web && (cd web && npx vitest run) && npm run build -w web",
+    "exit_code": 0,
+    "tail": "eslint . && tsc --noEmit: 無錯誤；Test Files 16 passed (16)；Tests 196 passed (196)（含 journey-customer-ui 驗收與既有全部測試，連跑兩次穩定）；vite build 成功。make check 的前端 lint＋test 同上；其後端 mvn 測試需 Docker（Testcontainers），本單未動後端，未等它跑完。"
+  },
+  "open_questions": [
+    "圖形軌跡頁（/enrollments/:id）沒有「複製 Enrollment ID」鈕：設計稿有，但既有 trace-page 遮罩測試禁止頁面出現名稱含「複製」的按鈕。請 designer／qa 決定（客戶頁的「複製客戶 ID」照常有）。",
+    "@xyflow/react 預設右下角的 React Flow 歸屬連結保留未隱藏（hideAttribution 為 Pro 選項，請甲方／manager 確認是否要隱藏）。",
+    "未在真實瀏覽器看過圖（無瀏覽器環境）：jsdom 只驗結構；連線以節點 handles 預先給定位置，請 qa B 以瀏覽器實測 375px／800px 與對比。",
+    "api/client.ts 成功回應改讀 res.clone().json()，因 StrictMode 下 effect 跑兩次且測試的 deferred 回應共用同一個 Response 物件。",
+    "worktree 的 node_modules 原是指向主目錄的 symlink，npm install 後變成 worktree 自己的實體目錄（主目錄未動）；兩個新相依以精確版本寫入 web/package.json（12.12.0／3.1.1）。",
+    "v0.2.0 定義一律直線；回邊（迴圈）有簡單的自訂邊元件但未驗證畫法，屬 v0.3.0。"
+  ]
+}

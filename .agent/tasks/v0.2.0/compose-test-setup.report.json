@@ -1,0 +1,26 @@
+{
+  "task_id": "compose-test-setup",
+  "status": "done",
+  "files_changed": [
+    "compose.yaml",
+    "docker-compose.yml",
+    "Makefile",
+    ".github/workflows/ci.yml",
+    "api/pom.xml",
+    "docs/design/INIT-01.md"
+  ],
+  "verification": {
+    "command": "docker compose --env-file .env -f .worktrees/compose-test-setup/compose.yaml run --rm test ; docker compose --env-file .env -f .worktrees/compose-test-setup/compose.yaml ps -a ; make check ; make check CONTAINER_TESTS=skip",
+    "exit_code": 0,
+    "tail": "[compose run] Network compose-test-setup_default Created / Volume cdp-test-m2 Created / Testcontainers 2.0.5: Found Docker environment with local Unix socket (unix:///var/run/docker.sock); Docker host IP address is host.docker.internal; Ryuk started / DeliveryResilienceAcceptanceTest (docker pause) Tests run: 5, Failures: 0 / Tests run: 191, Failures: 0, Errors: 0, Skipped: 0 / BUILD SUCCESS (09:33 min, first run incl. image + deps download) | [ps -a] NAME IMAGE COMMAND SERVICE CREATED STATUS PORTS (empty) | [make check, Docker reachable] Tests run: 191, Failures: 0, Errors: 0 / BUILD SUCCESS / web Tests 135 passed / exit 0 | [make check CONTAINER_TESTS=skip] 'Docker not reachable or CONTAINER_TESTS=skip: skipping container tests (acceptance/, *IntegrationTest).' + compose command hint / Tests run: 48, Failures: 0, Errors: 0 / web Tests 135 passed / check passed"
+  },
+  "open_questions": [
+    "做法：沿用 Testcontainers，test 服務掛 /var/run/docker.sock（兄弟容器），TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal＋extra_hosts host-gateway；不改任何測試，docker pause 測試照常通過。安全取捨：socket 等同主機 Docker root，故只唯讀掛 api/ 與 .env.example，原始碼複製進容器建置、不寫回主機（不留 root 擁有檔，免 HOST_UID）；Maven 快取為固定名稱 volume cdp-test-m2（各 worktree 共用）。細節見 docs/design/INIT-01.md「驗證方式」",
+    "殘留：run --rm 刪 test 容器（ps -a 為空）；Testcontainers 容器由 Ryuk 清（guard 只允許 docker compose，無法用 docker ps 直接佐證 Ryuk 收完，請 qa 用主機終端 docker ps -a 確認）；專案網路 <worktree>_default 會留下，docker compose -f .worktrees/<id>/compose.yaml down 可刪；volume cdp-test-m2 刻意保留當快取",
+    "make check：Docker 連得到（或 CI 變數非空）跑全部；連不到或 CONTAINER_TESTS=skip 改 -Punit-only（排除 com/cdp/acceptance/** 與 *IntegrationTest）並印出 compose 指令。本次在 sandbox 內 timeout 15 docker info 竟然連得到，所以 make check 跑了全部 191 個（與派工單背景的 129 errors 不同，可能當時 Docker Desktop 未啟動）；fallback 分支以 CONTAINER_TESTS=skip 驗證。新慣例：需要容器的測試只放 acceptance/ 或命名 *IntegrationTest",
+    "CI：ci.yml 只加註解，Actions 設 CI=true 一律全跑；本單未在 CI 實跑，待 PR 的 CI 結果確認仍綠",
+    "README「快速開始」建議（manager 改）：加一行『後端全部測試（含驗收、需 Docker）：在主目錄單獨一行執行 docker compose --env-file .env -f compose.yaml run --rm test（worktree 用 -f .worktrees/<id>/compose.yaml）』；make check 說明改為『lint＋測試；連不到 Docker 時略過需要容器的測試，可用 CONTAINER_TESTS=skip 強制略過』",
+    "注意：主目錄現在同時有 compose.yaml 與 docker-compose.yml，不帶 -f 的 docker compose 會選 compose.yaml（test 服務）；make infra-up／infra-down 一律帶 -f docker-compose.yml，行為不變",
+    "未改 .env.example（非負責檔案）：compose.yaml 不讀任何 .env 值，--env-file .env 只為與規範一致；首次執行約 10 分鐘（拉映像與下載相依），之後走快取"
+  ]
+}

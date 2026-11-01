@@ -1,0 +1,24 @@
+{
+  "task_id": "compose-test-setup",
+  "kind": "chore",
+  "owner": "architect",
+  "lane": "full",
+  "title": "補上範本預期的 `compose.yaml` 與 `test` 服務，讓需要 DB／MQ 的後端測試（含驗收）能以 `docker compose --env-file .env -f .worktrees/<id>/compose.yaml run --rm test` 在本機跑",
+  "issue": 96,
+  "branch": "chore/compose-test-setup",
+  "worktree": ".worktrees\\compose-test-setup",
+  "pr": 97,
+  "qa": {
+    "result": "pass",
+    "sha": "dbd2e63d396b34256ba6c95b9053959d5ae4fcb3",
+    "by": "qa",
+    "carried_from": "07b843141fe17f105095faaee70a7b37d6d15fad"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "dbd2e63d396b34256ba6c95b9053959d5ae4fcb3",
+    "by": "architect",
+    "carried_from": "07b843141fe17f105095faaee70a7b37d6d15fad"
+  },
+  "merged": true
+}

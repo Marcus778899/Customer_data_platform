@@ -1,0 +1,37 @@
+{
+  "task_id": "profile-store-api",
+  "status": "blocked",
+  "files_changed": [
+    "api/src/main/resources/db/migration/V7__profile_store.sql",
+    "api/src/main/java/com/cdp/profile/ (ProfileController, ProfileService, ProfileWriter, IdentifierNormalizer, PhoneProperties, ProfileStore 與資料型別)",
+    "api/src/main/java/com/cdp/persistence/JdbcProfileStore.java",
+    "api/src/main/java/com/cdp/persistence/JdbcJourneyQueryStore.java (新增，不在負責清單)",
+    "api/src/main/java/com/cdp/persistence/JdbcEnrollmentQueryStore.java (不在負責清單)",
+    "api/src/main/java/com/cdp/common/web/ErrorCode.java (不在負責清單，加 PROFILE_NOT_FOUND、IDENTIFIER_CONFLICT)",
+    "api/src/main/java/com/cdp/journey/ (JourneyController 加 GET，JourneyQueryService/Store、JourneySummary/Detail/Version、UserRef、VersionRef)",
+    "api/src/main/java/com/cdp/query/ (EnrollmentFilter、PageSupport、EnrollmentQueryService/Store/Controller、PiiMasker)",
+    "api/src/main/java/com/cdp/ingest/EventIngestionService.java",
+    "api/src/main/resources/application.yml",
+    "api/src/test/resources/application-test.yml",
+    "api/src/test/java/com/cdp/profile/IdentifierNormalizerTest.java"
+  ],
+  "verification": {
+    "command": "make check (於 .worktrees/profile-store-api，Docker 可用，跑全部容器測試)",
+    "exit_code": 2,
+    "tail": "Tests run: 377, Failures: 1, Errors: 0, Skipped: 0\nFAIL com.cdp.acceptance.query.EnrollmentQueryAcceptanceTest.list_invalidParameters_return400ValidationFailed: GET /api/v1/enrollments expected 400 but was 200\nBUILD FAILURE\nmake: *** [test] Error 2\n（profile-store-api 的 acceptance 全數通過；spotless 通過）"
+  },
+  "open_questions": [
+    "超出負責清單的檔案：JdbcEnrollmentQueryStore（q 變選填、journey_id 篩選必須改這支）、新增 JdbcJourneyQueryStore（比照 persistence 慣例）、ErrorCode（新錯誤碼必須加）。請追認或指示搬位置。",
+    "ProfileWriter.upsert 只在內容真的變動（建立、屬性改變、新增識別碼）時推進 updated_at；重送相同內容不變。契約未規定，請確認。",
+    "識別碼 EMAIL 的 DB CHECK 用 ^[^@\\s]+@[^@\\s]+$（比 spec 07 §12 寫的『含 @』嚴，與 profiles.md §1.1 一致）。",
+    "CDP_PHONE_DEFAULT_COUNTRY_CODE 若為 CHANGE_ME 或非 1–3 位數字，啟動即失敗（PhoneProperties）。.env.example 原本就有此變數。",
+    "qa 假設 1~4 均符合：屬性名 cdp.phone.default-country-code、寫入 SQL 只在 ProfileWriter、非法 cursor 400、布林遮罩 ***。"
+  ],
+  "disputes": [
+    {
+      "test": "api/src/test/java/com/cdp/acceptance/query/EnrollmentQueryAcceptanceTest.java::list_invalidParameters_return400ValidationFailed",
+      "contract": "docs/contracts/journey-engine.md §4 GET /enrollments（v0.2.0 起 q 選填，省略 = 瀏覽，D-030）",
+      "reason": "舊測試把 GET /api/v1/enrollments（不帶 q）列為 400，但 v0.2.0 契約與本單新驗收 EnrollmentBrowseAcceptanceTest 都要求不帶 q 回 200。兩者互斥，我依契約實作（q 省略 = 瀏覽；q= 空白仍 400）。需 qa 把該測試的第一個 URL 移除。"
+    }
+  ]
+}

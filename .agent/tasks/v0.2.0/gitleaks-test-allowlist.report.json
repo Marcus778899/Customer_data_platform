@@ -1,0 +1,16 @@
+{
+  "task_id": "gitleaks-test-allowlist",
+  "status": "done",
+  "files_changed": [".gitleaks.toml"],
+  "verification": {
+    "command": "gitleaks git --redact --no-banner --log-opts=HEAD . (gitleaks 8.30.1 windows_x64, zip sha256 d29144de...afc4e 與官方 checksums.txt 相符；在 .worktrees/gitleaks-test-allowlist 執行)",
+    "exit_code": 0,
+    "tail": "[正向] 只有預設規則（--config 指向只有 [extend] useDefault=true 的暫存檔）：261 commits scanned / WRN leaks found: 1 / exit=1；fingerprint = f50659a35aa7842bd683f177d84f6a50ce8cdf34:api/src/test/java/com/cdp/acceptance/security/SecretToStringAcceptanceTest.java:generic-api-key:32。\n加上 .gitleaks.toml（與 CI 相同指令）：scanned ~6371066 bytes / INF no leaks found / exit=0，report=[]。被放過的就是 f50659a 那一筆。\n[反例] $TMPDIR 暫存 repo（掃完已刪），用 .gitleaks.toml 掃：WRN leaks found（原始碼檔）=\n  generic-api-key api/src/test/java/x/RandomValueTest.java:3 <32 字元亂數 base62>  (反例1 亂數值)\n  generic-api-key api/src/main/java/x/Main.java:2 ingest-SECRET-9x8y  (反例2 同格式在 src/main)\n  generic-api-key api/src/test/java/x/TailTest.java:2 ingest-SECRET-9x8y-q7Zk  (反例3 值多尾巴)\n對照組 api/src/test/java/x/CtlTest.java ingest-SECRET-7f3e 只在預設規則下被抓、加設定後被放過。"
+  },
+  "open_questions": [
+    "反例3 照調查報告草案用 ingest-SECRET-9x8y-real 時，連預設規則都不抓（尾巴 real 疑似命中 stopword），證明不了 allowlist；改用 ingest-SECRET-9x8y-q7Zk，預設與加設定後都抓到。調查報告第 4 節的反例表可據此更正",
+    "暫存 repo 第二次掃描時誤把上一輪的 report json 也 commit 進去，多出的 with.json／base.json 命中屬雜訊，判定只看原始碼檔；暫存 repo 已刪",
+    ".gitleaks.toml 屬受保護路徑，發版前需 security 逐條追認（CLAUDE.md 決策分級④誤判例外）",
+    "附帶建議沿用調查報告：CI 的 gitleaks 加 --report-path 或 --verbose（流程檔，D-067 由甲方經範本更新處理）"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "task_id": "CHORE-09",
+  "kind": "chore",
+  "owner": "backend",
+  "title": "`scripts/` 在 Windows（中文系統 cp950）下讀寫中文不出錯，不必另設 `PYTHONIOENCODING`",
+  "issue": 85,
+  "branch": "chore/chore-09",
+  "worktree": ".worktrees\\CHORE-09",
+  "pr": 86,
+  "qa": {
+    "result": "pass",
+    "sha": "8fbc0897c250a83196c42c99b297878785c274d3",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "8fbc0897c250a83196c42c99b297878785c274d3",
+    "by": "architect"
+  },
+  "merged": true
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "due-backlog-design",
+  "kind": "docs",
+  "owner": "architect",
+  "lane": "full",
+  "title": "D-077：確認「大量 Enrollment／outbox 同時到期時推進迴圈清空 O(N²)」的原因，出修法、驗收方式與實作派工單內容",
+  "issue": 130,
+  "branch": "docs/due-backlog-design",
+  "worktree": ".worktrees\\due-backlog-design",
+  "pr": 131,
+  "qa": {
+    "result": "pass",
+    "sha": "45ca3f73d7ded78494fda9bd1412458a05411ecb",
+    "by": "qa",
+    "carried_from": "bd5a195cd026b79f8542b525c3a3674dea01095a"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "45ca3f73d7ded78494fda9bd1412458a05411ecb",
+    "by": "甲方",
+    "carried_from": "bd5a195cd026b79f8542b525c3a3674dea01095a"
+  },
+  "merged": true
+}

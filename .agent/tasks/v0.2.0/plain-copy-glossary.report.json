@@ -1,0 +1,11 @@
+{
+  "task_id": "plain-copy-glossary",
+  "status": "done",
+  "files_changed": ["web/src/format.ts", "web/src/plain/index.ts", "web/tests/unit/plain/plain.test.ts"],
+  "verification": {
+    "command": "make check",
+    "exit_code": 0,
+    "tail": "Test Files 22 passed (22); Tests 310 passed (310); check passed"
+  },
+  "open_questions": []
+}

@@ -1,0 +1,25 @@
+{
+  "task_id": "relay-perf-bench",
+  "kind": "chore",
+  "owner": "backend",
+  "lane": "full",
+  "title": "DESIGN-03 批 5 QA-06：relay 與推進迴圈壓測，產出 `make perf` 與壓測報告（D-038：不設流量目標，先量）",
+  "issue": 128,
+  "branch": "chore/relay-perf-bench",
+  "worktree": ".worktrees\\relay-perf-bench",
+  "pr": 129,
+  "qa": {
+    "result": "pass",
+    "sha": "108efcab471ced00b7bd1a24f1cd052f5232dad9",
+    "by": "qa",
+    "carried_from": "8ce9d61280cd9950944f79244800b0994ac9898b"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "108efcab471ced00b7bd1a24f1cd052f5232dad9",
+    "by": "architect",
+    "carried_from": "8ce9d61280cd9950944f79244800b0994ac9898b"
+  },
+  "merged": true,
+  "amend_sha": "71b0677dd28fe78be49492e4989e54708923700f"
+}

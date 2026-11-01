@@ -1,0 +1,14 @@
+{
+  "task_id": "CHORE-08",
+  "kind": "chore",
+  "owner": "backend",
+  "title": "`scripts/board.py` 取消 BOARD.md 行數上限，已定案決策表加上所屬版本",
+  "issue": 82,
+  "branch": "chore/chore-08",
+  "worktree": ".worktrees\\CHORE-08",
+  "pr": null,
+  "qa": null,
+  "review": null,
+  "merged": false,
+  "cancelled": true
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "CHORE-07",
+  "status": "done",
+  "files_changed": ["scripts/board.py", "scripts/docs.py", "scripts/init_project.py", ".gitignore"],
+  "verification": {
+    "command": "python3 scripts/board.py check; 暫存副本實測 archive／回滾／decision；make check（背景跑完）",
+    "exit_code": 0,
+    "tail": "make check：Tests run: 182, Failures: 0, Errors: 0；BUILD SUCCESS；check passed；EXIT 0（DeliveryResilienceAcceptanceTest 這次未失敗）。board.py check: OK。追加1：release-<版本>.json 必須存在（v0.9.9 無 release 檔 exit 1 不改檔）；只搬 pr（無則 issue）< release pr 的已合併／作廢單，實測 CHORE-06（PR #71 > #69）與 CHORE-07/08、DESIGN-03/04、FIX-09、UI-03 留在根目錄，BOARD.md 只少 CHORE-06 done 列。追加2：回滾以 monkeypatch 模擬失敗（新快照模式第5次 rename 失敗、遷移模式第1／6次 rename 失敗、BOARD.md 寫入失敗），四種情境目錄雜湊與 BOARD.md 還原後與失敗前完全相同；job_history/ 最後才刪；撞名（快照 ENGINE-IGNITION.MD、搬入檔 be-01.MD，不分大小寫）在寫檔前拒絕且不改任何檔。遷移模式實測：job_history 刪除、快照改名為 v0.1.0/engine-ignition.md、BOARD.md 不變。追加3：init_project 對含 'tasks/' 的 .gitignore 換成 'tasks/*' 並印出已替換，再補缺行。追加4：移除 MAX_LINES；決策表加『版本』欄（日期｜編號｜版本｜決策）；decision add --version（預設取『本輪』版本號，格式錯 exit 1）；decision backfill-version 一次性補欄（D-001～D-032=v0.1.0，D-033 起=v0.2.0，重跑 exit 1）；副本實測補欄 40 列、寫到 88 行（>80）仍成功、check OK。"
+  },
+  "open_questions": [
+    "TASKS_DIR 環境變數取代原 JOB_HISTORY_DIR（僅 board.py 使用；_common.py 不在負責檔案內，release.py/task.py 仍用固定路徑）",
+    "搬移由 manager 合併後在主目錄執行：python3 scripts/board.py task archive v0.1.0 <代稱>（會自動遷移 job_history）；之後用 docs.py commit 提交 tasks/v0.1.0/",
+    "合併後主目錄 BOARD.md 的決策表還沒有版本欄，需先跑一次 python3 scripts/board.py decision backfill-version 才能 decision add",
+    "BOARD.md 內 scope 文字與文件說明仍有『行數上限』描述的地方在負責檔案之外（若有）未處理"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "profile-search-api",
+  "status": "done",
+  "files_changed": [
+    "api/src/main/java/com/cdp/profile/IdentifierNormalizer.java",
+    "api/src/test/java/com/cdp/profile/IdentifierNormalizerTest.java"
+  ],
+  "verification": {
+    "command": "make check (lint + unit tests, in worktree); ./mvnw -q spotless:check",
+    "exit_code": 0,
+    "tail": "IdentifierNormalizerTest Tests run: 4, Failures: 0, Errors: 0; no failing surefire reports; SPOTLESS_OK. Commit d783ff7. Container/acceptance suite (docker compose run --rm test) not re-run."
+  },
+  "open_questions": [
+    "review 建議的保險層（claim 的 insert 接住 DataIntegrityViolationException 轉 400）未做，只做必要的正則修正；Java Unicode White_Space 涵蓋範圍大於 DB，兩者應一致。",
+    "非阻擋備註（字面 \\u0000 誤判、事件 profile_id 非 ULID）未處理。",
+    "含容器的完整驗收測試未重跑，需由 qa／CI 確認。"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "ci-speedup-design",
+  "kind": "docs",
+  "owner": "architect",
+  "lane": "full",
+  "title": "調查 CI 為什麼慢、提出加速方案（只出分析與建議，不改 CI、Makefile、程式；實作另開單）",
+  "issue": 112,
+  "branch": "docs/ci-speedup-design",
+  "worktree": ".worktrees\\ci-speedup-design",
+  "pr": 114,
+  "qa": {
+    "result": "pass",
+    "sha": "baa16926b093e5c3874af4f5a1042f7df3e364a3",
+    "by": "qa",
+    "carried_from": "aca01e2e536ef3f3b909e28f416203ec899e81b3"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "baa16926b093e5c3874af4f5a1042f7df3e364a3",
+    "by": "甲方",
+    "carried_from": "aca01e2e536ef3f3b909e28f416203ec899e81b3"
+  },
+  "merged": true
+}

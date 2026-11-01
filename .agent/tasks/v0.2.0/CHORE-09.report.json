@@ -1,0 +1,11 @@
+{
+  "task_id": "CHORE-09",
+  "status": "done",
+  "files_changed": ["scripts/_common.py", "scripts/board.py", "scripts/guard_paths.py", "scripts/validate_report.py"],
+  "verification": {
+    "command": "暫存 git repo、不設 PYTHON* 環境變數：docs.py commit \"docs: 中文訊息測試\"；printf 中文 | task.py amend；python3 scripts/board.py check；make check",
+    "exit_code": 0,
+    "tail": "docs.py commit exit=0，git log 主旨為「docs: 中文訊息測試」；task.py amend 後 tail 為「## 追加 2026-10-19 / 中文追加：測試 / 第二行」（檔案內容正確；之後因暫存 repo 無 meta.json 報找不到 meta，與編碼無關）；board.py check OK；make check: 76 passed, check passed"
+  },
+  "open_questions": []
+}

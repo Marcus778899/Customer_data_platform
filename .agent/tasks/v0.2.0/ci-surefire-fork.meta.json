@@ -1,0 +1,24 @@
+{
+  "task_id": "ci-surefire-fork",
+  "kind": "chore",
+  "owner": "backend",
+  "lane": "full",
+  "title": "CI 加速 #2：surefire 以 2 個 JVM 平行跑測試（`forkCount=2`、`reuseForks=true`），讓 CI 的 Check job 縮短約 2.5 分鐘",
+  "issue": 119,
+  "branch": "chore/ci-surefire-fork",
+  "worktree": ".worktrees\\ci-surefire-fork",
+  "pr": 120,
+  "qa": {
+    "result": "pass",
+    "sha": "aa2e1f4ec74c01d83a26a64f2a3742966c802791",
+    "by": "qa",
+    "carried_from": "5595b29b950c56ec9e3ca6b7375e735bed79baab"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "aa2e1f4ec74c01d83a26a64f2a3742966c802791",
+    "by": "architect",
+    "carried_from": "5595b29b950c56ec9e3ca6b7375e735bed79baab"
+  },
+  "merged": true
+}

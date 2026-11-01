@@ -1,0 +1,18 @@
+{
+  "task_id": "customer-table-fit",
+  "kind": "fix",
+  "owner": "frontend",
+  "lane": "fast",
+  "title": "v0.2.0 uat 第 2 輪 R-F1（major）：客戶頁 1280px「參加過的旅程」表格最右欄「結束時間」被卡片邊緣切掉；順帶修同頁面的小問題 R-F2、R-F4",
+  "issue": 177,
+  "branch": "fix/customer-table-fit",
+  "worktree": ".worktrees\\customer-table-fit",
+  "pr": 181,
+  "qa": {
+    "result": "pass",
+    "sha": "634421d3167fc9a4d8aa6116b1575d1b0ff99c12",
+    "by": "qa"
+  },
+  "review": null,
+  "merged": true
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "ci-surefire-fork",
+  "status": "done",
+  "files_changed": ["api/pom.xml"],
+  "verification": {
+    "command": "docker compose --env-file .env -f .worktrees/ci-surefire-fork/compose.yaml run --rm test",
+    "exit_code": 0,
+    "tail": "forkCount=2: Tests run: 391, Failures: 0, Errors: 0, Skipped: 0; BUILD SUCCESS; Total time 05:20 min. Baseline (stash, forkCount default): Tests run: 391, Failures 0; BUILD SUCCESS; Total time 09:00 min. Commit 5595b29."
+  },
+  "open_questions": [
+    "PR CI 連續 3 次 Check 全綠與時間比較：待 manager 開 PR 後由 qa 驗證（本機部分已完成）",
+    "測試總數前後皆 391（設計文件寫 311 是量測當時的數字，已增加）；本機 9:00 -> 5:20 含 compose 內編譯，非 CI 數字",
+    "平行後本機未見偶發失敗，無需 -DforkCount=1 對照；log 中的 APPLICATION FAILED TO START 是啟動驗證測試的預期輸出，未影響結果",
+    "pom 的 surefire 設定放在頂層 build，unit-only profile 的 excludes 會與之合併，未改動；專案無 failsafe"
+  ]
+}

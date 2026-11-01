@@ -1,0 +1,30 @@
+{
+  "task_id": "user-auth-api",
+  "kind": "feat",
+  "owner": "backend",
+  "lane": "full",
+  "title": "依 `auth.md` 實作使用者登入（email＋密碼，BCrypt）、角色（VIEWER／EDITOR／ADMIN）、CSRF、登入限速與 `/users` 管理 API，取代 v0.1.0 的共用客服帳密",
+  "issue": 103,
+  "branch": "feat/user-auth-api",
+  "worktree": ".worktrees\\user-auth-api",
+  "pr": 104,
+  "qa": {
+    "result": "pass",
+    "sha": "4cab8036e94a055e8d8e258f348968ea996bff01",
+    "by": "qa",
+    "carried_from": "b88b7e06342208ca8f5049aab0a5cb9f51619490"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "4cab8036e94a055e8d8e258f348968ea996bff01",
+    "by": "architect",
+    "carried_from": "b88b7e06342208ca8f5049aab0a5cb9f51619490"
+  },
+  "merged": true,
+  "amend_sha": "4dd7a44a67e1bd1609604e45df8b1ccf6bd07de3",
+  "acceptance_lock": {
+    "patch": "fa5982aaefc1e7d0b3603874ae1299b0ae1c310c",
+    "sha": "4cab8036e94a055e8d8e258f348968ea996bff01",
+    "carried_from": "b88b7e06342208ca8f5049aab0a5cb9f51619490"
+  }
+}

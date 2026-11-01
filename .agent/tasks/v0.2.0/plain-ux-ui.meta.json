@@ -1,0 +1,26 @@
+{
+  "task_id": "plain-ux-ui",
+  "kind": "docs",
+  "owner": "designer",
+  "lane": "full",
+  "title": "甲方驗收回饋（2026-11-01）：修外框與窄螢幕版面，並提出讓行銷、業務等非工程人員不需教育訓練就看得懂的軌跡頁改版方案",
+  "issue": 158,
+  "branch": "docs/plain-ux-ui",
+  "worktree": ".worktrees\\plain-ux-ui",
+  "pr": 162,
+  "qa": {
+    "result": "pass",
+    "sha": "fa584f5d6d421b5f8cd6718940a0b7e80cf6fd16",
+    "by": "qa",
+    "carried_from": "51d0263b0f346559d0fbc4a1099d64483f73361f"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "fa584f5d6d421b5f8cd6718940a0b7e80cf6fd16",
+    "by": "甲方",
+    "carried_from": "51d0263b0f346559d0fbc4a1099d64483f73361f"
+  },
+  "merged": true,
+  "amend_sha": "bacce4a09280c5b11387e40cf128a92b56409be2",
+  "qa_fails": 1
+}

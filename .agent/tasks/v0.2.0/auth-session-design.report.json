@@ -1,0 +1,21 @@
+{
+  "task_id": "auth-session-design",
+  "status": "done",
+  "files_changed": [
+    "docs/contracts/auth.md",
+    "docs/design/DESIGN-03.md"
+  ],
+  "verification": {
+    "command": "make check（在 .worktrees/auth-session-design）；commit a3f1ab7",
+    "exit_code": 0,
+    "tail": "Isolate  16 workers spawned · ~14.63s startup each\ncheck passed"
+  },
+  "open_questions": [
+    "auth.md：§1 認證順序加入 CSRF、加 D-071（管理員重設密碼 → 下一請求 401）；§1.1 補「只帶標頭沒有 cookie 也算不符」「未認證不檢查 CSRF、回 401」；§2 末條改為未認證 401、INGEST/VIEWER/EDITOR 403、ADMIN（含管理金鑰）交給路由回 404／405（對照 SecurityConfig anyRequest().access(admin)）；§3 限速表加「併發」列（未鎖定但計數+進行中達門檻 → 429、Retry-After: 1、不計數不跑 BCrypt，對照 LoginRateLimiter.tryBegin）；§3 /auth/password 註記與 §4 不同（D-071）；§4 加 PATCH 帶 password 成功 → 該使用者所有 session 失效（管理金鑰一樣；管理員重設自己時自己的 session 也失效、本次仍回 200、前端導向登入頁；只改其他欄位或回錯誤時不失效）",
+    "DESIGN-03：做法 #2 的 CSRF 改寫成已合併的做法（csrf.spa() + SessionCsrfTokenRepository 三者一致、rotate 只在登入與 /auth/me、requireCsrfProtectionMatcher 只比對 session 非 GET）並加 D-071 做法（app_user.session_epoch，登入存進 session，SessionAuthenticationFilter 每請求比對，UserService.update 帶 password 同交易 +1，changePassword 不動）；派工表加 user-session-revoke＋qa（批 4）；行數維持 60",
+    "user-session-revoke 的 migration 用 V7_1__app_user_session_epoch.sql（Flyway 版本 7.1）：避開 BE-07 的 V7，也不佔 spec 07 與 journeys.md 已寫給 BE-08 的 V8，免得改號。代價是必須在 profile-store-api（V7）合併後才合併（Flyway 預設不允許亂序）；開發可與 BE-07 平行，負責檔案不重疊（security 兩檔＋user/＋V7_1），驗收目錄 api/src/test/java/com/cdp/acceptance/user-session-revoke/",
+    "需要後續處理（不在本單負責檔案）：docs/spec/07-database-schema.md §12 的 migration 表與 app_user 欄位要補 V7_1 與 session_epoch，建議併進 user-session-revoke 或另開 docs 單",
+    "待決定：無",
+    "需調查：無"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "task_id": "customer-table-fit",
+  "status": "done",
+  "files_changed": [
+    "web/src/styles/app.css",
+    "web/src/pages/CustomerPage.tsx",
+    "web/src/pages/JourneyPage.tsx",
+    "web/tests/unit/plain-list/customer-fit.test.ts"
+  ],
+  "verification": {
+    "command": "make check",
+    "exit_code": 0,
+    "tail": "Test Files 31 passed (31); Tests 400 passed (400); check passed"
+  },
+  "open_questions": [
+    "R-F1 做法：客戶頁兩欄佈局左欄 340px 改 300px（>1100px），表格時間欄 nowrap 改為空格處正常換行（日期、時刻可分兩行）、步驟欄正常換行、欄頭不拆字、各欄設最小寬；卡片 .scroll 橫向捲動保留為保險。未在真實瀏覽器量測 1280／1440／500／375px（D-069，交 uat 實測）。",
+    "R-F2：旅程頁連結文字改為「旅程進度」。R-F4：移除畫面上的「（D-016）」；識別碼表加 margin-top 與資料時間拉開（.cust 範圍內）。"
+  ]
+}

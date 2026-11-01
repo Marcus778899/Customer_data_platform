@@ -1,0 +1,19 @@
+{
+  "task_id": "gitleaks-test-allowlist",
+  "kind": "chore",
+  "owner": "architect",
+  "lane": "scan",
+  "title": "讓 develop push 的 CI Security job 不再因 gitleaks 誤判驗收測試的虛構金鑰而失敗；只加最窄的忽略規則",
+  "issue": 121,
+  "branch": "chore/gitleaks-test-allowlist",
+  "worktree": ".worktrees\\gitleaks-test-allowlist",
+  "pr": 122,
+  "qa": {
+    "result": "pass",
+    "sha": "e95fc72766361962cf572fed7ef923186d27696e",
+    "by": "qa",
+    "carried_from": "30136e9f28f6232a74d951b75a3757f9c0db8af2"
+  },
+  "review": null,
+  "merged": true
+}

@@ -1,0 +1,36 @@
+{
+  "task_id": "user-session-revoke",
+  "kind": "feat",
+  "owner": "backend",
+  "lane": "full",
+  "title": "實作 D-071：管理員重設密碼（`PATCH /users/{id}` 帶 `password`）使該使用者所有 session 失效",
+  "issue": 109,
+  "branch": "feat/user-session-revoke",
+  "worktree": ".worktrees\\user-session-revoke",
+  "pr": 110,
+  "qa": {
+    "result": "pass",
+    "sha": "e07350e06ae7e93f4cd13cafae6e0e53080569f2",
+    "by": "qa",
+    "carried_from": "6e554233e0a803cf59c55f65be180f61676b9231"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "e07350e06ae7e93f4cd13cafae6e0e53080569f2",
+    "by": "architect",
+    "carried_from": "6e554233e0a803cf59c55f65be180f61676b9231"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "83813d8e84e7efe59d829c7d2c6a217421317ebe",
+    "sha": "e07350e06ae7e93f4cd13cafae6e0e53080569f2",
+    "carried_from": "6e554233e0a803cf59c55f65be180f61676b9231"
+  },
+  "amend_sha": "59370380b63fc8f1e014d36f379da093854a478f",
+  "rulings": 1,
+  "ruling": {
+    "result": "test_wrong",
+    "sha": "59370380b63fc8f1e014d36f379da093854a478f",
+    "after_fails": 0
+  }
+}

@@ -1,0 +1,1 @@
+{"task_id":"app-shell-fill","status":"done","files_changed":["web/src/styles/app.css","web/src/components/Shell.tsx"],"verification":{"command":"make check","exit_code":0,"tail":"check passed (前端測試全綠)"},"open_questions":["LoginPage.tsx 未改：.login-wrap 自帶 padding，min-height 改 100dvh。追加：.app 補 padding（640px 以下 space-4）。未加 100vh 備援（非阻擋備註）。像素待 uat"]}

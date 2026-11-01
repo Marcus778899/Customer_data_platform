@@ -1,0 +1,33 @@
+{
+  "task_id": "trace-plain-rewrite",
+  "kind": "feat",
+  "owner": "frontend",
+  "lane": "full",
+  "title": "D-081（方案 A）：軌跡頁白話改版——首屏三問摘要卡、白話步驟時間軸、訊息發送紀錄、技術細節收進「進階資訊」，讓行銷、業務不需教育訓練就看得懂",
+  "issue": 170,
+  "branch": "feat/trace-plain-rewrite",
+  "worktree": ".worktrees\\trace-plain-rewrite",
+  "pr": 172,
+  "qa": {
+    "result": "pass",
+    "sha": "6ba5ef4ddbac77e8624b27a2a37684b48684300d",
+    "by": "qa"
+  },
+  "review": {
+    "result": "approve",
+    "sha": "6ba5ef4ddbac77e8624b27a2a37684b48684300d",
+    "by": "architect"
+  },
+  "merged": true,
+  "acceptance_lock": {
+    "patch": "2afa067dee3aaae7e5cab5bb552c47be0c79f588",
+    "sha": "7aa644bb8a44dfd330768161bb4ab69e29fd9692"
+  },
+  "rulings": 1,
+  "ruling": {
+    "result": "test_wrong",
+    "sha": "71bb283527f07bd10deaff3faf63c95443717d3b",
+    "after_fails": 0
+  },
+  "amend_sha": "e7fdfe41fc8a8d47fecf5d82d603e9c9ce2425c1"
+}

@@ -1,0 +1,15 @@
+{
+  "task_id": "merge-cleanup-resume",
+  "status": "blocked",
+  "files_changed": ["scripts/_common.py", "scripts/board.py", "scripts/pr.py"],
+  "verification": {
+    "command": "make check",
+    "exit_code": 2,
+    "tail": "Tests run: 191, Failures: 9, Errors: 129 (api 模組 surefire；與本張只改 scripts/ 無關，疑似本機無資料庫／容器)；make: *** [test] Error 1"
+  },
+  "open_questions": [
+    "guard_bash.py 擋下 backend 執行 pr.py／board.py（含 import 方式亦屬規避，故未做），暫存 repo 實測未能執行；請 manager 或 qa 依派工單驗收條件實測（已合併 PR 重跑 merge、刪不掉訊息、clean-worktrees 列出／--delete、用 BOARD.md 副本跑 repair 附 diff、board.py check、archive 不帶上限註解）",
+    "make check 的 api 測試 129 errors／9 failures：請確認是環境（DB／docker）問題，非本張造成；scripts 已通過 py_compile",
+    "靜態審查結論：沿用前人 diff 未改動，逐條對照驗收條件皆有對應實作（resume_merged／cleanup_local／report_cleanup、clean-worktrees、decision add --version、repair、check 欄數、archive 濾掉上限註解）；未發現明顯 bug，但全部未經實測。小風險：remove_tree 對 Windows 目錄 junction 的 unlink 可能失敗（會列入卡住項目而非崩潰）"
+  ]
+}

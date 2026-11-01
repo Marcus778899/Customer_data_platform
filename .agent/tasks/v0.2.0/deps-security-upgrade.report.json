@@ -1,0 +1,16 @@
+{
+  "task_id": "deps-security-upgrade",
+  "status": "done",
+  "files_changed": ["api/pom.xml"],
+  "verification": {
+    "command": "docker compose --env-file .env -f .worktrees/deps-security-upgrade/compose.yaml run --rm test (含 qa 修正 e7fc134)",
+    "exit_code": 0,
+    "tail": "Tests run: 297, Failures: 0, Errors: 0, Skipped: 0 / BUILD SUCCESS。dependency:tree: tomcat-embed-core 11.0.27, jackson-core/databind 3.1.7, amqp-client 5.37.0。"
+  },
+  "open_questions": [
+    "版本變更：spring-boot-starter-parent 4.1.1 -> 4.1.2（tomcat-embed-core 11.0.24->11.0.27、jackson 3.1.5->3.1.7）；新增 property rabbit-amqp-client.version=5.37.0（Boot 4.1.2 仍管理 5.30.0；osv 要求 >=5.36.1 但 5.36.1 未發佈到 Central，改用 5.37.0）。",
+    "Spring Boot 4.1.2 破壞性變更：無（未逐條讀 release notes，依測試全過判斷；未改 api/src）。",
+    "交件空 commit（D-076）：7a0c69ff18376a5c45aa7d601c8879a9fcc8ced9",
+    "本機沒有 osv-scanner，以 PR 的 CI Security job 綠燈為準。"
+  ]
+}

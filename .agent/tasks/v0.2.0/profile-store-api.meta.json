@@ -1,0 +1,29 @@
+{
+  "task_id": "profile-store-api",
+  "kind": "feat",
+  "owner": "backend",
+  "lane": "full",
+  "title": "實作 DESIGN-03 批 4（BE-07）：V7、客戶資料庫與搜尋（`profiles.md`）、旅程列表與唯讀旅程頁 API（`journeys.md` §2）、`/enrollments` 瀏覽",
+  "issue": 106,
+  "branch": "feat/profile-store-api",
+  "worktree": ".worktrees\\profile-store-api",
+  "pr": null,
+  "qa": null,
+  "review": null,
+  "merged": false,
+  "acceptance_lock": {
+    "patch": "b7044334e1270d8217d53e5e29594e246a696f4e",
+    "sha": "b21033997b470d306fdf48c6a66a3411a10ec626"
+  },
+  "amend_sha": "5d4a3457b14cd4a24a2582b944db851e5ac95da1",
+  "rulings": 1,
+  "ruling": {
+    "result": "test_wrong",
+    "sha": "5d4a3457b14cd4a24a2582b944db851e5ac95da1",
+    "after_fails": 0
+  },
+  "needs_relock": {
+    "patch": "b7044334e1270d8217d53e5e29594e246a696f4e"
+  },
+  "cancelled": true
+}

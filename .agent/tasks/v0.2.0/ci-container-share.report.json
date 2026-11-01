@@ -1,0 +1,23 @@
+{
+  "task_id": "ci-container-share",
+  "status": "done",
+  "files_changed": [
+    "api/src/test/java/com/cdp/acceptance/support/SharedContainers.java",
+    "api/src/test/java/com/cdp/acceptance/delivery/DeliveryTestSupport.java",
+    "api/src/test/java/com/cdp/acceptance/engine/EngineTestSupport.java",
+    "api/src/test/java/com/cdp/acceptance/relay-loop-rewrite/RelayLoopTestSupport.java",
+    "api/src/test/java/com/cdp/acceptance/security/SecurityTestSupport.java"
+  ],
+  "verification": {
+    "command": "docker compose --env-file .env -f .worktrees/ci-container-share/compose.yaml run --rm test",
+    "exit_code": 0,
+    "tail": "Tests run: 391, Failures: 0, Errors: 0, Skipped: 0; BUILD SUCCESS; Total time 02:44 min (ci-surefire-fork baseline same machine: 391 tests, 05:20 min). Testcontainers starts: RabbitMQ 4 (was 33), PostgreSQL 17 (was 39), 23 'started in' lines total. spotless:check clean. Commit f8e18e5."
+  },
+  "open_questions": [
+    "PR CI 連續 3 次 Check 全綠與時間比較（含與 develop 同 commit 比較、forkCount 1/2/3 比較）：待 manager 開 PR 後由 qa 驗證，本機部分已完成",
+    "兩個 pause 類別（DeliveryResilienceAcceptanceTest、RelayStuckTimersAcceptanceTest）不在負責檔案內且不可改，故由 support 類依各自獨有的 SpringBootTest 屬性判斷走專屬容器：cdp.delivery.requeue-delay=PT2S、cdp.relay.confirm-timeout=PT8S（@ConditionalOnProperty 保留原 @ServiceConnection bean，registrar 此時為 no-op）。若這兩個屬性被改掉會悄悄變成共用容器並 pause 到共用的，建議之後在該兩類加明確標記",
+    "共用 PostgreSQL 以 max_connections=1000 啟動（每個快取 context 一個 Hikari pool，23 個 context 超過預設 100 條）",
+    "vhost 以 RabbitMQ management HTTP API 建立（HttpClient 必須強制 HTTP/1.1，預設 h2c 升級會 EOF）；database 以 JDBC create database 建立；皆以 UUID 命名",
+    "測試總數前後皆 391；未見偶發失敗，故未改任何斷言。啟動驗證測試與 SchemaV5/V6/V7 測試仍各自用專屬 PostgreSQL（原本就不走 support 類，不在範圍）"
+  ]
+}
