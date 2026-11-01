@@ -88,6 +88,7 @@
 | 2026-11-01 | D-079 | v0.2.0 | 畫面上 Enrollment 稱「旅程進度」 |
 | 2026-11-01 | D-080 | v0.2.0 | 主要畫面不顯示 ID，收進「進階資訊」 |
 | 2026-11-01 | D-081 | v0.2.0 | 軌跡頁完整白話改版（方案 A），v0.2.0 完成 |
+| 2026-11-01 | D-082 | v0.2.0 | 客戶姓名（name）不遮罩，.env 的 CDP_TRACE_PLAIN_KEYS 加 name |
 
 ## 任務狀態
 
@@ -133,6 +134,7 @@
 | trace-plain-rewrite | frontend | done | 0 | PR #172 |
 | trace-plain-list | frontend | done | 0 | PR #175 |
 | customer-table-fit | frontend | done | 0 | PR #181 |
+| trace-customer-label | frontend | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
