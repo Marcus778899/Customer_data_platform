@@ -1,0 +1,70 @@
+- generic [ref=f22e3]:
+  - link "跳到主要內容" [ref=f22e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f22e5]:
+    - banner [ref=f22e6]:
+      - strong [ref=f22e7]: 客戶旅程平台
+      - group [ref=f22e23]:
+        - generic "選單" [ref=f22e24] [cursor=pointer]
+    - main [ref=f22e10]:
+      - navigation "麵包屑" [ref=f22e25]:
+        - list [ref=f22e26]:
+          - listitem [ref=f22e27]:
+            - link "客戶" [ref=f22e28] [cursor=pointer]:
+              - /url: /customers
+          - listitem [ref=f22e29]: 客戶 01UA…00000A
+      - heading "客戶 01UA…00000A" [active] [level=1] [ref=f22e32]
+      - generic [ref=f22e33]:
+        - generic [ref=f22e34]:
+          - heading "基本資料" [level=2] [ref=f22e35]
+          - generic [ref=f22e36]:
+            - term [ref=f22e37]: 客戶 ID
+            - definition [ref=f22e38]:
+              - text: 01UATPROFILEALICE00000000A
+              - button "複製客戶 ID" [ref=f22e39] [cursor=pointer]: 複製
+            - term [ref=f22e40]: 建立時間
+            - definition [ref=f22e41]:
+              - time [ref=f22e42]: 2026-10-18 15:35
+            - term [ref=f22e43]: 最近更新
+            - definition [ref=f22e44]:
+              - time [ref=f22e45]: 2026-10-18 15:35
+            - term [ref=f22e46]: 資料時間
+            - definition [ref=f22e47]:
+              - time [ref=f22e48]: 2026-11-02 02:31:34
+          - table [ref=f22e50]:
+            - caption [ref=f22e51]: 識別碼
+            - rowgroup [ref=f22e52]:
+              - row [ref=f22e53]:
+                - columnheader "類型" [ref=f22e54]
+                - columnheader "值" [ref=f22e55]
+            - rowgroup
+          - heading "客戶屬性" [level=3] [ref=f22e56]
+          - paragraph [ref=f22e57]: 沒有客戶屬性。
+        - generic [ref=f22e58]:
+          - heading "參加過的旅程" [level=2] [ref=f22e59]
+          - table [ref=f22e61]:
+            - caption [ref=f22e62]: 參加過 1 個旅程，新到舊
+            - rowgroup [ref=f22e63]:
+              - row [ref=f22e64]:
+                - columnheader "旅程" [ref=f22e65]
+                - columnheader "狀態" [ref=f22e66]
+                - columnheader "目前／最後在哪一步" [ref=f22e67]
+                - columnheader "加入時間" [ref=f22e68]
+                - columnheader "結束時間" [ref=f22e69]
+            - rowgroup [ref=f22e70]:
+              - row [ref=f22e71]:
+                - cell [ref=f22e72]:
+                  - text: 旅程：
+                  - link "棄單挽回(短)" [ref=f22e73] [cursor=pointer]:
+                    - /url: /enrollments/01M56YZK2HV2WM2C9S0HE02XQN
+                - cell "狀態： 已走完" [ref=f22e74]:
+                  - text: 狀態：
+                  - generic [ref=f22e75]: 已走完
+                - cell "目前／最後在哪一步：旅程結束" [ref=f22e76]
+                - cell [ref=f22e77]:
+                  - text: 加入時間：
+                  - time [ref=f22e78]: 10/18（日）15:35
+                - cell [ref=f22e79]:
+                  - text: 結束時間：
+                  - time [ref=f22e80]: 10/18（日）15:35
+          - paragraph [ref=f22e81]: 時間為瀏覽器時區。點旅程名稱看這次的進度。

@@ -1,0 +1,3 @@
+[      77ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8889/node_modules/.vite/deps/react-dom_client.js?v=3211e1b2:15803
+[     119ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:8889/api/v1/auth/me:0
+[     120ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:8889/api/v1/auth/me:0
