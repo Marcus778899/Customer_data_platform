@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Component, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, getMe, logout, setForbiddenHandler, setUnauthorizedHandler } from './api/client'
 import type { CurrentUser } from './api/types'
 import { AuthContext } from './auth'
@@ -32,6 +32,33 @@ function currentNav(pathname: string): NavKey {
     return 'customers'
   if (pathname === '/audience') return 'audience'
   return null
+}
+
+/** 頁面層級錯誤邊界：任何渲染例外都顯示錯誤狀態（外框仍在），換頁（key）後重置 */
+class PageBoundary extends Component<{ children: ReactNode; resetKey: string }, { failed: boolean }> {
+  state = { failed: false }
+  componentDidUpdate(prev: { resetKey: string }) {
+    if (this.state.failed && prev.resetKey !== this.props.resetKey) this.setState({ failed: false })
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    if (!this.state.failed) return this.props.children
+    return (
+      <div className="msg error" role="alert">
+        <p>
+          <strong>這個頁面無法顯示。</strong>
+        </p>
+        <p>資料格式異常，請稍後再試或回到上一頁。</p>
+        <p>
+          <button className="btn secondary" type="button" onClick={() => window.location.reload()}>
+            重新載入
+          </button>
+        </p>
+      </div>
+    )
+  }
 }
 
 export function App() {
@@ -160,7 +187,7 @@ export function App() {
   return (
     <AuthContext.Provider value={authInfo}>
       <Shell current={currentNav(pathname)} menuKey={here}>
-        {page}
+        <PageBoundary resetKey={here}>{page}</PageBoundary>
       </Shell>
     </AuthContext.Provider>
   )
