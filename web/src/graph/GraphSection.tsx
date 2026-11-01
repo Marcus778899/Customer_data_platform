@@ -22,6 +22,14 @@ export function GraphSection({
   label: string
 }) {
   const model = useMemo(() => buildModel(def, overlay), [def, overlay])
+  // 疊上軌跡時，文字版另附各狀態的節點數（讀屏不用看圖也知道進度）
+  const count = (s: string) => model.nodes.filter((n) => n.data.state === s).length
+  const stateNote = overlay
+    ? [['visited', '已完成'], ['current', '目前在這裡'], ['unvisited', '接下來']]
+        .filter(([k]) => count(k) > 0)
+        .map(([k, t]) => `${t} ${count(k)} 個`)
+        .join('、')
+    : ''
   return (
     <>
       <ul className="legend" aria-label="圖例">
@@ -54,7 +62,10 @@ export function GraphSection({
       <details>
         <summary>節點清單（文字版，供讀屏與鍵盤瀏覽）</summary>
         <ol>
-          <li>{model.textOrder.join(' → ')}</li>
+          <li>
+            {model.textOrder.join(' → ')}
+            {stateNote && `（狀態：${stateNote}）`}
+          </li>
         </ol>
       </details>
       <p className="graph-note muted">窄螢幕：圖可左右捲動，建議改看上方「節點清單」。</p>

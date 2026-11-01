@@ -36,18 +36,9 @@ th { font-size: var(--text-sm); color: var(--color-text-muted); font-weight: 600
 .msg.error { background: var(--color-danger-bg); color: var(--color-danger-fg); border-radius: var(--radius-md); text-align: left; }
 .msg.error .btn.secondary { border-color: var(--color-danger-fg); color: var(--color-danger-fg); }
 .skel { display: block; height: 1em; margin: var(--space-3) 0; background: var(--color-neutral-bg); border-radius: var(--radius-sm); }
-.summary { background: var(--color-warning-bg); color: var(--color-warning-fg); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0; }
-.summary.ok { background: var(--color-success-bg); color: var(--color-success-fg); }
 dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); margin: 0; }
 dl.kv dt { color: var(--color-text-muted); font-size: var(--text-sm); }
 dl.kv dd { margin: 0; word-break: break-all; }
-ol.trace { list-style: none; margin: 0; padding: 0; }
-ol.trace > li { position: relative; padding: 0 0 var(--space-4) var(--space-5); border-left: 2px solid var(--color-border-strong); margin-left: var(--space-2); }
-ol.trace > li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-surface); border: 2px solid var(--color-border-strong); }
-ol.trace > li.current { border-left-color: var(--color-warning-fg); }
-ol.trace > li.current::before { background: var(--color-warning-fg); border-color: var(--color-warning-fg); }
-ol.trace .head { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
-.reason { margin: var(--space-1) 0; }
 details > summary { cursor: pointer; color: var(--color-primary); font-size: var(--text-sm); }
 details dl.kv { margin-top: var(--space-2); }
 .scroll { overflow-x: auto; }
@@ -214,3 +205,51 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
   .cols, .cols.two { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 1100px) { .cols, .cols.two { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- 旅程進度（軌跡）頁白話改版（docs/ui/enrollment-trace.md；設計稿 plain.html） ---------- */
+.head-act { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+h2.sec { font-size: var(--text-lg); margin: var(--space-5) 0 var(--space-3); }
+.psum { background: var(--color-surface); border: 1px solid var(--color-border); border-left-width: 6px; border-radius: var(--radius-md); padding: var(--space-2) var(--space-4); margin: var(--space-4) 0; }
+.psum.t-warning { border-left-color: var(--color-trace-current); }
+.psum.t-success { border-left-color: var(--color-trace-visited); }
+.psum.t-danger { border-left-color: var(--color-danger-fg); }
+.psum.t-neutral { border-left-color: var(--color-trace-unvisited); }
+.psum.t-info { border-left-color: var(--color-primary); }
+.srow { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3) 0; }
+.srow + .srow { border-top: 1px solid var(--color-border); }
+.sicon { width: 40px; height: 40px; border-radius: 50%; background: var(--color-neutral-bg); color: var(--color-neutral-fg); display: grid; place-items: center; }
+.q { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-muted); margin: 0; }
+.a { font-size: var(--text-md); margin: var(--space-1) 0 0; }
+.a strong { font-size: var(--text-lg); font-weight: 600; display: block; line-height: 1.4; margin-bottom: var(--space-1); }
+.hint { margin: var(--space-1) 0 0; }
+.btn svg { margin-right: var(--space-1); }
+ol.steps2 { list-style: none; margin: 0; padding: 0; }
+.step { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: var(--space-3); position: relative; padding-bottom: var(--space-4); }
+.step:not(:last-child)::before { content: ""; position: absolute; left: 17px; top: 36px; bottom: 0; border-left: 2px solid var(--color-border-strong); }
+.step.next:not(:last-child)::before { border-left-style: dashed; }
+.dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--color-success-bg); color: var(--color-success-fg); border: 2px solid var(--color-trace-visited); }
+.step.now .dot { background: var(--color-warning-bg); color: var(--color-warning-fg); border: 3px solid var(--color-trace-current); }
+.step.next .dot { background: var(--color-surface); color: var(--color-text-muted); border: 2px dashed var(--color-trace-unvisited); }
+.step.err .dot { background: var(--color-danger-bg); color: var(--color-danger-fg); border: 2px solid var(--color-danger-fg); }
+.step.skip .dot { background: var(--color-neutral-bg); color: var(--color-neutral-fg); border: 2px solid var(--color-trace-unvisited); }
+.stitle { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.slab { font-size: var(--text-xs); font-weight: 600; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--color-neutral-bg); color: var(--color-neutral-fg); }
+.step.now .slab { background: var(--color-warning-bg); color: var(--color-warning-fg); }
+.step.err .slab { background: var(--color-danger-bg); color: var(--color-danger-fg); }
+.step.done .slab { background: var(--color-success-bg); color: var(--color-success-fg); }
+.step.next .stitle strong { color: var(--color-text-muted); }
+.sdesc, .stime { margin: var(--space-1) 0 0; }
+.privacy { margin: var(--space-4) 0; }
+details.adv { margin-top: var(--space-5); }
+details.adv > summary { font-weight: 600; min-height: 32px; }
+details.adv > summary:hover { color: var(--color-primary); }
+details.flow-wrap { margin-top: var(--space-4); }
+.tech-step { border-top: 1px solid var(--color-border); padding-top: var(--space-2); }
+@media (max-width: 640px) {
+  .head-act { width: 100%; }
+  .srow { grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-2); }
+  .sicon { width: 32px; height: 32px; }
+  .a strong { font-size: var(--text-md); }
+  details.adv > summary { min-height: 44px; display: flex; align-items: center; }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
