@@ -85,6 +85,9 @@
 | 2026-10-30 | D-076 | v0.2.0 | lock 後程式不用改：backend 補空 commit 交件 |
 | 2026-10-31 | D-077 | v0.2.0 | v0.2.0 修正大量同時到期的推進效能 |
 | 2026-10-31 | D-078 | v0.2.0 | 派發與送達吞吐調校不納入 v0.2.0（backlog） |
+| 2026-11-01 | D-079 | v0.2.0 | 畫面上 Enrollment 稱「旅程進度」 |
+| 2026-11-01 | D-080 | v0.2.0 | 主要畫面不顯示 ID，收進「進階資訊」 |
+| 2026-11-01 | D-081 | v0.2.0 | 軌跡頁完整白話改版（方案 A），v0.2.0 完成 |
 
 ## 任務狀態
 
@@ -123,6 +126,8 @@
 | due-backlog-index | backend | done | 0 | PR #138 |
 | due-backlog-perf | backend | done | 0 | PR #141 |
 | trace-node-overlap | frontend | done | 0 | PR #151 |
+| plain-ux-ui | designer | review | 1 |  |
+| journey-page-crash | frontend | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
