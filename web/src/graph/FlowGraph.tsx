@@ -30,12 +30,14 @@ const StepNodeView = memo(function StepNodeView({ data }: NodeProps<StepNode>) {
       onClick={() => setSelected((v) => !v)}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} />
-      <span className="n-cat">{data.categoryLabel}</span>
+      <span className="n-head">
+        <span className="n-cat">{data.categoryLabel}</span>
+        {data.state === 'visited' && <span className="n-state">✓ 已經過</span>}
+        {data.state === 'current' && <span className="n-state">● 目前位置</span>}
+        {data.state === 'unvisited' && <span className="sr">未經過</span>}
+      </span>
       <span className="n-name">{data.name}</span>
       <span className="n-type">{data.type}</span>
-      {data.state === 'visited' && <span className="n-state">✓ 已經過</span>}
-      {data.state === 'current' && <span className="n-state">● 目前位置</span>}
-      {data.state === 'unvisited' && <span className="sr">未經過</span>}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </button>
   )
