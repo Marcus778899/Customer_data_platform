@@ -126,8 +126,8 @@
 | due-backlog-index | backend | done | 0 | PR #138 |
 | due-backlog-perf | backend | done | 0 | PR #141 |
 | trace-node-overlap | frontend | done | 0 | PR #151 |
-| plain-ux-ui | designer | review | 1 |  |
-| journey-page-crash | frontend | qa | 0 |  |
+| plain-ux-ui | designer | done | 1 | PR #162 |
+| journey-page-crash | frontend | done | 0 | PR #163 |
 
 ## 卡住／待甲方決定
 
