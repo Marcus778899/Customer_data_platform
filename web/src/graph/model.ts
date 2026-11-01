@@ -67,6 +67,10 @@ export interface TraceOverlay {
   taken: ReadonlySet<string>
 }
 
+/** outputs 缺漏或為 null（舊資料、終端節點）視為空物件 */
+export const outsOf = (n: { outputs?: unknown } | null | undefined): Record<string, string> =>
+  n && typeof n.outputs === 'object' && n.outputs !== null ? (n.outputs as Record<string, string>) : {}
+
 export const edgeId = (source: string, port: string) => `${source}:${port}`
 
 /** 軌跡與定義對不上（node_id 不在定義裡）→ null，呼叫端退回逐步紀錄（journey-engine §4.5，不推測） */
@@ -81,13 +85,13 @@ export function deriveOverlay(
   const taken = new Set<string>()
   if (trace.length > 0 && byId.has(def.entry_node)) {
     visited.add(def.entry_node)
-    for (const [port, target] of Object.entries(byId.get(def.entry_node)!.outputs)) {
+    for (const [port, target] of Object.entries(outsOf(byId.get(def.entry_node)))) {
       if (target === trace[0].node_id) taken.add(edgeId(def.entry_node, port))
     }
   }
   trace.forEach((t, i) => {
     if (t.out_port === null) return
-    const target = byId.get(t.node_id)!.outputs[t.out_port]
+    const target = outsOf(byId.get(t.node_id))[t.out_port]
     if (target !== undefined && trace[i + 1]?.node_id === target) taken.add(edgeId(t.node_id, t.out_port))
   })
   let current: string | null = null
@@ -106,7 +110,7 @@ export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null): G
   for (const n of def.nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H })
   const rawEdges: { id: string; source: string; target: string }[] = []
   for (const n of def.nodes) {
-    for (const [port, target] of Object.entries(n.outputs)) {
+    for (const [port, target] of Object.entries(outsOf(n))) {
       if (!ids.has(target)) continue
       rawEdges.push({ id: edgeId(n.id, port), source: n.id, target })
       g.setEdge(n.id, target)
@@ -159,7 +163,7 @@ function textOrder(def: JourneyVersion): string[] {
     seen.add(id)
     const note = TYPE_NOTE[n.type]
     out.push(`${n.name ?? n.type}${note ? `（${note}）` : ''}`)
-    queue.unshift(...Object.values(n.outputs))
+    queue.unshift(...Object.values(outsOf(n)))
   }
   return out
 }
