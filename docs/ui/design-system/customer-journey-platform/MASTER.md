@@ -15,3 +15,5 @@
 - 觸控：640px 以下互動元件高 >= 44px；表格轉卡片（`td` 用 `data-l` 顯示欄名）。
 - 語言：面向非工程人員的畫面不出現節點型別名、ISO 時間、ID（ID 只在「進階資訊」與客戶頁）；術語對照見 `docs/ui/enrollment-trace.md`。
 - 動效：只有骨架脈動與按鈕 150ms 顏色轉場，reduced-motion 下關閉。
+- 麵包屑：`ol`、`li` 皆 flex＋`align-items: center`；連結、分隔符、目前頁（`aria-current="page"`）同一垂直中線；分隔符用 CSS `content: "/" / ""`，讀屏不唸；觸控 44px。細則見 `docs/ui/enrollment-trace.md`「麵包屑」
+- 窄螢幕 `dl` 單欄時 `dd` 下方要有間距（`--space-2`），避免下一個標籤貼著上一個值
