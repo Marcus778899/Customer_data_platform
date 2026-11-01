@@ -127,6 +127,7 @@
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
+- v0.2.0 收尾：uat、F-1 重測、資安審查皆 PASS；待甲方照 docs/uat/v0.2.0.md 驗收清單勾選並寫「甲方驗收：PASS」
 
 ## 注意事項（踩過的坑）
 
