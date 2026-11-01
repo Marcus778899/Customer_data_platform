@@ -148,7 +148,7 @@ function DetailBody({
   const pendingMsgs = d.status === 'COMPLETED' && d.delivery_history.some((x) => x.status === 'PENDING')
 
   return (
-    <>
+    <div className="trace-page">
       <Crumbs items={[{ label: '客戶', to: '/customers' }, { label: crumbName, to: customerTo }, { label: '旅程進度' }]} />
       <header className="pagehead">
         <div>
@@ -217,6 +217,6 @@ function DetailBody({
       )}
 
       <Advanced d={d} />
-    </>
+    </div>
   )
 }
