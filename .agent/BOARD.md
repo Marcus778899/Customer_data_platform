@@ -123,12 +123,15 @@
 | due-backlog-index | backend | done | 0 | PR #138 |
 | due-backlog-perf | backend | done | 0 | PR #141 |
 | trace-node-overlap | frontend | done | 0 | PR #151 |
+| plain-ux-ui | designer | in-progress | 0 |  |
+| journey-page-crash | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - 甲方驗收回饋（2026-11-01）：外框側欄留白、旅程頁白畫面、軌跡頁對非工程人員難懂、手機排版爆版；修完再驗收發版
+- 待甲方決定 D-079～D-081（plain-ux-ui 白話改版：Enrollment 名稱、隱藏 ID、軌跡頁改版範圍），PR #162
 
 ## 注意事項（踩過的坑）
 
