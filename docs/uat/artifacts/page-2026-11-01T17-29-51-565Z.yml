@@ -1,0 +1,21 @@
+- generic [ref=f7e3]:
+  - link "跳到主要內容" [ref=f7e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f7e5]:
+    - banner [ref=f7e6]:
+      - strong [ref=f7e7]: 客戶旅程平台
+      - group [ref=f7e8]:
+        - generic "選單" [ref=f7e9] [cursor=pointer]
+    - main [ref=f7e10]:
+      - navigation "麵包屑" [ref=f7e23]:
+        - list [ref=f7e24]:
+          - listitem [ref=f7e25]:
+            - link "客戶" [ref=f7e26] [cursor=pointer]:
+              - /url: /customers
+          - listitem [ref=f7e27]: 找不到
+      - alert [ref=f7e28]:
+        - heading "找不到這筆進度" [level=1] [ref=f7e29]
+        - paragraph [ref=f7e30]: 網址可能有誤，或這筆資料不存在。請從客戶頁重新進入。
+        - paragraph [ref=f7e31]: 錯誤代碼 01M6C2J10TG046Q0Z2YKS3YNMF
+        - link "回到客戶搜尋" [ref=f7e32] [cursor=pointer]:
+          - /url: /customers

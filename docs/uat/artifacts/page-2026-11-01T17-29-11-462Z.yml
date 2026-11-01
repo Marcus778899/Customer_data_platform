@@ -1,0 +1,81 @@
+- generic [ref=f5e3]:
+  - link "跳到主要內容" [ref=f5e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f5e5]:
+    - banner [ref=f5e6]:
+      - strong [ref=f5e7]: 客戶旅程平台
+      - group [ref=f5e8]:
+        - generic "選單" [ref=f5e9] [cursor=pointer]
+    - main [ref=f5e10]:
+      - generic [ref=f5e23]:
+        - navigation "麵包屑" [ref=f5e24]:
+          - list [ref=f5e25]:
+            - listitem [ref=f5e26]:
+              - link "客戶" [ref=f5e27] [cursor=pointer]:
+                - /url: /customers
+            - listitem [ref=f5e28]:
+              - link "這位客戶" [ref=f5e29] [cursor=pointer]:
+                - /url: /customers/01M6C2C8TEFVT1SN4VHENXRJM0
+            - listitem [ref=f5e30]: 旅程進度
+        - generic [ref=f5e31]:
+          - generic [ref=f5e32]:
+            - heading "「Demo long wait (PT2H) d82fb6」旅程的進度" [active] [level=1] [ref=f5e33]
+            - paragraph [ref=f5e34]: 客戶：未提供姓名 · 今天 01:26 加入
+          - generic [ref=f5e35]:
+            - generic [ref=f5e36]: 等待中
+            - button "重新整理" [ref=f5e37] [cursor=pointer]
+            - generic [ref=f5e41]: 今天 01:29 更新
+        - status "目前進度摘要" [ref=f5e42]:
+          - generic [ref=f5e48]:
+            - heading "這位客戶現在在哪？" [level=3] [ref=f5e49]
+            - paragraph [ref=f5e50]:
+              - strong [ref=f5e51]: 在「等 2 小時」這一步，等待中。
+              - text: 已等 2 分鐘。
+          - generic [ref=f5e57]:
+            - heading "接下來會發生什麼？" [level=3] [ref=f5e58]
+            - paragraph [ref=f5e59]:
+              - strong [ref=f5e60]: 今天 03:26 之後
+              - text: 自動繼續，下一步是「發送訊息：Reminder」。
+            - paragraph [ref=f5e61]: 實際時間可能晚幾分鐘。
+          - generic [ref=f5e67]:
+            - heading "訊息有送出嗎？" [level=3] [ref=f5e68]
+            - paragraph [ref=f5e69]:
+              - strong [ref=f5e70]: 還沒有。
+              - text: 這位客戶還沒走到「發送訊息」的步驟，所以目前沒有收到任何訊息。
+        - heading "走過的步驟" [level=2] [ref=f5e71]
+        - list "這位客戶在旅程中的步驟，由舊到新" [ref=f5e72]:
+          - listitem [ref=f5e73]:
+            - generic [ref=f5e77]:
+              - generic [ref=f5e78]:
+                - strong [ref=f5e79]: Cart event，進入旅程
+                - generic [ref=f5e80]: 已完成
+              - paragraph [ref=f5e81]: 客戶完成了「Cart event」，因此進入這個旅程。
+              - paragraph [ref=f5e82]: 今天 01:26
+          - listitem [ref=f5e83]:
+            - generic [ref=f5e88]:
+              - generic [ref=f5e89]:
+                - strong [ref=f5e90]: 等 2 小時
+                - generic [ref=f5e91]: 目前在這裡
+              - paragraph [ref=f5e92]: 正在等待，已等 2 分鐘。時間到了就會自動繼續，不需要任何人操作。
+              - paragraph [ref=f5e93]: 今天 01:26 開始 · 預計 今天 03:26 繼續
+          - listitem [ref=f5e94]:
+            - generic [ref=f5e99]:
+              - generic [ref=f5e100]:
+                - strong [ref=f5e101]: 發送訊息：Reminder
+                - generic [ref=f5e102]: 接下來
+              - paragraph [ref=f5e103]: 等待結束後，會發送這則訊息給客戶。
+              - paragraph [ref=f5e104]: 預計 今天 03:26 之後
+          - listitem [ref=f5e105]:
+            - generic [ref=f5e110]:
+              - strong [ref=f5e111]: 旅程結束
+              - generic [ref=f5e112]: 接下來
+        - group [ref=f5e113]:
+          - generic "查看流程圖（圖形軌跡）" [ref=f5e114] [cursor=pointer]
+        - heading "訊息發送紀錄" [level=2] [ref=f5e115]
+        - generic [ref=f5e116]:
+          - paragraph [ref=f5e117]:
+            - strong [ref=f5e118]: 還沒有發出任何訊息。
+          - paragraph [ref=f5e119]: 客戶走到「發送訊息」步驟時，這裡會出現每一則訊息和結果。
+        - note [ref=f5e120]: 為了保護個資，姓名等欄位顯示為「已遮罩」，遮罩值無法解除，也不提供複製。
+        - group [ref=f5e121]:
+          - generic "進階資訊（給技術人員排查問題用）" [ref=f5e122] [cursor=pointer]

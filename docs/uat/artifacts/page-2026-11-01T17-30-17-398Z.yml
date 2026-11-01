@@ -1,0 +1,12 @@
+- main [ref=f8e100]:
+  - heading "客戶旅程平台" [level=1] [ref=f8e101]
+  - paragraph [ref=f8e102]: 請以個人帳號登入。
+  - form "登入" [ref=f8e103]:
+    - generic [ref=f8e104]:
+      - generic [ref=f8e105]: Email
+      - textbox "Email" [active] [ref=f8e106]
+    - generic [ref=f8e107]:
+      - generic [ref=f8e108]: 密碼
+      - textbox "密碼" [ref=f8e109]
+    - button "登入" [ref=f8e110] [cursor=pointer]
+  - status [ref=f8e111]
