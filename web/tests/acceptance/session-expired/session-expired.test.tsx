@@ -95,7 +95,7 @@ const text = () => document.body.textContent ?? ''
 async function expireSession(state: State) {
   const user = userEvent.setup()
   start('/')
-  await user.type(await screen.findByLabelText('客戶 ID 或 Enrollment ID'), `${PID}{Enter}`)
+  await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
   await screen.findByRole('table')
   state.list = false
   state.me = false
@@ -146,7 +146,7 @@ describe('session 逾時提示', () => {
     })
     const user = userEvent.setup()
     start('/')
-    await user.type(await screen.findByLabelText('客戶 ID 或 Enrollment ID'), `${PID}{Enter}`)
+    await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
     await screen.findByRole('table')
     detailOk = false
     state.me = false
