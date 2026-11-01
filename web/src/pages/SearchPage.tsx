@@ -96,7 +96,7 @@ export function SearchPage({ loc }: { loc: Loc }) {
       {data && rows.length === 0 && (
         <div className="msg card" style={{ marginTop: 'var(--space-4)' }} role="status">
           <p>
-            <strong>找不到「{q}」的任何旅程進度</strong>
+            <strong>找不到「{q}」的任何旅程紀錄</strong>
           </p>
           <p className="muted">
             可能原因：輸入的編號有誤；這位客戶尚未觸發任何旅程；或該事件發生已超過 24 小時，系統收下但不建立旅程紀錄。
