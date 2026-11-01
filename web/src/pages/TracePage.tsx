@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
 import { ApiError, getEnrollment, getJourneyVersion } from '../api/client'
 import type { EnrollmentDetail, JourneyVersion } from '../api/types'
 import { AppLink } from '../components/AppLink'
@@ -46,7 +46,8 @@ export function TracePage({ id }: { id: string }) {
 
   const h1Ref = useRef<HTMLHeadingElement>(null)
   const focusedFor = useRef<string | null>(null)
-  useEffect(() => {
+  // layout effect：h1 掛上 DOM 的同一次 commit 就取得焦點，不被 scheduler 延後到使用者操作之後
+  useLayoutEffect(() => {
     if (shown && !waitingDef && focusedFor.current !== shown.enrollment_id) {
       focusedFor.current = shown.enrollment_id
       h1Ref.current?.focus()
