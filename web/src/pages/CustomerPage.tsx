@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { getProfile, listProfileEnrollments } from '../api/client'
 import type { ProfileDetail } from '../api/types'
 import { AppLink } from '../components/AppLink'
 import { KeyValues } from '../components/KeyValues'
 import { Crumbs } from '../components/Shell'
 import { Badge, CopyButton, ErrorBox, MoreControls, Skeleton, Time, UtcContext } from '../components/ui'
-import { ENROLLMENT_STATUS, identifierLabel, shortId } from '../format'
+import { formatPlainTime, identifierLabel, shortId } from '../format'
 import { usePagedList } from '../hooks'
 import { useFetch } from '../useFetch'
+import { StatusBadge, stepText } from './EnrollmentBrowsePage'
 
 interface NavState {
   profileId?: string
@@ -198,49 +199,53 @@ function Enrollments({ id }: { id: string }) {
               <caption>{next ? `參加過的旅程，已載入 ${items.length} 筆` : `參加過 ${items.length} 個旅程`}，新到舊</caption>
               <thead>
                 <tr>
-                  <th scope="col">旅程（版本）</th>
+                  <th scope="col">旅程</th>
                   <th scope="col">狀態</th>
-                  <th scope="col">目前／最後節點</th>
-                  <th scope="col">進入時間</th>
+                  <th scope="col">目前／最後在哪一步</th>
+                  <th scope="col">加入時間</th>
                   <th scope="col">結束時間</th>
-                  <th scope="col">Enrollment ID</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((r) => {
-                  const st = ENROLLMENT_STATUS[r.status]
-                  return (
-                    <tr key={r.enrollment_id}>
-                      <td data-label="旅程" className="nw">
-                        <AppLink className="tap" to={`/enrollments/${encodeURIComponent(r.enrollment_id)}`}>
-                          {r.journey_name}（v{r.journey_version}）
-                        </AppLink>
-                      </td>
-                      <td data-label="狀態">
-                        <Badge tone={st.tone}>{st.label}</Badge>
-                      </td>
-                      <td data-label="目前／最後節點">{r.current_node_name ?? r.current_node_type}</td>
-                      <td data-label="進入時間" className="nw">
-                        <Time iso={r.enrolled_at} />
-                      </td>
-                      <td data-label="結束時間" className="nw">
-                        {r.terminated_at ? <Time iso={r.terminated_at} /> : '—'}
-                      </td>
-                      <td data-label="Enrollment ID">
-                        <span className="mono" title={r.enrollment_id}>
-                          {shortId(r.enrollment_id)}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {items.map((r) => (
+                  <tr key={r.enrollment_id}>
+                    <td data-label="旅程" className="nw">
+                      <AppLink className="tap" to={`/enrollments/${encodeURIComponent(r.enrollment_id)}`}>
+                        {r.journey_name}
+                      </AppLink>
+                    </td>
+                    <td data-label="狀態">
+                      <StatusBadge status={r.status} />
+                    </td>
+                    <td data-label="目前／最後在哪一步">{stepText(r)}</td>
+                    <td data-label="加入時間" className="nw">
+                      <PlainTime iso={r.enrolled_at} />
+                    </td>
+                    <td data-label="結束時間" className="nw">
+                      {r.terminated_at ? <PlainTime iso={r.terminated_at} /> : '—'}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
           <MoreControls next={next} busy={moreBusy} error={moreError} onMore={loadMore} />
-          <p className="muted">時間為瀏覽器時區（D-016）。點旅程名稱看圖形軌跡。</p>
+          <p className="muted">時間為瀏覽器時區（D-016）。點旅程名稱看這次的進度。</p>
         </>
       )}
     </section>
+  )
+}
+
+/** 白話時間（D-079）：UTC 原值放 dateTime／title，勾選「同時顯示 UTC」時另顯示 */
+function PlainTime({ iso }: { iso: string }) {
+  const showUtc = useContext(UtcContext)
+  return (
+    <>
+      <time dateTime={iso} title={iso}>
+        {formatPlainTime(iso, new Date(), { relative: false })}
+      </time>
+      {showUtc && <span className="muted mono">（UTC {iso}）</span>}
+    </>
   )
 }
