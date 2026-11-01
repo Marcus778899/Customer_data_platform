@@ -5,7 +5,7 @@
  *           3. 第一個識別碼（照後端遮罩值）；4. 「未具名客戶」。麵包屑中段與副標用同一標示，中段連到客戶頁。
  * 共用工具沿用 trace-plain-rewrite/fixtures（worker 不可改）。
  */
-import { cleanup, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   DETAIL, NOW_EARLY, PID, deferred, freezeNow, heading, json, mainText, norm, openTrace, problem, resetEnv, teardown,
@@ -188,6 +188,11 @@ describe('隱私（D-014、D-021、D-080）', () => {
     await heading()
     await crumbIs('c***@example.com')
     expect(mainText()).not.toMatch(/carol|c[a-z]+@example\.com/)
-    expect(screen.queryByRole('button', { name: /複製/ })).toBeNull()
+    // 範圍：麵包屑與主要區（不含進階資訊 details，其進度編號依規格可複製）
+    expect(within(screen.getByRole('navigation', { name: '麵包屑' })).queryByRole('button', { name: /複製/ })).toBeNull()
+    const outsideDetails = screen
+      .queryAllByRole('button', { name: /複製/, hidden: true })
+      .filter((b) => !b.closest('details'))
+    expect(outsideDetails).toHaveLength(0)
   })
 })
