@@ -1,5 +1,5 @@
 # UI：旅程建立與審核（journey-builder-ui，v0.3.0）
-- 設計稿：`docs/ui/journey-builder/index.html`（30 個畫面狀態，含 375／800px iframe 預覽；共用元件樣式 `base.css` 複製自 `journey-platform`，擴充在 `builder.css`、`round2.css`（第 2 輪覆寫），token 用 `web/src/styles/tokens.css`，無新 token）
+- 設計稿：`docs/ui/journey-builder/index.html`（34 個畫面狀態，含 375／800px iframe 預覽；共用元件樣式 `base.css` 複製自 `journey-platform`，擴充在 `builder.css`、`round2.css`（第 2 輪覆寫），token 用 `web/src/styles/tokens.css`，無新 token）
 - 延伸 `journey-platform.md`（UI-03）：登入、客戶搜尋、列表基底等未改動畫面仍以它為準；本稿取代它「畫布編輯、審核、圖形軌跡（分支）、旅程頁」的畫法。設計系統見 `design-system/customer-journey-platform/MASTER.md`（已補「v0.3.0 擴充元件」）
 - 契約：`journeys.md` §3（草稿、送審、審核、停止）、§4（節點與條件）、§5（`node-stats`）、journey-engine §4.1（`profile_name`、`profile_identifier`）；`auth.md` §2。決策：D-050、D-056、D-060、D-061、D-079、D-080、D-082
 ## 畫面
@@ -22,7 +22,19 @@
 | #180／#187 客戶標示 | 全站同一規則：姓名 → 第一個識別碼（後端已遮罩）→「未具名客戶」；列表客戶欄兩行（標示＋小字識別資訊）；ID 不出現（`ux-list`、`ux-customer*`） |
 | #188 搜尋按鈕 | 輸入框與按鈕同一排、緊鄰、同高 48px；說明文字刪「（D-048）」（`ux-search`） |
 | #179／#147／#148 文案 | 節點名全站共用白話對照；等待摘要用本地時間；刪除 D-編號；空白搜尋不顯示「查無」（`ux-copy`） |
-## 狀態與無障礙
+## 畫面 × 狀態（空／載入／錯誤／權限不足；括號是設計稿 id；「同」＝沿用該列版型，不另畫）
+| 畫面 | 空 | 載入 | 錯誤 | 權限不足 |
+|---|---|---|---|---|
+| 畫布編輯 | 新草稿（`ed-empty`） | 骨架（`ed-loading`） | 5xx、草稿 404（`ed-errors`）、衝突提示（`ed-banners`） | 檢視者進編輯網址 403（`ed-errors`）；檢視者在旅程頁按鈕停用附原因（`rv-bars`） |
+| 旅程列表 | 沒有待審核、篩選無結果（`rv-queue-states`） | 骨架（`rv-queue-states`） | 5xx（`rv-queue-states`） | 無（檢視者以上都能看；檢視者無「新增旅程」） |
+| 審核頁 | 沒有送審中的內容（`rv-review-states`） | 骨架（同） | 5xx、404、已被處理、核准驗證失敗（同） | 非管理員只能看，核准／退回停用（同） |
+| 審核紀錄（含已停止） | 還沒有紀錄（`rv-history-states`） | 骨架（同） | 5xx、404、載入更多失敗（同） | 無（檢視者以上唯讀） |
+| 旅程頁節點人數 | 尚無客戶（`st-states`） | 人數骨架（`st-states`） | 人數失敗、圖照常（`st-states`）；旅程 404 沿用 journey-platform | 檢視者看得到人數；編輯鈕停用（`st-view`） |
+| 圖形軌跡 | 沿用 journey-platform | 同 | 同（定義取不到退回逐步紀錄） | 無 |
+| 旅程進度列表 | 沒有進度、篩選無結果（`ux-states`） | 骨架（同） | 5xx（同） | 無（唯讀） |
+| 客戶頁 | 未具名、沒有旅程（`ux-customer-none`） | 兩塊各自骨架（`ux-states`） | 404、5xx、旅程紀錄單塊失敗（同） | 無（唯讀） |
+| 客戶搜尋 | 初始、查無（`ux-search`） | 搜尋中（`ux-states`） | 空白 400（`ux-search`）、5xx（`ux-states`） | 無（唯讀） |
+## 無障礙與窄螢幕
 載入＝骨架（`role="status"`）；錯誤＝`role="alert"`＋請求編號＋重試；權限不足＝停用鈕附原因或整頁 403。對話框 `role="dialog" aria-modal`，焦點進入第一欄、Esc 取消、回到觸發鈕。圖：節點是 `<button>`，選取 `aria-pressed`；邊與裝飾 `aria-hidden`；每張圖附「文字版節點清單」。狀態一律文字＋顏色＋圖示；對比 >= 4.5:1；reduced-motion 關閉轉場。
 窄螢幕：≤1100px 面板排到圖下方；≤640px 工具列與按鈕堆疊、表格／矩陣轉卡片、互動元件 >= 44px；畫布以左右捲動檢視，編輯建議桌面，審核與停止在窄螢幕可完成。
 ## 自行決定

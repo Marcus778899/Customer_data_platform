@@ -80,3 +80,15 @@ dl.kv.basic dt { font-size: var(--text-sm); color: var(--color-text-muted); padd
 .cv { height: 520px; }
 .cv.stat { height: 640px; }
 @media (max-width: 640px) { .actions .btn[aria-label] { flex: 0 0 auto; min-width: 44px; } .cv .inner, .cv.stat .inner { margin-top: 24px; } }
+@media (max-width: 640px) {
+  table.mid.stack tr { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); padding: var(--space-3) var(--space-4); }
+  table.mid.stack td { width: auto; padding: 0; }
+  table.mid.stack td::before { display: none !important; }
+  table.mid.stack td[data-label="旅程"] { flex: 1 1 100%; font-size: var(--text-md); margin-bottom: var(--space-1); }
+  table.mid.stack td[data-label="送審"], table.mid.stack td[data-label="最後更新"], table.mid.stack td[data-label="時間"] { flex: 1 1 100%; color: var(--color-text-muted); font-size: var(--text-sm); }
+}
+.cols.cust2 td:first-child, .cols.cust2 th:first-child { white-space: normal; }
+.cols.cust2 > * { min-width: 0; }
+.eh-grid .skelbox, .stbar .skelbox, .tb .skelbox { max-width: 100%; }
+caption.sr { width: 1px !important; }
+@media (max-width: 640px) { .eh-grid > div { min-width: 0; max-width: 100%; } .eh-grid .skelbox { width: 100% !important; } }
