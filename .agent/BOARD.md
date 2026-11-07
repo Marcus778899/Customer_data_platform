@@ -111,12 +111,18 @@
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
 | journey-builder-design | architect | done | 0 | PR #194 |
-| journey-builder-ui | designer | review | 1 | PR #193 |
+| journey-builder-ui | designer | done | 1 | PR #193 |
+| journey-lifecycle-api | backend | todo | 0 |  |
+| ux-fix-customer-list | frontend | blocked | 1 |  |
+| journey-lifecycle-service | backend | in-progress | 0 |  |
+| journey-node-stats-api | backend | review | 0 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
+- backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
+- D-086：ux-fix-customer-list #144 三欄卡在流程工具（仲裁要求 qa 改舊驗收測試，ae 只允許派 frontend），待甲方選 A／B／C
 
 ## 注意事項（踩過的坑）
 
