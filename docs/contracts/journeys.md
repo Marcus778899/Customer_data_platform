@@ -18,6 +18,7 @@
 | | `review_status` | `PENDING` \| `REJECTED` \| null | 目前草稿的審核狀態（§3.2）：送審中 `PENDING`；最新一筆審核被退回且草稿仍在 `REJECTED`；其他 `null` |
 | | `updated_at` | time | |
 | | `published_at` | time \| null | 最新版本的發佈時間 |
+| | `latest_review` | `ReviewBrief` \| null | 第二版：`review_status` 不為 `null` 時帶出那一筆審核的摘要（待審清單顯示送審者與等待時間，等待時間由前端以 `submitted_at` 計算）；其他為 `null`。第一版一律 `null` |
 | `JourneyDetail` | （`JourneySummary` 全部欄位）＋`description` | string \| null | |
 | | `versions` | `{ version, published_at }[]` | 新到舊 |
 | | `stopped_at` `stop_reason` | time \| null、string \| null | 僅 `ABORTED` 有值 |
@@ -31,6 +32,7 @@
 | | `layout` | `Layout` \| null | 畫布座標；v0.1.0 建立的版本為 `null`（前端自動排版） |
 | | `published_at` | time | |
 | `Layout` | `nodes` | `{ [node_id]: { "x": number, "y": number } }` | 只放畫面座標，引擎不讀；未列的節點由前端自動排版 |
+| `ReviewBrief`（第二版） | `review_id` `status` `submitted_by` `submitted_at` `decided_by` `decided_at` `reason` | 同 `Review` 的同名欄位 | 列表用的摘要，完整內容查 §3.2 `/reviews` |
 | `UserRef` | `user_id` `display_name` | string | 後端帶出使用者目前的顯示名稱（停用者照常帶出），不需呼叫 `/users` |
 | `Review`（第二版，§3.2） | `review_id` | string（ULID） | |
 | | `journey_id` | string | |
@@ -147,6 +149,7 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 
 - 條件樹子集（spec 06 §2～§4）：群組 `op` = `AND` `OR` `NOT`（`NOT` 恰一個子節點），深度 ≤ 5；葉節點只支援 `type: "attribute"`，`field` = 客戶屬性鍵或 `trigger.properties.<鍵>`；`operator` = `EQ` `NEQ` `IN` `NOT_IN` `GT` `GTE` `LT` `LTE` `CONTAINS` `IS_NULL` `IS_NOT_NULL`；`behavior`、`segment` 葉節點 → 驗證錯誤
 - `settings` 支援：`reentry`（spec 03 §3，五種 `mode`；省略 = `UNLIMITED`）；`goal`（`condition` 只支援 `{ "type": "event", "event" }`）；`global_exit`（條件為 `event`〔`since` 只支援 `ENROLLMENT`〕或上列 `attribute` 葉節點）；其他鍵存而不用
+- 訊息節點的管道與範本：本版**沒有**清單、預覽 API（沒有範本／管道資料表，spec 03 §6 規則 10、11 不執行）。`SendMessageNode.config.template_id`、`channel_id` 由使用者手動輸入：去前後空白後 1–100 字、符合 `^[A-Za-z0-9_.:-]+$`，不合 = `validate` 錯誤；發送一律經 Mock 通道（journey-engine §4.1 `channel_type` = `MOCK`）。清單 API 等真實通道（v0.6.0 LINE，D-059）再定
 - 條件欄位建議清單 `GET /api/v1/journeys/field-keys?event_name=<名稱>`（選填；角色同 §2）→ `200` `{ "profile_attributes": string[], "event_properties": string[], "as_of" }`：`profile_attributes` = 任取 1000 位客戶的 `attributes` 鍵聯集；`event_properties` = 帶 `event_name` 時該事件最近 1000 筆 `properties` 的鍵聯集（`ix_event_name_time`），未帶為 `[]`；皆字母序。只是建議、不保證完整：前端仍允許手動輸入符合 `^[a-z][a-z0-9_]*$` 的鍵（事件屬性填 `trigger.properties.<鍵>`）；正式欄位字典屬 spec 06（未排期）
 - 迴圈：允許，但每個強連通分量須含 `WaitDelayNode` 或 `WaitForEventNode`（spec 03 §6 規則 7）
 - `EnrollmentStatus` 本版會出現 `GOAL_MET` `EXITED` `ABORTED`；`TraceEntry.out_port` 會出現各節點的出口名

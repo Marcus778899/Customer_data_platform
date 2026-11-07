@@ -86,6 +86,7 @@
 | | `journey_name` | string | §4.2；不為 `null`（§3.1 `name` 必填） |
 | | `current_node_name` | string \| null | §4.2 |
 | | `profile_name` | string \| null | v0.3.0 起（#180）：客戶目前的 `attributes.name`（`profiles.md` §1 顯示名稱），僅在它是字串且依 §4.4 為明文時帶出；不明文、不存在或非字串為 `null`（不回遮罩值）。`EnrollmentDetail` 同樣帶此欄 |
+| | `profile_identifier` | `Identifier` \| null | v0.3.0 起（#180）：該客戶依 `profiles.md` §1 排序（`type`、`value`）的第一個識別碼，`value` 依 §4.4 遮罩、帶 `masked`（同 `profiles.md` `Identifier`）；沒有識別碼為 `null`。客戶標示的退回順序（姓名 → 此識別碼 → 「未具名客戶」）由前端依 `docs/ui/` 處理。`EnrollmentDetail` 同樣帶此欄 |
 | | `status` | `EnrollmentStatus` | |
 | | `enrolled_at` `updated_at` | time | |
 | | `terminated_at` | time \| null | 未結束為 `null` |

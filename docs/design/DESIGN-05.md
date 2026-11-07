@@ -5,7 +5,7 @@
 |---|---|---|
 | 1 | `JourneyGraphValidator` 在 journey-lifecycle-api 就支援 §4 全部節點的驗證（畫布可先送審）；引擎執行在 journey-branch-engine 補上。兩單之間 develop 上核准含分支節點的版本會在推進時失敗，不發版 | 前端驗證回饋不等引擎 |
 | 2 | 節點統計（`journeys.md` §5）獨立 `J/nodestats/`（Controller、Service、Store 介面）＋`J/persistence/JdbcNodeStatsStore`：一條 SQL 以 `enrollment_record (journey_id, journey_version)` join `node_trace` 分組計數（`ix_enrollment_journey_recent` 起頭），`statement_timeout` 5 秒；不加 migration、不快取 | 與 lifecycle 不共用檔，可平行 |
-| 3 | 遮罩（#184，待決定 1 建議 A）：`MaskingProperties` 綁定值為 `null`（變數不存在）時用常數 `DEFAULT_PLAIN_KEYS = {name}`；`application.yml` 改 `${CDP_TRACE_PLAIN_KEYS:#{null}}`；`.env.example` 該行改註解；`Makefile` 照 `CDP_DEMO_PASSWORD` 的方式另 `export CDP_TRACE_PLAIN_KEYS`（未定義不 export）。`profile_name`（#180）在 `JdbcEnrollmentQueryStore` 列表 SQL `LEFT JOIN profile` 取 `attributes->>'name'`，`PiiMasker.isPlain("name")` 為假即 `null` | 白名單語意不變；已設定的環境（D-082 `name`）行為不變 |
+| 3 | 遮罩（#184，待決定 1 建議 A）：`MaskingProperties` 綁定值為 `null`（變數不存在）時用常數 `DEFAULT_PLAIN_KEYS = {name}`；`application.yml` 改 `${CDP_TRACE_PLAIN_KEYS:#{null}}`；`.env.example` 該行改註解；`Makefile` 照 `CDP_DEMO_PASSWORD` 的方式另 `export CDP_TRACE_PLAIN_KEYS`（未定義不 export）。`profile_name`（#180）在 `JdbcEnrollmentQueryStore` 列表 SQL `LEFT JOIN profile` 取 `attributes->>'name'`，`PiiMasker.isPlain("name")` 為假即 `null`；`profile_identifier` 同 SQL 取 `profile_identifier` 依 `(id_type, id_value)` 第一筆（`LATERAL … LIMIT 1`），以 `PiiMasker` 遮罩 | 白名單語意不變；已設定的環境（D-082 `name`）行為不變 |
 | 4 | 金鑰強度（#152）：`AuthPropertiesValidator` 加 `CHANGE_ME`（不分大小寫）與長度 ≥ 32 檢查，常數不可由設定調低；`application-test.yml` 與驗收中的測試金鑰改成 ≥ 32 字的低熵值（例 `test-admin-key-` 補 `0`），避開 gitleaks `generic-api-key` | M-1 修法；不給降低防護的開關 |
 | 5 | 登入限速（#153，待決定 2 建議 A）：`LoginRateLimiter` 鍵改 `(email, clientIp)`＋另一張 `clientIp` 計數；全域 `Semaphore(availableProcessors)` 包住 BCrypt；兩張表用有上限的 `LinkedHashMap`（access-order、`removeEldestEntry`，上限 100,000），過期清理只在插入時做；`clientIp` = `request.getRemoteAddr()`，`server.forward-headers-strategy: native`＋`server.tomcat.remoteip.internal-proxies: ${CDP_TRUSTED_PROXIES:…Tomcat 預設私有網段}` | M-2 修法；不加相依（不用 Caffeine） |
 | 6 | #190：`docs/uat/artifacts/` 已由 1384f31 移出版控並 ignore；本單另加 `docs/uat/**/*.yml`、`docs/uat/**/*.yaml`（`*.log` 已全域 ignore），截圖 `docs/uat/<版本>/*.png` 照常進版控 | 防 uat 換輸出位置又被提交 |
@@ -24,11 +24,11 @@
 |---|---|---|
 | `A/common/FrameworkErrorFormatAcceptanceTest`、`A/delivery/DeliveryPipelineAcceptanceTest`、`DeliveryResilienceAcceptanceTest`、`A/engine/JourneyEngineAcceptanceTest`、`A/ingest/IngestAcceptanceBase`、`NulCharacterValidationAcceptanceTest`、`DispatchPropertiesStartupAcceptanceTest`、`A/relay-loop-rewrite/RelayLoopBase`、`RelayStartupValidationAcceptanceTest`、`A/security/StartupValidationAcceptanceTest`、`SecretToStringAcceptanceTest` | 寫死 < 32 字的金鑰（`test-admin-key`、`SECRET-aaaa-1111` 等），`auth.md` §1 金鑰強度後啟動失敗；改用共用常數（放 `A/support/`） | security-hardening-api |
 | `A/user-auth-api/LoginRateLimitAcceptanceTest` | `auth.md` §3「不依來源 IP」改為 email＋IP；同一 IP 的既有情境結果不變，需確認跨 email 失敗數不觸發來源鎖定（測試設定調高 `CDP_LOGIN_IP_MAX_FAILURES`） | security-hardening-api |
-| `WA/journey-customer-ui/fixtures.tsx`、`WA/integration/integration.test.tsx` | `EnrollmentSummary` 新增 `profile_name`；型別若設必填則 fixture 缺欄 | ux-polish-web |
+| `WA/journey-customer-ui/fixtures.tsx`、`WA/integration/integration.test.tsx` | `EnrollmentSummary` 新增 `profile_name`、`profile_identifier`，`JourneySummary` 新增 `latest_review`；型別若設必填則 fixture 缺欄（建議前端型別設選填） | ux-polish-web（`JourneySummary` 部分歸 journey-review-ui） |
 ## 派工順序與檔案分工（D-022 一次一到兩張實作單；驗收目錄 = `A/<task_id>/`、`WA/<task_id>/`；整合 = `WA/integration/<task_id>/`＋`A/<task_id>/`）
 | 批 | task_id | 角色 | 內容 | 負責檔案（含跨界檔） | 相依 | 驗收目錄 | 平行／fast |
 |---|---|---|---|---|---|---|---|
-| 1 | journey-lifecycle-api | backend | DESIGN-03 #7、#10、做法 #1；`journeys.md` §1～§3.5、§4 驗證與 `field-keys`；V8 | `V8__journey_lifecycle.sql`、`J/journey/`、`J/persistence/JdbcJourney*`（新舊）、`JdbcOutboxStore`、`J/delivery/JourneyStatusKillSwitch`、`J/delivery/OutboxStore`、`J/engine/runtime/JourneyStopSweeper`（新）、`J/security/AccessRule`、`api/pom.xml`、`resources/schema/`、`application.yml` | — | `A/journey-lifecycle-api/` | 可與 node-stats、批 1 前端平行 |
+| 1 | journey-lifecycle-api | backend | DESIGN-03 #7、#10、做法 #1；`journeys.md` §1～§3.5（含 `JourneySummary.latest_review`）、§4 驗證與 `field-keys`；V8 | `V8__journey_lifecycle.sql`、`J/journey/`、`J/persistence/JdbcJourney*`（新舊）、`JdbcOutboxStore`、`J/delivery/JourneyStatusKillSwitch`、`J/delivery/OutboxStore`、`J/engine/runtime/JourneyStopSweeper`（新）、`J/security/AccessRule`、`api/pom.xml`、`resources/schema/`、`application.yml` | — | `A/journey-lifecycle-api/` | 可與 node-stats、批 1 前端平行 |
 | 1 | journey-node-stats-api | backend | 做法 #2、`journeys.md` §5 | `J/nodestats/`、`J/persistence/JdbcNodeStatsStore` | — | `A/journey-node-stats-api/` | 平行 |
 | 1 | ux-fix-login-trace | frontend | #145（改 email 解除倒數，`auth.md` §3 末）、#147（開關關閉時摘要與原因句只顯示本地時間） | `W/pages/LoginPage.tsx`、`W/pages/trace/` | — | 無 | 平行；fast |
 | 1 | ux-fix-customer-list | frontend | #144、#148、#178（程式聚焦不顯示外框，鍵盤 `:focus-visible` 照舊）、#179（列表、客戶頁沿用 `plain/` 的步驟說法）、#188 | `W/pages/CustomerPage.tsx`、`CustomerSearchPage.tsx`、`EnrollmentBrowsePage.tsx`、`W/components/ui.tsx`、`Shell.tsx`、`W/format.ts`、`W/plain/`、`W/styles/app.css` | — | 無 | 平行；fast |
@@ -47,7 +47,7 @@
 | 項目 | 決定 |
 |---|---|
 | 數值 | 金鑰下限 32 字、`CDP_LOGIN_IP_MAX_FAILURES` 建議 30、計數表上限 100,000、統計逾時 5 秒、節點 id ≤ 64 字 |
-| 介面細節 | 統計每版本全部 Enrollment、`entered` 以人計＋`visits`＋`out_ports`（§5）；`profile_name` 不明文回 `null` |
+| 介面細節 | 訊息節點的管道／範本本版不給清單與預覽 API，手動輸入（`journeys.md` §4）；統計每版本全部 Enrollment、`entered` 以人計＋`visits`＋`out_ports`（§5）；`profile_name` 不明文回 `null` |
 ## 待甲方決定／需要調查
 - 待決定 1（④，#184）`.env` 對明文清單的調整：A. 選填，有設定就取代內建（建議：既有 `name` 設定不變、要更嚴可設 `-`）／B. 只能追加、不能移除 `name`／C. 移除變數，只能改程式。理由：A 保留各客戶合約要求全遮的彈性，且不需遷移
 - 待決定 2（④，#153，修改 D-045）登入限速維度：A. email＋來源 IP 鎖定＋來源 IP 總量＋全域併發（建議；`auth.md` §3 v0.3.0）／B. 裝置 cookie（登入成功過的瀏覽器不受鎖定，需新密鑰）／C. 維持現狀、接受風險。理由：A 不加相依、改動集中在 `LoginRateLimiter`
