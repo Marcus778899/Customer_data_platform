@@ -13,6 +13,9 @@ web/dist/
 .agent/tasks/
 .agent/survey/
 docs/uat/artifacts/
+# uat 自動產生的頁面快照（#190）；截圖 docs/uat/<版本>/*.png 照常進版控，*.log 已在下方全域忽略
+docs/uat/**/*.yml
+docs/uat/**/*.yaml
 .claude/skills/ui-ux-pro-max/
 .claude/skills/differential-review/
 .claude/settings.local.json

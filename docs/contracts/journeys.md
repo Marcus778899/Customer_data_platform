@@ -1,6 +1,6 @@
 # 契約：旅程管理、版本與畫布（v1）
 
-<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md；定義格式正本見 spec 03。§2 屬第一版（v0.2.0），§3～§5 屬第二版（v0.3.0，D-055） -->
+<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md（v0.2.0）、DESIGN-05.md（v0.3.0）；定義格式正本見 spec 03；業務規則見 docs/domain/rules.md。§2 屬第一版（v0.2.0），§3～§5 屬第二版（v0.3.0，D-055） -->
 
 - 通用規則：`journey-engine.md` §1、§5；憑證與角色：`auth.md` §1、§2
 - 旅程（journey）有一個生命週期狀態；版本（version）發佈後不可變（spec 03 §1）。Enrollment 綁定建立當下的最新版本，之後發佈新版不影響（spec 02 §2）
@@ -78,6 +78,9 @@
 | DELETE | `/api/v1/journeys/{journey_id}/draft` | — | `204`（沒有也 `204`）；`DRAFT` 狀態的旅程不可刪草稿 → `409` `DRAFT_REQUIRED`；送審中 → `409` `DRAFT_IN_REVIEW` | `404` |
 | POST | `/api/v1/journeys/{journey_id}/draft/validate` | — | `200` `ValidationReport`（不改資料） | `404` |
 
+- 角色：寫入見 `auth.md` §2；讀取（`GET` 草稿、`/reviews`、§4 `field-keys`、§5 `node-stats`）同 §2 唯讀（`VIEWER` 以上）
+- 新草稿的骨架：`definition` = `{ "name": <請求的 name>, "description": null, "settings": {}, "entry_node": "start", "nodes": [ { "id": "start", "type": "StartNode", "name": null, "config": {}, "outputs": {} } ] }`、`layout` = `null`、`revision` = 1；骨架本身 `validate` 不通過（缺 Source），可照常存檔
+- 節點 `id` 由前端產生：旅程內唯一、符合 `^[a-z][a-z0-9_]*$`（spec 03 §4 的 snake_case）、≤ 64 字；不合 = `validate` 錯誤，存檔不擋；送審後 `id` 隨版本固定，§5 統計與軌跡都以它對應
 - 沒有直接發佈的 API：經 §3.2 送審、核准
 - `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`UserRef` \| null；金鑰呼叫為 `null`）、`latest_review`（`Review` \| null：這份草稿最新一筆審核紀錄；`status` = `PENDING` 時草稿鎖定）
 - `ValidationReport`：`valid` bool、`errors` `Issue[]`、`warnings` `Issue[]`；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
@@ -134,6 +137,7 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 | `type` | `config` 必填 | `outputs` 必填 |
 |---|---|---|
 | v0.1.0 五種 | journey-engine §3.1 | 同左 |
+| `EventSourceNode` 的 `event_filter` | 依待決定 3（DESIGN-05）：A 案 = 同下方條件樹子集、`field` 只能是 `properties.<鍵>`；未決定前維持 journey-engine §3.1（`null` 或省略） | — |
 | `WaitForEventNode` | `event_name`；`timeout`（正 Duration 或 `null` = 不逾時）；`event_filter`（同 `EventSourceNode` 規則：`null` 或省略） | `occurred`；`timeout` 不為 `null` 時 `timeout` 必填 |
 | `ConditionNode` | `condition`（下表子集） | `yes` `no` |
 | `SplitTestNode` | `variants`（2–10 個；`port` snake_case、`weight` 正整數、總和 100、`label`；至多一個 `is_control`）；`assignment_seed` 省略或 `STABLE` | 每個 `variants[].port` |
@@ -149,7 +153,20 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 
 ## §5 節點統計（第二版） `GET /api/v1/journeys/{journey_id}/versions/{version}/node-stats`
 
-`200` `{ "items": [ { "node_id", "entered": int, "exited": int, "current": int } ], "as_of" }`：該版本所有 Enrollment 的軌跡計數（`entered` = 軌跡列數，`exited` = 已離開的列數，`current` = 停在該節點的 Enrollment 數）；沒有軌跡的節點不列。錯誤 `404` `JOURNEY_NOT_FOUND`
+- 角色同 §2；無 query 參數；錯誤：`404` `JOURNEY_NOT_FOUND`（旅程或版本不存在；`DRAFT` 旅程沒有版本）、`400`（`version` 不是正整數）
+- `200` `NodeStats`：`{ "journey_id", "version", "items": NodeStat[], "as_of" }`；`items` 依該版本 `nodes` 陣列順序，**每個節點都列**（沒人經過的為 0，`StartNode` 除外：它不寫軌跡，不列）
+- 範圍：綁定此 `version` 的全部 Enrollment（含已結束），不分時間區間；即時計算，不快取（`as_of` = 計算時間）
+
+| `NodeStat` 欄位 | 型別 | 定義（以 `node_trace` 與 `enrollment_record` 計） |
+|---|---|---|
+| `node_id` | string | |
+| `entered` | int | 曾進入此節點的 Enrollment 數（同一 Enrollment 繞迴圈多次只算 1）＝畫面上的「人數」 |
+| `visits` | int | 進入次數（軌跡列數；無迴圈時 = `entered`） |
+| `current` | int | 目前停在此節點、尚未結束的 Enrollment 數（`status` 非終態且 `current_node_id` = 此節點） |
+| `out_ports` | `{ [port]: int }` | 已離開的軌跡列依 `out_port` 計數；只列出現過的出口；終點節點為 `{}` |
+
+- 終點節點（`EndNode` `ExitNode` `GoalNode`）的 `entered` = 在此結束的 Enrollment 數；中途結束者（停止的 `ABORTED`、`goal`／`global_exit` 造成的 `GOAL_MET`／`EXITED`）計入最後所在節點的 `entered`，不計入任何 `current`
+- 只有計數，不含客戶資料、不遮罩
 
 ## §6 範例
 
@@ -174,4 +191,33 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
   "submitted_by": { "user_id": "01JD0USER0000000000000001", "display_name": "營運小組" }, "submitted_at": "2026-11-02T03:00:00Z",
   "decided_by": { "user_id": "01JD0USER0000000000000002", "display_name": "行銷主管" }, "decided_at": "2026-11-02T05:30:00Z",
   "reason": "等待時間請改為 2 天", "version": null }
+```
+
+`GET /api/v1/journeys/01JCXYZJOURNEY0000000001/draft` → `200`
+
+```json
+{ "journey_id": "01JCXYZJOURNEY0000000001", "revision": 4,
+  "definition": { "name": "棄單挽回", "description": null, "settings": {}, "entry_node": "start_1", "nodes": [ "…同 JourneyVersion.nodes…" ] },
+  "layout": { "nodes": { "start_1": { "x": 0, "y": 0 }, "src_1": { "x": 240, "y": 0 } } },
+  "updated_at": "2026-11-02T02:50:00Z", "updated_by": { "user_id": "01JD0USER0000000000000001", "display_name": "營運小組" },
+  "latest_review": null }
+```
+
+`POST /api/v1/journeys/01JCXYZJOURNEY0000000001/draft/validate` → `200`
+
+```json
+{ "valid": false,
+  "errors": [ { "field": "definition.nodes[3].outputs.no", "message": "「是 VIP？」的「否」出口還沒有連線。", "rule": 4, "node_id": "cond_vip" },
+              { "field": "definition.nodes[5]", "message": "迴圈 send_c、merge_d 中沒有等待節點，會無限循環。", "rule": 7, "node_id": "send_c" } ],
+  "warnings": [ { "field": "definition.settings.goal", "message": "旅程沒有設定目標，也沒有目標節點。", "rule": 13, "node_id": null } ] }
+```
+
+`GET /api/v1/journeys/01JCXYZJOURNEY0000000001/versions/2/node-stats` → `200`
+
+```json
+{ "journey_id": "01JCXYZJOURNEY0000000001", "version": 2, "as_of": "2026-11-07T03:00:00Z",
+  "items": [ { "node_id": "src_1", "entered": 120, "visits": 120, "current": 0, "out_ports": { "next": 120 } },
+             { "node_id": "wait_1", "entered": 120, "visits": 120, "current": 30, "out_ports": { "next": 90 } },
+             { "node_id": "cond_vip", "entered": 90, "visits": 90, "current": 0, "out_ports": { "yes": 20, "no": 70 } },
+             { "node_id": "end_1", "entered": 0, "visits": 0, "current": 0, "out_ports": {} } ] }
 ```

@@ -85,6 +85,7 @@
 | | `journey_version` | int | 建立時綁定 |
 | | `journey_name` | string | §4.2；不為 `null`（§3.1 `name` 必填） |
 | | `current_node_name` | string \| null | §4.2 |
+| | `profile_name` | string \| null | v0.3.0 起（#180）：客戶目前的 `attributes.name`（`profiles.md` §1 顯示名稱），僅在它是字串且依 §4.4 為明文時帶出；不明文、不存在或非字串為 `null`（不回遮罩值）。`EnrollmentDetail` 同樣帶此欄 |
 | | `status` | `EnrollmentStatus` | |
 | | `enrolled_at` `updated_at` | time | |
 | | `terminated_at` | time \| null | 未結束為 `null` |
@@ -131,15 +132,17 @@
 
 ### §4.4 個資遮罩（D-014）
 
-後端在回應前遮罩，所有角色相同（v0.1.0 不提供解除遮罩）。只有 `EnrollmentDetail` 含個資；`EnrollmentSummary`、`Delivery` 只有 ID、名稱、狀態與時間，不遮罩。
+後端在回應前遮罩，所有角色相同（不提供解除遮罩）。只有 `EnrollmentDetail` 含個資；`EnrollmentSummary`、`Delivery` 只有 ID、名稱、狀態與時間（`profile_name` 已依本節判斷），不遮罩。
+
+**明文清單**（v0.3.0 起，#184；規則見 `docs/domain/rules.md`「遮罩」）：程式內建預設 = `name`；`.env` 的 `CDP_TRACE_PLAIN_KEYS` 怎麼調整依待決定 1（DESIGN-05；建議案：**未設定** = 內建預設，**有設定** = 以其取代內建清單）。下表的「明文清單」皆指這份。
 
 | 範圍 | 明文的鍵 |
 |---|---|
-| `variables`、`trigger_snapshot.properties`、`trigger_snapshot.profile_snapshot` | 環境變數 `CDP_TRACE_PLAIN_KEYS` 列出的鍵；未列 = 遮罩（D-021） |
+| `variables`、`trigger_snapshot.properties`、`trigger_snapshot.profile_snapshot` | 明文清單列出的鍵；未列 = 遮罩（D-021 白名單） |
 | `trace[].evaluated` | 上列鍵＋引擎鍵 `event_id` `event_name` `duration` `wake_at` `template_id` `channel_id` `idempotency_key` |
 | 其他欄位（`trigger_snapshot` 的 `event_id` `event_name` `occurred_at` `source_type`、`profile_id`、各 ID 與時間） | 全部明文 |
 
-- `CDP_TRACE_PLAIN_KEYS` 解析：以逗號切開、去前後空白，捨棄空字串與 `-`；值為 `-`（或空）= 沒有明文鍵、全部遮罩
+- `CDP_TRACE_PLAIN_KEYS` 有設定時的解析：以逗號切開、去前後空白，捨棄空字串與 `-`；值為 `-`（或空字串）= 沒有明文鍵、全部遮罩；變數不存在 = 內建預設
 - 逐層比對：物件的鍵在明文清單 → 整棵子樹明文；否則往下走；陣列元素沿用所屬鍵的判定。只遮「值」，鍵名一律保留
 - 遮罩後的值一律是字串：符合 `^[^@\s]+@[^@\s]+$` 的字串 → 首字＋`***@`＋網域（`a***@example.com`）；其他字串、數字、布林 → `"***"`；`null` 保持 `null`
 - `masked_paths`：每個被遮罩的值一條，點號＋`[索引]`（0 起算）路徑，例 `trigger_snapshot.properties.email`、`trace[1].evaluated.phone`、`variables.items[0].name`；前端以此判斷該值是遮罩、不靠比對 `***`
