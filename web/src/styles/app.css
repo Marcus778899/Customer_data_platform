@@ -10,6 +10,8 @@ h4 { font-size: var(--text-md); margin: var(--space-4) 0 var(--space-2); }
 .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
 a { color: var(--color-primary); }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* 程式聚焦（換頁後標題、結果標題）：滑鼠使用者不顯示外框；鍵盤操作時 :focus-visible 照舊 */
+[tabindex="-1"]:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); }
 form.search { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: var(--space-1); flex: 1 1 220px; }
@@ -91,6 +93,7 @@ input[aria-invalid="true"] { border-color: var(--color-danger-fg); border-width:
 .pw-alert { max-width: 480px; margin-bottom: var(--space-3); }
 .crumbs ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); margin: 0 0 var(--space-3); padding: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--color-text-muted); }
 .crumbs li { display: flex; align-items: center; min-height: 32px; }
+/* 分隔符的替代文字為空，讀屏不會唸出斜線 */
 .crumbs li + li::before { content: "/"; content: "/" / ""; margin-right: var(--space-2); }
 .crumbs a { display: inline-flex; align-items: center; min-height: 32px; }
 
@@ -145,10 +148,12 @@ td.nw, td.nw a { white-space: nowrap; }
 .chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-text); font-weight: 600; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) var(--panel-width); gap: var(--space-4); align-items: start; }
 .cols.two { grid-template-columns: 340px minmax(0, 1fr); }
-.search-big { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.search-big .field { flex: 1 1 360px; }
+.search-big { max-width: 640px; }
+.search-big .field { flex: 1 1 auto; }
+.search-row { display: flex; gap: var(--space-2); align-items: stretch; }
+.search-row input { flex: 1 1 auto; min-width: 0; }
 .search-big input { min-height: 48px; font-size: var(--text-md); }
-.search-big .btn { min-height: 48px; align-self: flex-start; }
+.search-big .btn { min-height: 48px; flex: 0 0 auto; }
 .search-big .btn[aria-disabled="true"] { cursor: progress; opacity: .7; }
 table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 

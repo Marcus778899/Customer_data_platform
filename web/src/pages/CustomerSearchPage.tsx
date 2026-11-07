@@ -30,7 +30,7 @@ export function CustomerSearchPage({ loc }: { loc: Loc }) {
   }, [only, q])
 
   // 結果出現後焦點到結果標題（layout effect：與 DOM 更新同一時間點）
-  const shown = data && data.items.length > 1
+  const shown = !emptyInput && data && data.items.length > 1
   useLayoutEffect(() => {
     if (shown && focusResults.current) {
       focusResults.current = false
@@ -59,9 +59,9 @@ export function CustomerSearchPage({ loc }: { loc: Loc }) {
       <SearchForm key={q} initial={q} busy={loading} invalid={invalid} onSubmit={submit} />
       <div style={{ marginTop: 'var(--space-4)' }}>
         {!q && !emptyInput && <Hints />}
-        {q && loading && <Skeleton lines={2} />}
+        {q && loading && !emptyInput && <Skeleton lines={2} />}
         {error && error.status !== 400 && <ErrorBox title="搜尋失敗。" error={error} onRetry={reload} />}
-        {data && data.items.length === 0 && (
+        {!emptyInput && data && data.items.length === 0 && (
           <div className="card msg" role="status">
             <h2 className="sec">找不到符合的客戶</h2>
             <p>可能原因：輸入內容不完整或有錯字、客戶尚未送過任何事件、識別碼尚未綁定到客戶。</p>
@@ -94,17 +94,22 @@ function SearchForm({
     <form className="search-big" role="search" onSubmit={handle}>
       <div className="field">
         <label htmlFor={`${id}-q`}>搜尋客戶</label>
-        <input
-          id={`${id}-q`}
-          type="search"
-          value={value}
-          placeholder="email、手機、外部 ID 或客戶 ID"
-          aria-describedby={invalid ? `${id}-h ${id}-e` : `${id}-h`}
-          aria-invalid={invalid || undefined}
-          onChange={(e) => setValue(e.target.value)}
-        />
+        <div className="search-row">
+          <input
+            id={`${id}-q`}
+            type="search"
+            value={value}
+            placeholder="email、手機、外部 ID 或客戶 ID"
+            aria-describedby={invalid ? `${id}-h ${id}-e` : `${id}-h`}
+            aria-invalid={invalid || undefined}
+            onChange={(e) => setValue(e.target.value)}
+          />
+          <button className="btn" type="submit" aria-disabled={busy}>
+            {busy ? '搜尋中…' : '搜尋'}
+          </button>
+        </div>
         <span className="hint" id={`${id}-h`}>
-          輸入完整內容；手機可含空格與破折號。只做完全比對，不支援輸入一部分（D-048）。
+          輸入完整內容；手機可含空格與破折號。
         </span>
         {invalid && (
           <span className="err-text" id={`${id}-e`}>
@@ -112,9 +117,6 @@ function SearchForm({
           </span>
         )}
       </div>
-      <button className="btn" type="submit" aria-disabled={busy}>
-        {busy ? '搜尋中…' : '搜尋'}
-      </button>
     </form>
   )
 }
