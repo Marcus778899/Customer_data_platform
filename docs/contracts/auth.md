@@ -1,6 +1,6 @@
 # 契約：登入、使用者與角色（v2，v0.2.0；單一租戶 D-051）
 
-<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md；取代 journey-engine.md §1.1、§1.2（BE-06 合併起生效） -->
+<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md、DESIGN-05.md（v0.3.0 #152、#153）；取代 journey-engine.md §1.1、§1.2（BE-06 合併起生效） -->
 
 - Base URL、JSON 慣例、時間、`X-Request-Id`、錯誤格式：同 `journey-engine.md` §1、§5
 - 跨域：不開 CORS（同源經 proxy）
@@ -14,6 +14,7 @@
 | 管理金鑰 | `Authorization: Bearer <金鑰>`，金鑰 = 環境變數 `CDP_ADMIN_API_KEY` | 等同使用者角色 `ADMIN`（腳本、demo-seed、開第一個帳號） |
 | 使用者 session | cookie `CDP_SESSION`（§3 登入取得） | 該使用者目前的角色 `VIEWER`／`EDITOR`／`ADMIN` |
 
+- 金鑰強度（v0.3.0 起，#152）：兩把金鑰去前後空白後須 ≥ 32 字元、不含 `CHANGE_ME`（不分大小寫）、彼此不同；任一不符 → 後端拒絕啟動，錯誤訊息只寫變數名稱與哪條不符，不印值
 - 帶了 `Authorization` 就只看它、不看 cookie
 - 先驗認證、再驗 CSRF（§1.1）、再驗角色、最後驗輸入：未認證 `401` `UNAUTHENTICATED`；角色不足 `403` `FORBIDDEN`
 - session 每個請求都以當下的使用者資料判斷：使用者被停用 → 下一個請求即 `401`；角色變更 → 下一個請求即生效；管理員重設其密碼 → 該使用者所有 session 下一個請求即 `401`（§4，D-071）
@@ -57,13 +58,21 @@
 - 登入失敗限速（D-045）：
   | 項目 | 規則 |
   |---|---|
-  | 計算維度 | 請求的 `email`（轉小寫）；帳號不存在也計數、回應與存在者相同；不依來源 IP |
+  | 計算維度 | 請求的 `email`（轉小寫）；帳號不存在也計數、回應與存在者相同；不依來源 IP（v0.3.0 依待決定 2 修改，見本節末） |
   | 計數 | 密碼錯（`401` `INVALID_CREDENTIALS`）才 +1；`400` 不計；距上次失敗超過 `CDP_LOGIN_LOCKOUT` 先歸零再計；登入成功歸零 |
   | 門檻與鎖定 | 計數達 `CDP_LOGIN_MAX_FAILURES` → 鎖定到「最後一次失敗 + `CDP_LOGIN_LOCKOUT`」；鎖定中的嘗試不計數、不延長 |
   | 超限回應 | 鎖定中任何登入（含正確密碼）→ `429` `LOGIN_RATE_LIMITED`，標頭 `Retry-After` = 剩餘秒數（整數，無條件進位）；不跑 BCrypt |
   | 併發 | 同一 `email` 的「計數 + 進行中的嘗試」達門檻、但尚未鎖定時，新的嘗試也回 `429` `LOGIN_RATE_LIMITED`、`Retry-After: 1`；不計數、不跑 BCrypt（同時最多門檻數個嘗試在比對密碼） |
   | 範圍 | 只限 `POST /auth/login`（`/auth/password` 不計）；計數存記憶體，後端重啟歸零（同 session） |
-- 前端：任何 API 回 `401` `UNAUTHENTICATED` → 導向登入
+- v0.3.0 修改（#153；待決定 2 建議案 A，甲方核可後取代上表「計算維度」與「範圍」兩列，其他列不變）：
+  | 項目 | 規則 |
+  |---|---|
+  | 帳號鎖定 | 計數與鎖定改以「`email` ＋ 來源 IP」為單位：鎖住的只有該來源對該帳號的嘗試，其他來源輸入正確密碼照常登入 |
+  | 來源鎖定 | 同一來源 IP 跨所有 `email` 的密碼錯誤數，在 `CDP_LOGIN_LOCKOUT` 內達 `CDP_LOGIN_IP_MAX_FAILURES` → 該來源所有登入 `429` `LOGIN_RATE_LIMITED`（`Retry-After` 同上表規則），不跑 BCrypt |
+  | 全域併發 | 同時在比對密碼的請求達上限（伺服器 CPU 核心數）→ 新請求 `429` `LOGIN_RATE_LIMITED`、`Retry-After: 1`，不計數 |
+  | 來源 IP | 連線端位址；前方有信任的反向代理時取其 `X-Forwarded-For`（信任範圍 `CDP_TRUSTED_PROXIES`，未設定 = 私有網段）；直接連線者帶的 `X-Forwarded-For` 不採信 |
+  | 記憶體 | 計數表有筆數上限，滿了淘汰最久未用的；過期清理只在新增時做，單次請求成本不隨筆數成長 |
+- 前端：任何 API 回 `401` `UNAUTHENTICATED` → 導向登入；`429` 的倒數只屬於送出時的 `email`，使用者改了 `email` 就解除停用（#145）
 
 ## §4 使用者管理（`ADMIN`）
 
