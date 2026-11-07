@@ -107,11 +107,14 @@
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
+| journey-builder-design | architect | in-progress | 0 |  |
+| journey-builder-ui | designer | review | 1 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
+- 待甲方：D-083～D-085、設計核可（journey-builder-design #194、journey-builder-ui #193，視覺評審 3 輪仍 REVISE 3 項）
 
 ## 注意事項（踩過的坑）
 
