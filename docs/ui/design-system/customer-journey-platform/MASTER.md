@@ -17,3 +17,9 @@
 - 動效：只有骨架脈動與按鈕 150ms 顏色轉場，reduced-motion 下關閉。
 - 麵包屑：`ol`、`li` 皆 flex＋`align-items: center`；連結、分隔符、目前頁（`aria-current="page"`）同一垂直中線；分隔符用 CSS `content: "/" / ""`，讀屏不唸；觸控 44px。細則見 `docs/ui/enrollment-trace.md`「麵包屑」
 - 窄螢幕 `dl` 單欄時 `dd` 下方要有間距（`--space-2`），避免下一個標籤貼著上一個值
+
+## v0.3.0 擴充元件（journey-builder-ui，不改既有決定）
+- 節點卡：左側 6px 類別色條＋類別圖示（Lucide 風格）＋白話類別字；不顯示型別名；底部可加統計條（進入次數、目前在此，等寬數字）。狀態只用既有 token（visited／current／unvisited、info 藍＝修改、success 綠＝新增、danger 紅＝錯誤）
+- 畫布：編輯頁滿版（`.page.bleed`），屬性面板為右側抽屜（≤1100px 排到圖下方）；圖以 `zoom` 縮放至約 80% 以容納整張圖，節點字級（名稱 1.125rem）已放大補償
+- 審核按鈕：停用鈕保留在畫面（`aria-disabled`＋`aria-describedby` 原因文字），不隱藏；版本流程用三步指示（草稿→審核中→上線）
+- 程式聚焦目標（`[tabindex="-1"]`，如 h1）不畫焦點環；互動元件鍵盤聚焦才有環（#178）
