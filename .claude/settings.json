@@ -22,14 +22,22 @@
       "Bash(ae check-env)",
       "Bash(ae check-env setup)",
       "Bash(ae config)",
-      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py:*)",
-      "Bash(gh issue create:*)"
+      "Bash(gh issue create:*)",
+      "Bash(ae survey:*)",
+      "Bash(ae import check)",
+      "Bash(ae import apply)",
+      "Bash(ae import remove:*)",
+      "Bash(ae import write:*)",
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py:*)"
     ],
     "ask": [
       "Bash(dangerouslyDisableSandbox:true)",
       "Bash(ae pr approve:*)",
       "Bash(ae pr unblock:*)",
-      "Bash(ae release finish:*)"
+      "Bash(ae release finish:*)",
+      "Bash(ae board scope:*)",
+      "Bash(ae import finish:*)",
+      "Bash(ae import upgrade:*)"
     ],
     "deny": [
       "Bash(git push:*)",
@@ -47,7 +55,9 @@
       "Read(**/.env)",
       "Edit(/CLAUDE.md)",
       "Edit(/.claude/**)",
-      "Edit(/.agent/config.toml)"
+      "Edit(/.agent/config.toml)",
+      "Bash(ae adopt:*)",
+      "Bash(ae upgrade:*)"
     ]
   },
   "sandbox": {
@@ -55,7 +65,8 @@
     "failIfUnavailable": false,
     "allowUnsandboxedCommands": false,
     "excludedCommands": [
-      "docker compose *"
+      "docker compose *",
+      "ae import *"
     ],
     "filesystem": {
       "allowWrite": [

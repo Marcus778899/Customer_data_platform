@@ -10,3 +10,14 @@ __pycache__/
 coverage-reports/
 api/target/
 web/dist/
+.agent/tasks/
+.agent/survey/
+docs/uat/artifacts/
+.claude/skills/ui-ux-pro-max/
+.claude/skills/differential-review/
+.claude/settings.local.json
+CLAUDE.local.md
+.DS_Store
+*.log
+.env.*
+!.env.example
