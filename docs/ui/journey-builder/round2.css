@@ -31,7 +31,7 @@
 .banner.warn, .msg.warn, .sum { background: color-mix(in srgb, var(--color-warning-fg) 8%, white); color: var(--color-warning-fg); border-color: color-mix(in srgb, var(--color-warning-fg) 35%, white); }
 .banner.info, .msg.info { background: color-mix(in srgb, var(--color-info-fg) 7%, white); color: var(--color-info-fg); border-color: color-mix(in srgb, var(--color-info-fg) 30%, white); }
 .banner.err, .msg.error { background: color-mix(in srgb, var(--color-danger-fg) 7%, white); color: var(--color-danger-fg); border-color: color-mix(in srgb, var(--color-danger-fg) 30%, white); }
-.msg.error, .msg.info { border: 1px solid; }
+.msg.neutral { background: var(--color-neutral-bg); color: var(--color-neutral-fg); border-radius: var(--radius-md); text-align: left; padding: var(--space-3) var(--space-4); } .msg.neutral p { margin: 0; }
 .dialog .msg.error strong.big { font-size: var(--text-lg); font-weight: 800; }
 /* 停用鈕：外框虛線＋灰字，不用實心灰 */
 .btn[aria-disabled="true"], .btn.danger[aria-disabled="true"], .btn.danger.secondary[aria-disabled="true"], .btn.secondary[aria-disabled="true"] { background: transparent; color: var(--color-neutral-fg); border: 1px dashed var(--color-border-strong); cursor: not-allowed; }
@@ -92,3 +92,61 @@ dl.kv.basic dt { font-size: var(--text-sm); color: var(--color-text-muted); padd
 .eh-grid .skelbox, .stbar .skelbox, .tb .skelbox { max-width: 100%; }
 caption.sr { width: 1px !important; }
 @media (max-width: 640px) { .eh-grid > div { min-width: 0; max-width: 100%; } .eh-grid .skelbox { width: 100% !important; } }
+/* 第 3 輪：統計模式節點固定高度，邊的座標才對得上；縮放 76% 讓整張圖放進一屏 */
+.cv.stat .inner { zoom: .76; }
+.cv.stat .nd { height: 172px; min-height: 172px; box-sizing: border-box; }
+.cv.stat { height: 520px; }
+/* 一般與軌跡畫面：節點固定高度（邊的座標以此計算），迴圈箭頭停在節點外 */
+.cv:not(.stat) .nd:not(.start) { height: 96px; min-height: 96px; }
+.cv.trace .nd { height: 100px; min-height: 100px; }
+.cv.trace .nd .tr { zoom: 1.05; white-space: nowrap; } .cv.trace .nd.current { padding-right: 6px; }
+.cv.framed.trace .inner { zoom: .76; margin: 40px 0 0 12px; }
+.cv.framed.trace { height: 370px; }
+.cv.stat .nd .st { margin-top: auto; }
+/* 畫布高度跟著視窗（扣掉頁首、工具列、狀態列），最小 480px */
+@media (min-width: 641px) {
+  .stbar + .cvwrap > .cv:not(.stat) { height: max(480px, calc(100vh - 235px)); }
+  .stbar + .cvwrap > .cv:not(.stat) .inner { margin-top: clamp(80px, calc((100vh - 235px - 300px) / 2), 180px); }
+  .stbar + .cvwrap > .cv.stat { height: max(480px, calc(100vh - 185px)); }
+  .stbar + .cvwrap > .cv.stat .inner { margin-top: clamp(40px, calc((100vh - 185px - 360px) / 2), 140px); }
+}
+.difflist { margin-top: var(--space-3); } .difflist summary { font-size: var(--text-sm); cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.difflist table { font-size: var(--text-sm); margin-top: var(--space-2); }
+.sv-m { display: none; }
+@media (max-width: 640px) {
+  /* 編輯頁：主動作＋「⋯」同列；畫布盡早出現；迴圈提醒移到畫布下方 */
+  .page:has(.loopchip) { display: flex; flex-direction: column; }
+  .page:has(.loopchip) > .stbar { order: 1; } .page:has(.loopchip) > .outline { order: 2; }
+  .page:has(.loopchip) .eh { padding-top: var(--space-3); padding-bottom: var(--space-3); }
+  .page:has(.loopchip) .eh-grid { grid-template-areas: "crumb" "title" "meta" "flow" "act"; row-gap: 2px; }
+  .page:has(.loopchip) .g-flow { margin-top: var(--space-1); } .page:has(.loopchip) .g-act { margin-top: var(--space-2); width: 100%; } .page:has(.loopchip) .g-why:empty { display: none; }
+  .page:has(.loopchip) .actions { flex-wrap: nowrap; }
+  .page:has(.loopchip) .actions .btn.secondary:not([aria-label]) { display: none; }
+  .page:has(.loopchip) .actions .btn:not([aria-label]) { flex: 1 1 auto; }
+  .page:has(.loopchip) .actions .btn[aria-label] { flex: 0 0 44px; }
+  .page:has(.loopchip) .eh .crumbs ol { margin-bottom: 0; }
+  .addmenu { padding: var(--space-2) var(--space-4); }
+  .addmenu + .sv-m { display: flex; justify-content: flex-end; align-items: center; height: 44px; margin: -53px var(--space-4) 9px auto; position: relative; pointer-events: none; font-size: var(--text-sm); color: var(--color-text-muted); }
+  .addmenu[open] + .sv-m { display: none; }
+  .addmenu > summary { padding: 0 var(--space-3); gap: var(--space-2); align-items: center; }
+  .page:has(.loopchip) .stbar .sv { display: none; }
+  .loopchip { display: block; border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); line-height: 1.5; }
+  .loopchip > svg { display: inline; vertical-align: -3px; margin-right: var(--space-1); }
+  .loopchip > span { display: inline; }
+  .loopchip .btn.sm { display: inline; border: 0; background: transparent; padding: 0 0 0 var(--space-2); min-height: 32px; text-decoration: underline; color: inherit; font-weight: 600; }
+  .loopchip .btn.sm svg { display: none; }
+}
+@media (max-width: 640px) {
+  /* 旅程頁／軌跡頁：版本、重新整理（只留圖示）、編輯同一列，說明縮成一行 */
+  .actions .btn[aria-label="重新整理"] .lbl-d { display: none; }
+  .actions .btn[aria-label="重新整理"] { flex: 0 0 44px; padding: 0; justify-content: center; }
+  .actions .vsel { flex: 0 1 auto; }
+  .actions .btn[aria-disabled="true"] { flex: 1 1 auto; }
+  .g-act .actions { flex-wrap: nowrap; }
+  .g-why .why { margin-top: 0; font-size: var(--text-xs); }
+  .statline > span:first-child { display: none; }
+  .stbar:has(.statline) { padding-top: var(--space-1); padding-bottom: var(--space-1); min-height: 40px; }
+  .statline { font-size: var(--text-xs); }
+}
+.hintline { width: auto; max-width: 32em; white-space: nowrap; }
+.nd.start .btn svg { stroke: currentColor; color: #fff; opacity: 1; }
