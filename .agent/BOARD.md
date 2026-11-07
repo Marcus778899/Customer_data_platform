@@ -110,8 +110,8 @@
 
 | 任務 | 負責 | 狀態 | 嘗試 | 驗收證據 |
 |---|---|---|---|---|
-| journey-builder-design | architect | in-progress | 0 |  |
-| journey-builder-ui | designer | review | 1 |  |
+| journey-builder-design | architect | done | 0 | PR #194 |
+| journey-builder-ui | designer | review | 1 | PR #193 |
 
 ## 卡住／待甲方決定
 
