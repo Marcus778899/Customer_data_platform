@@ -3,7 +3,7 @@
 <!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md；表語意見 spec 07 §12 -->
 
 - 通用規則（Base URL、JSON、時間、錯誤格式）：`journey-engine.md` §1、§5；憑證與角色：`auth.md` §1、§2
-- 遮罩：同 `journey-engine.md` §4.4 的規則與 `CDP_TRACE_PLAIN_KEYS` 白名單
+- 遮罩：同 `journey-engine.md` §4.4 的規則與明文清單（v0.3.0 起內建預設 `name`，#184）
 - 寫入來源：本版只有 §2 API 與事件攝取；§1.1 正規化、§2 合併與識別碼唯一是**所有**寫入來源共用的規則，之後經 PostgreSQL 的整合入口（D-052，DESIGN-04）寫入的結果必須與經 §2 寫入相同
 
 ## §1 資料模型
@@ -23,7 +23,7 @@
 | | `masked_paths` | string[] | 例 `attributes.birthday`、`identifiers[0].value` |
 | | `as_of` | time | |
 
-- 顯示名稱：沒有專用欄位；約定屬性鍵 `name`。客戶頁標題：`attributes.name` 存在且不在 `masked_paths` → 用它；否則用 `profile_id`（識別碼照常以遮罩值列在下方）。資料來源要讓名稱可顯示，須寫入 `name` 且甲方把 `name` 列入 `CDP_TRACE_PLAIN_KEYS`
+- 顯示名稱：沒有專用欄位；約定屬性鍵 `name`。客戶頁標題：`attributes.name` 存在且不在 `masked_paths` → 用它；否則用 `profile_id`（識別碼照常以遮罩值列在下方）。資料來源要讓名稱可顯示，寫入 `name` 即可（內建明文，D-082）；`.env` 調整後不明文時退回 `profile_id`；v0.3.0 的標題規則由 `docs/ui/` 依 #187 改為與軌跡頁同一套客戶標示（前端，不改本 API）
 
 ### §1.1 識別碼正規化（寫入與搜尋共用）
 
