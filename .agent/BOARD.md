@@ -112,6 +112,10 @@
 |---|---|---|---|---|
 | journey-builder-design | architect | done | 0 | PR #194 |
 | journey-builder-ui | designer | review | 1 | PR #193 |
+| journey-lifecycle-api | backend | todo | 0 |  |
+| ux-fix-customer-list | frontend | todo | 0 |  |
+| journey-lifecycle-service | backend | todo | 0 |  |
+| journey-node-stats-api | backend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
