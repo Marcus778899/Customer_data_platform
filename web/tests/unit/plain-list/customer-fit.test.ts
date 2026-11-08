@@ -16,8 +16,7 @@ describe('客戶頁表格與用詞', () => {
     expect(journey).toContain('>旅程進度</AppLink>')
     expect(journey).not.toContain('這個旅程的 Enrollment')
   })
-  it('時間欄在寬螢幕可正常換行，避免被切掉', () => {
-    expect(css).toContain('table.enr td.nw, table.enr td.nw a { white-space: normal; }')
+  it('客戶頁左欄在寬螢幕縮窄讓出寬度', () => {
     expect(css).toContain('.cols.two.cust')
   })
   it('識別碼表與資料時間之間有間距', () => {

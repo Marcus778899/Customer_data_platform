@@ -222,7 +222,6 @@ table.enr .enr-time { display: block; }
   table.enr th:nth-child(1) { width: 46%; }
   table.enr th:nth-child(2) { width: 16%; }
   table.enr th:nth-child(3) { width: 38%; }
-  table.enr td.nw, table.enr td.nw a { white-space: normal; }
   table.enr th, table.enr td { padding-inline: var(--space-2); }
 }
 @media (min-width: 1101px) { .cols.two.cust { grid-template-columns: 300px minmax(0, 1fr); } }
