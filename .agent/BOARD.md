@@ -114,7 +114,7 @@
 | journey-builder-ui | designer | done | 1 | PR #193 |
 | journey-lifecycle-api | backend | todo | 0 |  |
 | ux-fix-customer-list | frontend | blocked | 1 |  |
-| journey-lifecycle-service | backend | todo | 0 |  |
+| journey-lifecycle-service | backend | in-progress | 0 |  |
 | journey-node-stats-api | backend | done | 0 | PR #201 |
 
 ## 卡住／待甲方決定
@@ -123,7 +123,6 @@
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - D-086：ux-fix-customer-list #144 三欄卡在流程工具（仲裁要求 qa 改舊驗收測試，ae 只允許派 frontend），待甲方選 A／B／C
-- 暫停交接：journey-lifecycle-service 的 backend 實作被中途停掉（甲方額度），驗收已鎖 @ 5d3af60；worktree 可能有半成品，下個 session 重派 backend 接手
 
 ## 注意事項（踩過的坑）
 
