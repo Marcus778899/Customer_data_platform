@@ -126,6 +126,7 @@
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - 待辦：草稿寫入是否收管理金鑰，契約（auth.md §2、journeys.md Draft.updated_by）與測試、實作不一致；lifecycle-service 合併後開 architect 契約修正單（收緊不需 D-編號，放寬才問甲方）
+- journey-lifecycle-service：worktree 的 AdminKeyCreateEnabledAcceptanceTest.java 只有換行差異（git diff 空）擋住 ae pr open；git restore 被權限擋，請甲方在自己終端機還原後續做
 
 ## 注意事項（踩過的坑）
 
