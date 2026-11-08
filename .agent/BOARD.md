@@ -118,14 +118,14 @@
 | journey-lifecycle-service | backend | in-progress | 0 |  |
 | journey-node-stats-api | backend | done | 0 | PR #201 |
 | ux-fix-login-trace | frontend | done | 0 | PR #203 |
+| ux-fix-customer-pages | frontend | done | 0 | PR #206 |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
-- D-086：ux-fix-customer-list #144 三欄卡在流程工具（仲裁要求 qa 改舊驗收測試，ae 只允許派 frontend），待甲方選 A／B／C
-- journey-lifecycle-service：Docker Desktop 未啟動，驗收測試與覆蓋率無法跑；甲方啟動後派回 backend 續做
+- 待辦：草稿寫入是否收管理金鑰，契約（auth.md §2、journeys.md Draft.updated_by）與測試、實作不一致；lifecycle-service 合併後開 architect 契約修正單（收緊不需 D-編號，放寬才問甲方）
 
 ## 注意事項（踩過的坑）
 
