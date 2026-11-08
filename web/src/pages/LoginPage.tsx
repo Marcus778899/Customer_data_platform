@@ -26,7 +26,7 @@ export function LoginPage({ expired, onLoggedIn }: Props) {
   const [emptyEmail, setEmptyEmail] = useState(false)
   const [emptyPassword, setEmptyPassword] = useState(false)
   // 429（D-045）：until 為倒數終點；first 為開始時的剩餘秒數（讀屏只朗讀這一次）
-  const [lock, setLock] = useState<{ until: number; first: number } | null>(null)
+  const [lock, setLock] = useState<{ until: number; first: number; email: string } | null>(null)
   const [remaining, setRemaining] = useState(0)
   const [ready, setReady] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
@@ -53,7 +53,7 @@ export function LoginPage({ expired, onLoggedIn }: Props) {
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (busy || lock) return
+    if (busy || (lock && lock.email === email)) return
     setBusy(true)
     setError(null)
     setEmptyEmail(false)
@@ -69,7 +69,7 @@ export function LoginPage({ expired, onLoggedIn }: Props) {
       const apiErr = err instanceof ApiError ? err : new ApiError(0, null, null)
       if (apiErr.status === 429) {
         const sec = Math.max(1, apiErr.retryAfter ?? 60)
-        setLock({ until: Date.now() + sec * 1000, first: sec })
+        setLock({ until: Date.now() + sec * 1000, first: sec, email })
         setRemaining(sec)
       } else if (apiErr.status === 400 && (badEmail || password === '')) {
         const noEmail = badEmail
@@ -90,7 +90,8 @@ export function LoginPage({ expired, onLoggedIn }: Props) {
 
   const alertId = error || lock ? ERROR_ID : undefined
   const describe = (fieldErr: boolean, id: string) => [alertId, fieldErr ? id : undefined].filter(Boolean).join(' ') || undefined
-  const locked = lock !== null
+  // 倒數只屬於送出時的 email（auth.md §3、#145）：改了 email 就解除
+  const locked = lock !== null && lock.email === email
   return (
     <div className="login-wrap">
       <main className="login card" id="main-content">
@@ -143,7 +144,15 @@ export function LoginPage({ expired, onLoggedIn }: Props) {
               readOnly={busy}
               aria-invalid={emptyEmail ? true : undefined}
               aria-describedby={describe(emptyEmail, EMAIL_ERR_ID)}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value
+                setEmail(v)
+                // 改了 email：解除倒數與鎖定訊息
+                if (lock && lock.email !== v) {
+                  setLock(null)
+                  setRemaining(0)
+                }
+              }}
             />
             {emptyEmail && (
               <span className="err-text" id={EMAIL_ERR_ID}>
