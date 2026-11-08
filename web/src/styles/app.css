@@ -10,6 +10,8 @@ h4 { font-size: var(--text-md); margin: var(--space-4) 0 var(--space-2); }
 .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
 a { color: var(--color-primary); }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* 程式聚焦（換頁後標題、結果標題）：滑鼠使用者不顯示外框；鍵盤操作時 :focus-visible 照舊 */
+[tabindex="-1"]:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); }
 form.search { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: var(--space-1); flex: 1 1 220px; }
@@ -91,6 +93,7 @@ input[aria-invalid="true"] { border-color: var(--color-danger-fg); border-width:
 .pw-alert { max-width: 480px; margin-bottom: var(--space-3); }
 .crumbs ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); margin: 0 0 var(--space-3); padding: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--color-text-muted); }
 .crumbs li { display: flex; align-items: center; min-height: 32px; }
+/* 分隔符的替代文字為空，讀屏不會唸出斜線 */
 .crumbs li + li::before { content: "/"; content: "/" / ""; margin-right: var(--space-2); }
 .crumbs a { display: inline-flex; align-items: center; min-height: 32px; }
 
@@ -145,10 +148,13 @@ td.nw, td.nw a { white-space: nowrap; }
 .chip[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-text); font-weight: 600; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) var(--panel-width); gap: var(--space-4); align-items: start; }
 .cols.two { grid-template-columns: 340px minmax(0, 1fr); }
-.search-big { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.search-big .field { flex: 1 1 360px; }
+.search-big { max-width: 640px; }
+.search-big .field { flex: 1 1 auto; }
+.search-row { display: flex; gap: 0; align-items: stretch; }
+.search-row input { flex: 1 1 auto; min-width: 0; border-right: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.search-row .btn { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding-inline: var(--space-5); }
 .search-big input { min-height: 48px; font-size: var(--text-md); }
-.search-big .btn { min-height: 48px; align-self: flex-start; }
+.search-big .btn { min-height: 48px; flex: 0 0 auto; }
 .search-big .btn[aria-disabled="true"] { cursor: progress; opacity: .7; }
 table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 
@@ -206,15 +212,17 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 }
 @media (max-width: 1100px) { .cols, .cols.two { grid-template-columns: minmax(0, 1fr); } }
 
-/* 客戶頁「參加過的旅程」表格：寬螢幕各欄不被切掉、不逐字換行、不出橫向捲軸。
-   做法：時間欄在空格處正常換行（日期、時刻可分兩行），步驟欄正常換行，標題不拆字；
-   客戶頁左欄縮到 300px 讓出寬度；卡片內 .scroll 仍保留橫向捲動當最後保險 */
+/* 客戶頁「參加過的旅程」表格（#144）：三欄（旅程＋目前位置／狀態／進入與結束時間），固定欄寬，文字在欄內換行，不出橫向捲軸 */
+table.enr { table-layout: fixed; width: 100%; }
+table.enr .badge { white-space: nowrap; }
+table.enr td, table.enr th { overflow-wrap: anywhere; }
+table.enr .enr-step { display: block; color: var(--color-text-muted); font-size: var(--text-sm); }
+table.enr .enr-time { display: block; }
 @media (min-width: 641px) {
-  table.enr .badge { white-space: nowrap; }
-  table.enr th { white-space: nowrap; }
+  table.enr th:nth-child(1) { width: 46%; }
+  table.enr th:nth-child(2) { width: 16%; }
+  table.enr th:nth-child(3) { width: 38%; }
   table.enr td.nw, table.enr td.nw a { white-space: normal; }
-  table.enr td:nth-child(1) { min-width: 7em; }
-  table.enr td:nth-child(4), table.enr td:nth-child(5) { min-width: 6em; }
   table.enr th, table.enr td { padding-inline: var(--space-2); }
 }
 @media (min-width: 1101px) { .cols.two.cust { grid-template-columns: 300px minmax(0, 1fr); } }
