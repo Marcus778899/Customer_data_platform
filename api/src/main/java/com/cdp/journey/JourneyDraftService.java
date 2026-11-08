@@ -113,11 +113,11 @@ public class JourneyDraftService {
     @Transactional
     public void delete(String journeyId) {
         JourneyRow row = journeys.lock(journeyId).orElseThrow(JourneyDraftService::journeyNotFound);
-        if (row.status() == JourneyStatus.DRAFT) {
-            throw new ApiException(ErrorCode.DRAFT_REQUIRED, "尚未發佈的旅程不可刪除草稿。");
-        }
         if (reviews.findPending(journeyId).isPresent()) {
             throw inReview();
+        }
+        if (row.status() == JourneyStatus.DRAFT) {
+            throw new ApiException(ErrorCode.DRAFT_REQUIRED, "尚未發佈的旅程不可刪除草稿。");
         }
         if (row.draft() != null) {
             journeys.clearDraft(journeyId, clock.instant());

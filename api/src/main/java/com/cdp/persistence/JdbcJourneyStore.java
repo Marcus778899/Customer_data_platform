@@ -231,8 +231,8 @@ public class JdbcJourneyStore implements JourneyStore {
     @Override
     public List<String> profileAttributeKeys(int limit) {
         return jdbc.sql(
-                        "select distinct k from (select attributes from profile limit :limit) p,"
-                                + " jsonb_object_keys(p.attributes) as k order by k collate \"C\"")
+                        "select k from (select distinct k from (select attributes from profile limit :limit) p,"
+                                + " jsonb_object_keys(p.attributes) as k) t order by k collate \"C\"")
                 .param("limit", limit)
                 .query(String.class)
                 .list();
@@ -241,10 +241,10 @@ public class JdbcJourneyStore implements JourneyStore {
     @Override
     public List<String> eventPropertyKeys(String eventName, int limit) {
         return jdbc.sql(
-                        "select distinct k from (select properties from event where name = :name"
+                        "select k from (select distinct k from (select properties from event where name = :name"
                                 + " and properties is not null and jsonb_typeof(properties) = 'object'"
                                 + " order by occurred_at desc limit :limit) e,"
-                                + " jsonb_object_keys(e.properties) as k order by k collate \"C\"")
+                                + " jsonb_object_keys(e.properties) as k) t order by k collate \"C\"")
                 .param("name", eventName)
                 .param("limit", limit)
                 .query(String.class)

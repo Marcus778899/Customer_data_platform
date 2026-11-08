@@ -47,7 +47,7 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
                     + " and d.version = j.latest_version"
                     + " left join app_user su on su.user_id = j.stopped_by"
                     + " left join lateral (select * from journey_review r where r.journey_id = j.journey_id"
-                    + " order by r.submitted_at desc, r.review_id desc limit 1) lr on true"
+                    + " order by (r.status = 'PENDING') desc, r.submitted_at desc, r.seq desc limit 1) lr on true"
                     + " left join app_user sb on sb.user_id = lr.submitted_by"
                     + " left join app_user db on db.user_id = lr.decided_by";
 

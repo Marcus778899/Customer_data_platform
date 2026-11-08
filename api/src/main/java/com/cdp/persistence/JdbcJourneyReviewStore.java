@@ -82,7 +82,7 @@ public class JdbcJourneyReviewStore implements JourneyReviewStore {
         return jdbc.sql(
                         SELECT
                                 + " where r.journey_id = :journey"
-                                + " order by r.submitted_at desc, r.review_id desc limit 1")
+                                + " order by (r.status = 'PENDING') desc, r.submitted_at desc, r.seq desc limit 1")
                 .param("journey", journeyId)
                 .query((rs, n) -> map(rs))
                 .optional();
@@ -112,13 +112,13 @@ public class JdbcJourneyReviewStore implements JourneyReviewStore {
 
     @Override
     public List<JourneyReview> list(String journeyId, PageCursor after, int limit) {
-        String cursor = after == null ? "" : " and (r.submitted_at, r.review_id) < (:at, :cursorId)";
+        String cursor = after == null ? "" : " and (r.submitted_at, r.seq) < (:at, (select c.seq from journey_review c where c.review_id = :cursorId))";
         JdbcClient.StatementSpec spec =
                 jdbc.sql(
                                 SELECT
                                         + " where r.journey_id = :journey"
                                         + cursor
-                                        + " order by r.submitted_at desc, r.review_id desc limit :limit")
+                                        + " order by r.submitted_at desc, r.seq desc limit :limit")
                         .param("journey", journeyId)
                         .param("limit", limit);
         if (after != null) {

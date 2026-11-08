@@ -36,6 +36,7 @@ GROUP BY journey_id;
 
 CREATE TABLE journey_review (
     review_id    TEXT PRIMARY KEY,
+    seq          BIGINT GENERATED ALWAYS AS IDENTITY,
     journey_id   TEXT NOT NULL,
     action       TEXT NOT NULL,
     status       TEXT NOT NULL,
@@ -55,7 +56,7 @@ CREATE TABLE journey_review (
 
 -- 一個旅程同時最多一筆送審中
 CREATE UNIQUE INDEX uq_journey_review_pending ON journey_review (journey_id) WHERE status = 'PENDING';
-CREATE INDEX ix_journey_review_journey ON journey_review (journey_id, submitted_at DESC, review_id DESC);
+CREATE INDEX ix_journey_review_journey ON journey_review (journey_id, submitted_at DESC, seq DESC);
 
 -- 畫布座標隨版本寫入（版本不可變）
 ALTER TABLE journey_definition ADD COLUMN layout JSONB;
