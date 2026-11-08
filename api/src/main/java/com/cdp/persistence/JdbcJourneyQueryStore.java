@@ -17,16 +17,39 @@ import com.cdp.journey.JourneyQueryStore;
 import com.cdp.journey.JourneyStatus;
 import com.cdp.journey.JourneySummary;
 import com.cdp.journey.JourneyVersionRef;
+import com.cdp.journey.ReviewBrief;
+import com.cdp.journey.ReviewStatus;
+import com.cdp.journey.UserRef;
 import com.cdp.query.PageCursor;
 
-/** journeys.md §2 第一版推導：每個 journey_id 取 version 最大的一列（最新列）。 */
+/**
+ * journeys.md §2 第二版：讀 journey 表，名稱、說明、發佈時間取最新版本（DRAFT 取草稿）；review_status 由該旅程最新一筆
+ * journey_review 與草稿推導（送審中 PENDING；最新一筆被退回且草稿仍在 REJECTED；其他 null）。
+ */
 @Repository
 public class JdbcJourneyQueryStore implements JourneyQueryStore {
 
-    private static final String LATEST =
-            "select distinct on (journey_id) journey_id, version, name, description, status,"
-                    + " created_at, published_at from journey_definition"
-                    + " order by journey_id, version desc";
+    private static final String BASE =
+            "select j.journey_id, j.status, j.latest_version,"
+                    + " coalesce(d.name, j.draft ->> 'name') as name,"
+                    + " case when j.latest_version is null then j.draft ->> 'description'"
+                    + " else d.description end as description,"
+                    + " (j.draft is not null) as has_draft, j.updated_at, d.published_at,"
+                    + " j.stopped_at, j.stop_reason, j.stopped_by, su.display_name as stopped_name,"
+                    + " case when lr.status = 'PENDING' then 'PENDING'"
+                    + " when lr.status = 'REJECTED' and j.draft is not null then 'REJECTED' end as review_status,"
+                    + " lr.review_id, lr.status as lr_status, lr.submitted_by as lr_submitted_by,"
+                    + " sb.display_name as lr_submitted_name, lr.submitted_at as lr_submitted_at,"
+                    + " lr.decided_by as lr_decided_by, db.display_name as lr_decided_name,"
+                    + " lr.decided_at as lr_decided_at, lr.reason as lr_reason"
+                    + " from journey j"
+                    + " left join journey_definition d on d.journey_id = j.journey_id"
+                    + " and d.version = j.latest_version"
+                    + " left join app_user su on su.user_id = j.stopped_by"
+                    + " left join lateral (select * from journey_review r where r.journey_id = j.journey_id"
+                    + " order by r.submitted_at desc, r.review_id desc limit 1) lr on true"
+                    + " left join app_user sb on sb.user_id = lr.submitted_by"
+                    + " left join app_user db on db.user_id = lr.decided_by";
 
     private final JdbcClient jdbc;
 
@@ -36,28 +59,30 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
 
     @Override
     public List<JourneySummary> list(
-            String q, Set<JourneyStatus> statuses, PageCursor after, int limit) {
-        StringBuilder sql =
-                new StringBuilder(
-                        "select journey_id, version, name, status, created_at, published_at from ("
-                                + LATEST
-                                + ") l where true");
+            String q, Set<JourneyStatus> statuses, String reviewStatus, PageCursor after, int limit) {
+        StringBuilder sql = new StringBuilder("select * from (" + BASE + ") l where true");
         if (q != null) {
             sql.append(" and lower(name) like :pattern escape '\\'");
         }
         if (statuses != null && !statuses.isEmpty()) {
             sql.append(" and status in (:statuses)");
         }
-        if (after != null) {
-            sql.append(" and (created_at, journey_id) < (:at, :id)");
+        if (reviewStatus != null) {
+            sql.append(" and review_status = :reviewStatus");
         }
-        sql.append(" order by created_at desc, journey_id desc limit :limit");
+        if (after != null) {
+            sql.append(" and (updated_at, journey_id) < (:at, :id)");
+        }
+        sql.append(" order by updated_at desc, journey_id desc limit :limit");
         JdbcClient.StatementSpec spec = jdbc.sql(sql.toString()).param("limit", limit);
         if (q != null) {
             spec = spec.param("pattern", "%" + escapeLike(q.toLowerCase()) + "%");
         }
         if (statuses != null && !statuses.isEmpty()) {
             spec = spec.param("statuses", statuses.stream().map(Enum::name).toList());
+        }
+        if (reviewStatus != null) {
+            spec = spec.param("reviewStatus", reviewStatus);
         }
         if (after != null) {
             spec = spec.param("at", ts(after.at())).param("id", after.id());
@@ -67,33 +92,13 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
 
     @Override
     public Optional<JourneyDetail> detail(String journeyId) {
-        Optional<JourneyDetail> latest =
-                jdbc.sql(
-                                "select journey_id, version, name, description, status, created_at,"
-                                        + " published_at from journey_definition where journey_id = :id"
-                                        + " order by version desc limit 1")
+        Optional<JourneyDetail> found =
+                jdbc.sql(BASE + " where j.journey_id = :id")
                         .param("id", journeyId)
-                        .query(
-                                (rs, n) -> {
-                                    JourneySummary s = summary(rs);
-                                    return new JourneyDetail(
-                                            s.journeyId(),
-                                            s.name(),
-                                            s.status(),
-                                            s.latestVersion(),
-                                            false,
-                                            null,
-                                            s.updatedAt(),
-                                            s.publishedAt(),
-                                            rs.getString("description"),
-                                            List.of(),
-                                            null,
-                                            null,
-                                            null);
-                                })
+                        .query((rs, n) -> detailRow(rs))
                         .optional();
-        if (latest.isEmpty()) {
-            return latest;
+        if (found.isEmpty()) {
+            return found;
         }
         List<JourneyVersionRef> versions =
                 jdbc.sql(
@@ -105,7 +110,7 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
                                         new JourneyVersionRef(
                                                 rs.getInt("version"), instant(rs, "published_at")))
                         .list();
-        JourneyDetail d = latest.get();
+        JourneyDetail d = found.get();
         return Optional.of(
                 new JourneyDetail(
                         d.journeyId(),
@@ -116,6 +121,7 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
                         d.reviewStatus(),
                         d.updatedAt(),
                         d.publishedAt(),
+                        d.latestReview(),
                         d.description(),
                         versions,
                         d.stoppedAt(),
@@ -128,11 +134,48 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
                 rs.getString("journey_id"),
                 rs.getString("name"),
                 JourneyStatus.valueOf(rs.getString("status")),
-                rs.getInt("version"),
-                false,
-                null,
-                instant(rs, "created_at"),
-                instant(rs, "published_at"));
+                JdbcJourneyReviewStore.integer(rs, "latest_version"),
+                rs.getBoolean("has_draft"),
+                rs.getString("review_status"),
+                instant(rs, "updated_at"),
+                instant(rs, "published_at"),
+                brief(rs));
+    }
+
+    private static JourneyDetail detailRow(ResultSet rs) throws SQLException {
+        JourneySummary s = summary(rs);
+        String stoppedBy = rs.getString("stopped_by");
+        String stoppedName = rs.getString("stopped_name");
+        return new JourneyDetail(
+                s.journeyId(),
+                s.name(),
+                s.status(),
+                s.latestVersion(),
+                s.hasDraft(),
+                s.reviewStatus(),
+                s.updatedAt(),
+                s.publishedAt(),
+                s.latestReview(),
+                rs.getString("description"),
+                List.of(),
+                instant(rs, "stopped_at"),
+                rs.getString("stop_reason"),
+                stoppedBy == null ? null : new UserRef(stoppedBy, stoppedName == null ? stoppedBy : stoppedName));
+    }
+
+    /** 只有 review_status 不為 null 時帶出那一筆審核的摘要。 */
+    private static ReviewBrief brief(ResultSet rs) throws SQLException {
+        if (rs.getString("review_status") == null) {
+            return null;
+        }
+        return new ReviewBrief(
+                rs.getString("review_id"),
+                ReviewStatus.valueOf(rs.getString("lr_status")),
+                JdbcJourneyReviewStore.user(rs.getString("lr_submitted_by"), rs.getString("lr_submitted_name")),
+                instant(rs, "lr_submitted_at"),
+                JdbcJourneyReviewStore.user(rs.getString("lr_decided_by"), rs.getString("lr_decided_name")),
+                instant(rs, "lr_decided_at"),
+                rs.getString("lr_reason"));
     }
 
     private static String escapeLike(String s) {

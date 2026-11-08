@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-/** journeys.md §1 {@code JourneyVersion}；v0.1.0 建立的版本 {@code layout} 恆為 null。 */
+/** journeys.md §1 {@code JourneyVersion}；v0.1.0 建立的版本 {@code layout} 為 null。 */
 public record JourneyVersionView(
         String journeyId,
         String name,

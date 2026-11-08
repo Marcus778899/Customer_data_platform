@@ -57,6 +57,9 @@ class JourneyServiceTest {
     private final java.util.concurrent.atomic.AtomicReference<String> validatedJourneyId =
             new java.util.concurrent.atomic.AtomicReference<>();
 
+    private final JourneyStore journeys = org.mockito.Mockito.mock(JourneyStore.class);
+    private final JourneyReviewStore reviews = org.mockito.Mockito.mock(JourneyReviewStore.class);
+
     private final JourneyService service =
             new JourneyService(
                     store,
@@ -68,7 +71,11 @@ class JourneyServiceTest {
                                     new SendMessageNode(),
                                     new SpyEndNode(validatedJourneyId))),
                     new UlidGenerator(clock),
-                    clock);
+                    clock,
+                    journeys,
+                    reviews,
+                    new ReviewPolicy(true));
+
 
     /** 包 EndNode，記下 validate 收到的 definition.journeyId。 */
     private static final class SpyEndNode implements com.cdp.engine.node.JourneyNode {
@@ -162,5 +169,69 @@ class JourneyServiceTest {
                 .isEqualTo(ErrorCode.VALIDATION_FAILED);
         assertThatThrownBy(() -> service.create(request("ghost")))
                 .isInstanceOf(ApiException.class);
+    }
+
+    private static JourneyStore.JourneyRow row(JourneyStatus status) {
+        return new JourneyStore.JourneyRow(
+                "01HZZZZZZZZZZZZZZZZZZZZZZZ", status, 1, null, null, 0, null, null, null, null, null, null, null);
+    }
+
+    private CreateJourneyRequest withId(String id) {
+        var req = request("m");
+        return new CreateJourneyRequest(
+                id, req.name(), req.description(), req.settings(), req.entryNode(), req.nodes());
+    }
+
+    @Test
+    void newJourneyWritesJourneyRowAndAdminKeyRecord() {
+        var response = service.create(request("m"));
+        org.mockito.Mockito.verify(journeys)
+                .insertPublished(org.mockito.ArgumentMatchers.eq(response.journeyId()), org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.any());
+        var captor = org.mockito.ArgumentCaptor.forClass(JourneyReview.class);
+        org.mockito.Mockito.verify(reviews).insert(captor.capture());
+        assertThat(captor.getValue().reason()).isEqualTo("管理金鑰建立");
+        assertThat(captor.getValue().version()).isEqualTo(1);
+    }
+
+    @Test
+    void existingJourneyKeepsDraftAndUpdatesLatestVersion() {
+        String id = "01HZZZZZZZZZZZZZZZZZZZZZZZ";
+        org.mockito.Mockito.when(journeys.lock(id)).thenReturn(Optional.of(row(JourneyStatus.ACTIVE)));
+        service.create(withId(id));
+        org.mockito.Mockito.verify(journeys)
+                .markPublished(org.mockito.ArgumentMatchers.eq(id), org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.eq(false), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void abortedJourneyRejectsNewVersion() {
+        String id = "01HZZZZZZZZZZZZZZZZZZZZZZZ";
+        org.mockito.Mockito.when(journeys.lock(id)).thenReturn(Optional.of(row(JourneyStatus.ABORTED)));
+        assertThatThrownBy(() -> service.create(withId(id)))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.JOURNEY_ABORTED));
+    }
+
+    @Test
+    void unknownJourneyIsNotFound() {
+        assertThatThrownBy(() -> service.create(withId("01HZZZZZZZZZZZZZZZZZZZZZZZ")))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.JOURNEY_NOT_FOUND));
+    }
+
+    @Test
+    void disabledSwitchRejectsBeforeAnything() {
+        var disabled =
+                new JourneyService(
+                        store,
+                        new NodeRegistry(List.of(new StartNode())),
+                        new UlidGenerator(clock),
+                        clock,
+                        journeys,
+                        reviews,
+                        new ReviewPolicy(false));
+        assertThatThrownBy(() -> disabled.create(request("m")))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        e -> assertThat(e.code()).isEqualTo(ErrorCode.ADMIN_KEY_JOURNEY_CREATE_DISABLED));
+        org.mockito.Mockito.verifyNoInteractions(reviews);
     }
 }
