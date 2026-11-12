@@ -94,6 +94,15 @@ export interface CondGroup {
 export type Cond = CondLeaf | CondGroup
 export const isGroup = (c: Cond): c is CondGroup => 'op' in c
 
+/** 常見欄位的白話名（設計稿 ed-condition）；沒有對照的欄位顯示原代碼 */
+const FIELD_LABEL: Record<string, string> = {
+  tier: '會員等級',
+  city: '居住城市',
+  'trigger.properties.cart_total': '購物車金額',
+}
+export const fieldLabel = (code: string): string => FIELD_LABEL[code] ?? code
+export const eventFieldLabel = (key: string): string => FIELD_LABEL[`trigger.properties.${key}`] ?? `事件屬性 ${key}`
+
 export const OPERATORS: { value: string; label: string; noValue?: boolean }[] = [
   { value: 'EQ', label: '等於' },
   { value: 'NEQ', label: '不等於' },
@@ -382,7 +391,8 @@ export function findLoops(def: Def): LoopInfo[] {
   const start = byId.has(def.entry_node) ? def.entry_node : def.nodes[0]?.id
   if (start) visit(start)
   for (const n of def.nodes) if (!state.has(n.id)) visit(n.id)
-  return loops
+  const order = new Map(def.nodes.map((n, i) => [n.id, i]))
+  return loops.sort((a, b) => (order.get(a.from) ?? 0) - (order.get(b.from) ?? 0))
 }
 
 /** 兩個以上的節點用文字串成清單項目（讀屏用） */

@@ -5,6 +5,8 @@ import {
   buildDuration,
   condOf,
   displayName,
+  eventFieldLabel,
+  fieldLabel,
   incomingOf,
   isGroup,
   linkTargets,
@@ -167,15 +169,15 @@ function LeafRow({
           }}
         >
           <option value="">（選擇欄位）</option>
-          {leaf.field && !custom && !known.has(leaf.field) && <option value={leaf.field}>{leaf.field}</option>}
+          {leaf.field && !custom && !known.has(leaf.field) && <option value={leaf.field}>{fieldLabel(leaf.field)}</option>}
           {(keys?.profile_attributes ?? []).map((k) => (
             <option key={k} value={k}>
-              {k}
+              {fieldLabel(k)}
             </option>
           ))}
           {(keys?.event_properties ?? []).map((k) => (
             <option key={`e-${k}`} value={`trigger.properties.${k}`}>
-              事件屬性 {k}
+              {eventFieldLabel(k)}
             </option>
           ))}
           <option value={CUSTOM}>手動輸入…</option>

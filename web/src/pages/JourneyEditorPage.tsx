@@ -154,7 +154,6 @@ function Editor({ id }: { id: string }) {
       ? '尚未儲存'
       : `已自動儲存 ${friendlyTime(ed.savedAt ?? ed.meta?.updatedAt)}`
   const errCount = ed.report?.errors.length ?? 0
-  const loop = loops[0]
   const outline = textOutline(def)
 
   async function submit() {
@@ -259,15 +258,15 @@ function Editor({ id }: { id: string }) {
           <div className="statusbar">
             <span role="status">{saveText}</span>
             {errCount > 0 && <span className="status-err">有 {errCount} 個錯誤</span>}
-            {loop && (
-              <span className="loop-note" role="status">
+            {loops.map((lp) => (
+              <span className="loop-note" role="status" key={`${lp.from}>${lp.to}`}>
                 <strong>有迴圈：</strong>
-                「{displayName(nodeById(def, loop.from)!)}」會回到「{displayName(nodeById(def, loop.to)!)}」，客戶可能重複經過，圈數沒有上限。{' '}
-                <button type="button" className="btn secondary sm" onClick={() => select(loop.from)}>
+                「{displayName(nodeById(def, lp.from)!)}」會回到「{displayName(nodeById(def, lp.to)!)}」，客戶可能重複經過，圈數沒有上限。{' '}
+                <button type="button" className="btn secondary sm" onClick={() => select(lp.from)}>
                   定位
                 </button>
               </span>
-            )}
+            ))}
           </div>
 
           <details className="outline">
