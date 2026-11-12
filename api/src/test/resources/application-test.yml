@@ -48,12 +48,13 @@ cdp:
     shutdown-timeout: PT5S
   # 測試專用假憑證（非機密）；驗收測試以此呼叫各角色
   security:
-    ingest-api-key: test-ingest-key
-    admin-api-key: test-admin-key
+    ingest-api-key: test-ingest-key-0000000000000000000000
+    admin-api-key: test-admin-key-00000000000000000000000
   # 登入限速：門檻放寬，免得共用 email 的測試互相鎖住；限速驗收自己覆蓋
   login:
     max-failures: 50
     lockout: PT15M
+    ip-max-failures: 1000
   phone:
     default-country-code: 886
   trace:

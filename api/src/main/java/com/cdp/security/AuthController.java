@@ -82,8 +82,9 @@ public class AuthController {
         }
         String key = body.email().trim().toLowerCase(Locale.ROOT);
 
+        String sourceIp = ClientAddress.of(request);
         // 檢查鎖定與佔用名額是原子的：並行請求不能同時越過門檻
-        Optional<Duration> locked = limiter.tryBegin(key);
+        Optional<Duration> locked = limiter.tryBegin(key, sourceIp);
         if (locked.isPresent()) {
             response.setHeader(
                     HttpHeaders.RETRY_AFTER, Long.toString(LoginRateLimiter.retryAfterSeconds(locked.get())));
@@ -99,7 +100,7 @@ public class AuthController {
                     : hasher.matchesDummy(body.password());
             outcome = user != null && user.active() && passwordOk ? Outcome.SUCCESS : Outcome.FAILURE;
         } finally {
-            limiter.finish(key, outcome);
+            limiter.finish(key, sourceIp, outcome);
         }
         if (outcome != Outcome.SUCCESS) {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS, INVALID_CREDENTIALS_DETAIL);
