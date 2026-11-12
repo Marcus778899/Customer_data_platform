@@ -16,10 +16,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
-import com.cdp.acceptance.support.TestKeys;
 
 /**
  * user-auth-api 改寫（auth.md）：登入改 email＋密碼，帳號由管理金鑰經 POST /users 建立（VIEWER 取代 v0.1.0 的 SUPPORT）；

@@ -14,10 +14,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
-import com.cdp.acceptance.support.TestKeys;
 
 /** user-auth-api 改寫：session 改為 email 登入的 VIEWER（取代 SUPPORT）。
  * FIX-04 回歸（qa FAIL 1）：enrollments 只放行契約 §4 的三個樣式，其餘子路徑對 SUPPORT 與 INGEST 回 403 §5 格式。 */

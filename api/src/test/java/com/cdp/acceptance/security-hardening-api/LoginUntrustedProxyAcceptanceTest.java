@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.cdp.acceptance.security.AuthHttp;
@@ -32,6 +33,7 @@ import com.cdp.acceptance.security.SecurityTestSupport;
             "server.tomcat.remoteip.internal-proxies=192\\.0\\.2\\.1"
         })
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Import(SecurityTestSupport.class)
 class LoginUntrustedProxyAcceptanceTest {
 

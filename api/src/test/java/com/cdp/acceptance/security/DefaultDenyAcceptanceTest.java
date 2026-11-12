@@ -20,10 +20,10 @@ import org.springframework.boot.web.server.servlet.context.ServletWebServerAppli
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
-import com.cdp.acceptance.support.TestKeys;
 
 /**
  * user-auth-api 改寫（auth.md）：session 改為 email 登入的 VIEWER（取代 SUPPORT），寫入請求自動帶 CSRF 標頭；
