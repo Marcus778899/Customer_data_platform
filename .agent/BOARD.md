@@ -119,16 +119,18 @@
 | journey-node-stats-api | backend | done | 0 | PR #201 |
 | ux-fix-login-trace | frontend | done | 0 | PR #203 |
 | ux-fix-customer-pages | frontend | done | 0 | PR #206 |
-| coverage-gate-setup | architect | todo | 0 |  |
-| journey-contract-fix | architect | todo | 0 |  |
-| security-hardening-api | backend | todo | 0 |  |
-| journey-canvas-ui | frontend | todo | 0 |  |
+| coverage-gate-setup | architect | qa | 0 |  |
+| journey-contract-fix | architect | qa | 0 |  |
+| security-hardening-api | backend | in-progress | 0 |  |
+| journey-canvas-ui | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
+- 待辦：畫布的 event_filter（D-085）編輯 UI 沒有規格，canvas-ui 未做；待確認歸 designer 補規格＋哪張前端單
+- 合併後甲方要更新 .env：CDP_LOGIN_IP_MAX_FAILURES；兩把金鑰改 ≥ 32 字、不含 CHANGE_ME（security-hardening-api）
 
 ## 注意事項（踩過的坑）
 
