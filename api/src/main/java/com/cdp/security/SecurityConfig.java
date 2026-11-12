@@ -104,9 +104,11 @@ public class SecurityConfig {
                         // 草稿寫入、validate、送審、停止、撤回：EDITOR 以上的 session
                         .requestMatchers(HttpMethod.POST,
                                 V1 + "/journeys/drafts", V1 + "/journeys/*/draft/validate",
-                                V1 + "/journeys/*/draft/submit", V1 + "/journeys/*/stop",
-                                V1 + "/journeys/*/reviews/*/withdraw")
+                                V1 + "/journeys/*/draft/submit", V1 + "/journeys/*/reviews/*/withdraw")
                         .access(editorSession)
+                        // 停止（journeys.md §3.5）：EDITOR 以上的 session，或管理金鑰（stopped_by 為 null）
+                        .requestMatchers(HttpMethod.POST, V1 + "/journeys/*/stop")
+                        .access(AuthorizationManagers.anyOf(editorSession, adminKey))
                         .requestMatchers(HttpMethod.PUT, V1 + "/journeys/*/draft").access(editorSession)
                         .requestMatchers(HttpMethod.DELETE, V1 + "/journeys/*/draft").access(editorSession)
                         // 核准、退回：只有 ADMIN 的 session（不收任何 Bearer）

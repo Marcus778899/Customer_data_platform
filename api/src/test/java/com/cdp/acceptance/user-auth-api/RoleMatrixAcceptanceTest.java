@@ -43,6 +43,7 @@ class RoleMatrixAcceptanceTest {
 
     private static final List<String> READERS = List.of("ADMIN_KEY", "VIEWER", "EDITOR", "ADMIN");
     private static final List<String> WRITERS = List.of("EDITOR", "ADMIN");
+    private static final List<String> WRITERS_AND_ADMIN_KEY = List.of("ADMIN_KEY", "EDITOR", "ADMIN");
     private static final List<String> BEARER_ADMIN_ONLY = List.of("ADMIN_KEY");
 
     private static final List<Api> MATRIX = List.of(
@@ -69,8 +70,8 @@ class RoleMatrixAcceptanceTest {
             new Api("DELETE", "/api/v1/journeys/" + ID + "/draft", null, WRITERS),
             new Api("POST", "/api/v1/journeys/" + ID + "/draft/validate", null, WRITERS),
             new Api("POST", "/api/v1/journeys/" + ID + "/draft/submit", "{}", WRITERS),
-            // 停止（D-060 不經審核）：EDITOR 以上
-            new Api("POST", "/api/v1/journeys/" + ID + "/stop", "{}", WRITERS),
+            // 停止（D-060 不經審核）：EDITOR 以上 session 與管理金鑰（stopped_by 為 null）
+            new Api("POST", "/api/v1/journeys/" + ID + "/stop", "{}", WRITERS_AND_ADMIN_KEY),
             // withdraw：EDITOR（僅自己送審的，由 journeys 單驗）與 ADMIN；此處只驗角色層
             new Api("POST", "/api/v1/journeys/" + ID + "/reviews/" + ID + "/withdraw", "{}", WRITERS),
             // approve／reject：只有 ADMIN session

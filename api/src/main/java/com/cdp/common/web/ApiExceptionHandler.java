@@ -120,7 +120,7 @@ public class ApiExceptionHandler {
 
     /** 契約 §5：application/problem+json，type 固定 about:blank。 */
     private static ResponseEntity<Map<String, Object>> problem(
-            HttpStatusCode status, String code, String detail, List<FieldError> errors) {
+            HttpStatusCode status, String code, String detail, List<?> errors) {
         return problem(status, code, detail, errors, new HttpHeaders());
     }
 
@@ -134,7 +134,7 @@ public class ApiExceptionHandler {
     }
 
     private static ResponseEntity<Map<String, Object>> problem(
-            HttpStatusCode status, String code, String detail, List<FieldError> errors, HttpHeaders headers) {
+            HttpStatusCode status, String code, String detail, List<?> errors, HttpHeaders headers) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("type", "about:blank");
         HttpStatus known = HttpStatus.resolve(status.value());

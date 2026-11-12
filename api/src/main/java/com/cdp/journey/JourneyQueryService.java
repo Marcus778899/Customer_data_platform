@@ -22,14 +22,21 @@ public class JourneyQueryService {
 
     private final JourneyQueryStore store;
     private final JourneyDefinitionStore definitions;
+    private final JourneyStore journeys;
 
-    public JourneyQueryService(JourneyQueryStore store, JourneyDefinitionStore definitions) {
+    public JourneyQueryService(
+            JourneyQueryStore store, JourneyDefinitionStore definitions, JourneyStore journeys) {
         this.store = store;
         this.definitions = definitions;
+        this.journeys = journeys;
     }
 
-    public Page<JourneySummary> list(String status, String q, String cursor, Integer limit) {
+    public Page<JourneySummary> list(
+            String status, String q, String reviewStatus, String cursor, Integer limit) {
         Set<JourneyStatus> statuses = parseStatuses(status);
+        if (reviewStatus != null && !reviewStatus.equals("PENDING") && !reviewStatus.equals("REJECTED")) {
+            throw invalid("review_status", "只支援 PENDING、REJECTED");
+        }
         if (q != null && q.indexOf((char) 0) >= 0) {
             throw invalid("q", "不可含 NUL 字元");
         }
@@ -42,7 +49,7 @@ public class JourneyQueryService {
         }
         PageCursor after = cursor == null ? null : PageCursor.decode(cursor);
         String query = q == null || q.isBlank() ? null : q;
-        List<JourneySummary> rows = store.list(query, statuses, after, size + 1);
+        List<JourneySummary> rows = store.list(query, statuses, reviewStatus, after, size + 1);
         if (rows.size() <= size) {
             return new Page<>(rows, null);
         }
@@ -66,7 +73,7 @@ public class JourneyQueryService {
                 d.settings(),
                 d.entryNode(),
                 d.nodes(),
-                null,
+                journeys.findLayout(journeyId, version).orElse(null),
                 d.publishedAt());
     }
 

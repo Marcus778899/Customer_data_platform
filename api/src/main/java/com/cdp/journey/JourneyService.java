@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cdp.common.IdGenerator;
 import com.cdp.common.web.ApiException;
@@ -18,8 +19,12 @@ import com.cdp.common.web.ErrorCode;
 import com.cdp.common.web.FieldError;
 import com.cdp.engine.node.NodeConfig;
 import com.cdp.engine.runtime.NodeRegistry;
+import com.cdp.journey.JourneyStore.JourneyRow;
 
-/** 建立旅程版本：圖驗證（v0.1.0 子集，契約 §3.1）+ 各節點 validate，通過即 ACTIVE。 */
+/**
+ * 建立旅程版本（journey-engine.md §3.1，只收管理金鑰）：圖驗證（v0.1.0 子集）+ 各節點 validate，通過即 ACTIVE。
+ * 第二版同一交易內同步 journey 列並寫「管理金鑰建立」審核紀錄（journeys.md §3.1、§3.3 第 3 列；D-061）。
+ */
 @Service
 public class JourneyService {
 
@@ -37,16 +42,30 @@ public class JourneyService {
     private final NodeRegistry nodes;
     private final IdGenerator ids;
     private final Clock clock;
+    private final JourneyStore journeys;
+    private final JourneyReviewStore reviews;
+    private final ReviewPolicy policy;
 
     public JourneyService(
-            JourneyDefinitionStore store, NodeRegistry nodes, IdGenerator ids, Clock clock) {
+            JourneyDefinitionStore store,
+            NodeRegistry nodes,
+            IdGenerator ids,
+            Clock clock,
+            JourneyStore journeys,
+            JourneyReviewStore reviews,
+            ReviewPolicy policy) {
         this.store = store;
         this.nodes = nodes;
         this.ids = ids;
         this.clock = clock;
+        this.journeys = journeys;
+        this.reviews = reviews;
+        this.policy = policy;
     }
 
+    @Transactional
     public JourneyCreatedResponse create(CreateJourneyRequest request) {
+        policy.checkAdminKeyCreate();
         List<FieldError> errors = new ArrayList<>();
         if (request == null) {
             errors.add(new FieldError("body", "請求內容不可為空"));
@@ -58,10 +77,14 @@ public class JourneyService {
         }
 
         String journeyId = request.journeyId();
-        if (journeyId == null) {
+        boolean existing = journeyId != null;
+        if (!existing) {
             journeyId = ids.newId();
-        } else if (store.find(journeyId, 1).isEmpty()) {
-            throw new ApiException(ErrorCode.JOURNEY_NOT_FOUND, "找不到這個旅程，無法建立新版本。");
+        } else {
+            JourneyRow row = lockExisting(journeyId);
+            if (row.status() == JourneyStatus.ABORTED) {
+                throw new ApiException(ErrorCode.JOURNEY_ABORTED, "這個旅程已停止，不能再建立新版本。");
+            }
         }
 
         Instant now = clock.instant();
@@ -78,8 +101,25 @@ public class JourneyService {
                                 request.nodes(),
                                 now,
                                 now));
+        if (existing) {
+            journeys.markPublished(journeyId, saved.version(), false, now);
+        } else {
+            journeys.insertPublished(journeyId, saved.version(), now);
+        }
+        reviews.insert(policy.adminKeyRecord(ids.newId(), journeyId, saved.version(), now));
         return new JourneyCreatedResponse(
                 saved.journeyId(), saved.version(), saved.status(), saved.publishedAt());
+    }
+
+    /** 鎖 journey 列；舊版（只有 journey_definition）的旅程補一列。找不到 = 404。 */
+    private JourneyRow lockExisting(String journeyId) {
+        var row = journeys.lock(journeyId);
+        if (row.isEmpty() && store.find(journeyId, 1).isPresent()) {
+            journeys.ensureRowForExisting(journeyId, clock.instant());
+            row = journeys.lock(journeyId);
+        }
+        return row.orElseThrow(
+                () -> new ApiException(ErrorCode.JOURNEY_NOT_FOUND, "找不到這個旅程，無法建立新版本。"));
     }
 
     private static ApiException invalid(List<FieldError> errors) {
