@@ -192,28 +192,37 @@ function Enrollments({ id }: { id: string }) {
                 <tr>
                   <th scope="col">旅程</th>
                   <th scope="col">狀態</th>
-                  <th scope="col">目前／最後在哪一步</th>
-                  <th scope="col">加入時間</th>
-                  <th scope="col">結束時間</th>
+                  <th scope="col">進入與結束時間</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((r) => (
                   <tr key={r.enrollment_id}>
-                    <td data-label="旅程" className="nw">
+                    <td data-label="旅程">
                       <AppLink className="tap" to={`/enrollments/${encodeURIComponent(r.enrollment_id)}`}>
                         {r.journey_name}
                       </AppLink>
+                      <span className="enr-step">
+                        {r.terminated_at ? '最後在：' : '現在在：'}
+                        {stepText(r)}
+                      </span>
                     </td>
                     <td data-label="狀態">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td data-label="目前／最後在哪一步">{stepText(r)}</td>
-                    <td data-label="加入時間" className="nw">
-                      <PlainTime iso={r.enrolled_at} />
-                    </td>
-                    <td data-label="結束時間" className="nw">
-                      {r.terminated_at ? <PlainTime iso={r.terminated_at} /> : '—'}
+                    <td data-label="進入與結束時間">
+                      <span className="enr-time">
+                        進入 <PlainTime iso={r.enrolled_at} />
+                      </span>
+                      <span className="enr-time">
+                        {r.terminated_at ? (
+                          <>
+                            結束 <PlainTime iso={r.terminated_at} />
+                          </>
+                        ) : (
+                          '尚未結束'
+                        )}
+                      </span>
                     </td>
                   </tr>
                 ))}

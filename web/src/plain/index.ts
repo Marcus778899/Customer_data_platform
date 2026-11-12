@@ -63,6 +63,14 @@ export function isoDurationText(iso: string): string {
   return parts.length ? parts.join(' ') : iso
 }
 
+/** 節點名稱形如「Wait PT2H」（沒有 delay 欄位時，列表與客戶頁只拿得到名稱）：轉成「等 2 小時」；其他名稱回 null */
+function waitNameText(name: string | null): string | null {
+  const m = name && /^Wait\s+(P\S*)$/i.exec(name.trim())
+  if (!m) return null
+  const text = isoDurationText(m[1].toUpperCase())
+  return text === m[1].toUpperCase() ? null : `等 ${text}`
+}
+
 /** 步驟標題；StartNode 不顯示（回 null） */
 export function stepTitle(nodeType: string, nodeName: string | null, delay?: string | null): string | null {
   if (nodeType === 'StartNode') return null
@@ -74,7 +82,7 @@ export function stepTitle(nodeType: string, nodeName: string | null, delay?: str
       return nodeName ? `${nodeName}，${base}` : base
     case 'WaitDelayNode':
       if (delay && isoDurationText(delay) !== delay) return `等 ${isoDurationText(delay)}`
-      return nodeName ?? base
+      return waitNameText(nodeName) ?? nodeName ?? base
     default:
       return nodeName ? `${base}：${nodeName}` : base
   }

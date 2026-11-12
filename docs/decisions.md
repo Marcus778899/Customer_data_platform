@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-086 #144 客戶頁旅程表三欄卡在流程工具，要怎麼續做
+- 決定：C. 作廢 ux-fix-customer-list，#144、#148、#178、#179、#188 重開有驗收範圍的 full 單（ux-fix-customer-pages），從 qa「A」改寫兩個舊驗收測試開始
+- 理由：不必繞兩輪仲裁、也不必等工具更新；已驗證的前端改法可沿用
+- 影響：ux-fix-customer-list 作廢；新單驗收範圍含 `web/tests/acceptance/journey-customer-ui/customer-page.test.tsx`、`web/tests/acceptance/trace-plain-list/plain-list.test.tsx`
+- 日期：2026-11-09
+
 ### D-085 縮減版場景一保留「金額 > 500」篩選（D-046 補充）
 - 決定：A. v0.3.0 支援觸發節點的事件篩選（`EventSourceNode.event_filter`），重用條件節點的判斷
 - 理由：場景一的核心規則

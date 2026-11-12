@@ -162,20 +162,27 @@ describe('客戶頁：基本資料', () => {
 })
 
 describe('客戶頁：參加過的旅程', () => {
-  it('表格（D-079、D-080）：旅程、狀態、目前／最後在哪一步、加入時間、結束時間；不含 Enrollment ID 欄；新到舊；未結束的結束時間為「—」', async () => {
+  it('表格（D-079、D-080、#144）：三欄（旅程＋目前位置／狀態／進入與結束時間）；不含 Enrollment ID 欄；新到舊；未結束寫「尚未結束」', async () => {
     const api = await openCustomer()
     const table = await screen.findByRole('table', { name: /參加過/ })
     expect(within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim()))
-      .toEqual(['旅程', '狀態', '目前／最後在哪一步', '加入時間', '結束時間'])
+      .toEqual(['旅程', '狀態', '進入與結束時間'])
     const rows = within(table).getAllByRole('row').slice(1)
     expect(rows).toHaveLength(2)
+    expect(within(rows[0]).getAllByRole('cell')).toHaveLength(3)
     expect(within(rows[0]).getByRole('link', { name: /棄單挽回/ })).toBeTruthy()
+    const first = within(rows[0]).getAllByRole('cell')[0].textContent ?? ''
+    expect(first).toContain('棄單挽回')
+    expect(first).toContain('3') // 版本
+    expect(first).toMatch(/現在在：.*等 3 天/)
     expect(rows[0].textContent).toContain('等待中')
-    expect(rows[0].textContent).toContain('等 3 天')
-    expect(rows[0].textContent).toContain('—')
+    expect(rows[0].textContent).toContain('尚未結束')
+    expect(rows[0].textContent).not.toContain('—')
     expect(rows[1].textContent).toContain('新會員歡迎')
     expect(rows[1].textContent).toContain('已走完')
-    expect(rows[1].textContent).toContain('旅程結束')
+    expect(within(rows[1]).getAllByRole('cell')[0].textContent).toMatch(/最後在：.*旅程結束/)
+    expect(rows[1].textContent).not.toContain('尚未結束')
+    expect(table.textContent).not.toContain('e2')
     expect(api.calls.some((c) => c.path === ENR)).toBe(true)
   })
 

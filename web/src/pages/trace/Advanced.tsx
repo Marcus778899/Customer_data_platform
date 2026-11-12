@@ -49,7 +49,7 @@ export function Advanced({ d }: { d: EnrollmentDetail }) {
         {wc?.wake_at && <Row k="預計繼續時間">{both(wc.wake_at)}</Row>}
         {wc?.timeout_at && <Row k="逾時時間">{both(wc.timeout_at)}</Row>}
         {d.terminated_at && <Row k="結束時間">{both(d.terminated_at)}</Row>}
-        {d.termination_reason && <Row k="結束原因（系統文字）">{d.termination_reason}</Row>}
+        {d.termination_reason && <Row k="結束原因（系統文字）">{localizeIsoInText(d.termination_reason)}</Row>}
         <Row k="目前步驟的技術名稱">
           <span className="mono">
             {d.current_node_type} · {d.current_node_id}
