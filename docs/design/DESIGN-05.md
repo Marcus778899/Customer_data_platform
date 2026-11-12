@@ -35,7 +35,7 @@
 | 2 | journey-canvas-ui | frontend | FE-04：草稿編輯、驗證結果標在節點、`field-keys`、`layout`（對 §3 mock） | `W/canvas/`（新）、`W/pages/JourneyEditorPage.tsx`（新）、`W/router.ts`、`W/api/`、`W/styles/app.css` | designer journey-builder-ui、批 1 fast | `WA/journey-canvas-ui/` | 平行 |
 | 3 | masking-default-api | backend | 做法 #3（待決定 1 後開工）、`profile_name` | `J/query/MaskingProperties`、`PiiMasker`、`EnrollmentSummary`、`EnrollmentDetail`、`EnrollmentQueryService`、`J/persistence/JdbcEnrollmentQueryStore`、`application.yml`、`.env.example`、`Makefile` | security-hardening-api | `A/masking-default-api/` | |
 | 3 | journey-review-ui | frontend | FE-06：送審、待審清單、核准／退回／撤回、審核紀錄、停止 | `W/pages/`（審核相關新檔）、`W/router.ts`、`W/api/`、`W/components/Shell.tsx`、`W/styles/app.css` | canvas-ui | `WA/journey-review-ui/` | |
-| 4 | journey-branch-engine | backend | DESIGN-03 #8（＋待決定 3 = A 時 `event_filter`） | `J/engine/`、`J/ingest/EventDispatcher`、`J/persistence/JdbcStateStore`、`J/persistence/JdbcJourneyDefinitionStore` | lifecycle | `A/journey-branch-engine/` | |
+| 4 | journey-branch-engine | backend | DESIGN-03 #8＋D-085 `EventSourceNode.event_filter`（`ConditionEvaluator` 依 `journeys.md` §4「條件欄位的根」「比較語意」） | `J/engine/`、`J/ingest/EventDispatcher`、`J/persistence/JdbcStateStore`、`J/persistence/JdbcJourneyDefinitionStore` | lifecycle | `A/journey-branch-engine/` | |
 | 4 | trace-branch-ui | frontend | FE-05：分支與迴圈軌跡（journey-engine §4.5）、旅程頁節點統計 | `W/graph/`、`W/pages/JourneyPage.tsx`、`TracePage.tsx`、`W/pages/trace/`、`W/api/` | review-ui、node-stats（可 mock） | `WA/trace-branch-ui/` | |
 | 5 | enrollment-reentry-engine | backend | DESIGN-03 #9（G1、G3、`reentry`） | `J/engine/runtime/`、`J/engine/model/` | branch-engine | `A/enrollment-reentry-engine/` | |
 | 5 | ux-polish-web | frontend | #146 首頁與導覽標示、#150 favicon、#180 客戶欄、#187 客戶頁標題（依 designer 規格） | `W/router.ts`、`W/App.tsx`、`W/components/Shell.tsx`、`W/pages/CustomerPage.tsx`、`EnrollmentBrowsePage.tsx`、`SearchPage.tsx`、`W/api/types.ts`、`web/index.html` | designer ux 規格、masking-default-api（可 mock） | `WA/ux-polish-web/` | |
@@ -47,11 +47,11 @@
 | 項目 | 決定 |
 |---|---|
 | 數值 | 金鑰下限 32 字、`CDP_LOGIN_IP_MAX_FAILURES` 建議 30、計數表上限 100,000、統計逾時 5 秒、節點 id ≤ 64 字 |
-| 介面細節 | 訊息節點的管道／範本本版不給清單與預覽 API，手動輸入（`journeys.md` §4）；統計每版本全部 Enrollment、`entered` 以人計＋`visits`＋`out_ports`（§5）；`profile_name` 不明文回 `null` |
+| 介面細節 | 訊息節點的管道／範本本版不給清單與預覽 API，手動輸入（`journeys.md` §4）；統計每版本全部 Enrollment、`entered` 以人計＋`visits`＋`out_ports`（§5）；`profile_name` 不明文回 `null`；條件（journey-contract-fix）：`event_filter` 的根是事件本身（`properties.<鍵>`）、條件節點的根是旅程進度（客戶屬性或 `trigger.properties.<鍵>`），照已合併的 `JourneyGraphValidator`；欄位型別不進契約（無欄位字典），比較依 `value` 的 JSON 型別、型別不合或缺值即不成立（`IS_NULL` 除外），避免引擎因資料髒拋錯；驗證錯誤 `field` 到條件的每一層（實作已如此） |
 | 草稿寫入憑證（journey-contract-fix） | 收緊：草稿 `POST`／`PUT`／`DELETE`、`validate` 只收 session，管理金鑰 403（`auth.md` §2、`journeys.md` `Draft.updated_by` 改為必有）。理由：已合併的實作（`SecurityConfig` `editorSession`）與驗收（`RoleMatrixAcceptanceTest`）本來就如此；草稿紀錄要對得到人；金鑰的用途（腳本、demo-seed）已有 journey-engine §3.1；收緊不需 D-編號，放寬才屬 ④ |
 | 刪草稿後的審核狀態（journey-contract-fix） | 收斂：「這份草稿的審核」= 草稿建立後送審的 `Review`（`journeys.md` §3），刪除或核准清除草稿後，新草稿不再帶出舊的 `REJECTED`。理由：刪草稿 = 放棄內容，帶出舊退回原因會誤導，且讓旅程誤入 `?review_status=REJECTED` 清單；同定義一併統一 `Draft.latest_review`（現排除 `APPROVED`）與 `review_status`（現取最新一筆）在金鑰紀錄上的差異。實作交 journey-draft-review-scope-api |
 ## 待甲方決定／需要調查
-- 待決定 1～3 已定案，皆採建議案 A：1（#184 明文清單）→ D-083；2（#153 限速維度）→ D-084；3（場景一 `event_filter`）→ D-085
+- 待決定 1～3 已定案，皆採建議案 A：1（#184 明文清單）→ D-083；2（#153 限速維度）→ D-084；3（場景一 `event_filter`）→ D-085。待決定 4（①）`WaitForEventNode.event_filter`：D-085 只含觸發節點，契約維持 `null`，但 `JourneyGraphValidator` 已接受、designer 規格（PR #217）已畫「等事件」篩選：A. 擴及等事件（建議：同一套驗證與判斷，`wake_event_filter` 欄已存在，branch-engine 多一處呼叫）／B. 只限觸發節點（validator 改為非 `null` 即錯、designer 拿掉等事件區塊）
 - 需調查 1：已結案，可並用但不採用（結論與理由見 DESIGN-03 需調查 1）；需調查 2：正式環境反向代理的網段與是否覆寫 `X-Forwarded-For`（決定 `CDP_TRUSTED_PROXIES` 的值；代管維運提供）
 ## 風險
 | 風險 | 對策 |
