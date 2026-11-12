@@ -19,6 +19,8 @@ import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import com.cdp.acceptance.support.TestKeys;
+
 /**
  * user-auth-api 改寫（auth.md）：登入改 email＋密碼，帳號由管理金鑰經 POST /users 建立（VIEWER 取代 v0.1.0 的 SUPPORT）；
  * session 寫入請求自動帶 X-XSRF-TOKEN。測試意圖不變。
@@ -36,8 +38,8 @@ import tools.jackson.databind.ObjectMapper;
 @Import(SecurityTestSupport.class)
 class AuthenticationAcceptanceTest {
 
-    private static final String INGEST = "Bearer test-ingest-key";
-    private static final String ADMIN = "Bearer test-admin-key";
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
+    private static final String ADMIN = "Bearer " + TestKeys.ADMIN;
     private static final String PASS = AuthHttp.PASSWORD;
     private static final String ID = "01JXXXXXXXXXXXXXXXXXXXXXXX";
 
@@ -124,7 +126,7 @@ class AuthenticationAcceptanceTest {
 
     @Test
     void wrong_key_is_401() throws Exception {
-        for (String auth : new String[] {"Bearer wrong", "Bearer ", "Basic dGVzdDp0ZXN0", "Bearer test-admin-keyX"}) {
+        for (String auth : new String[] {"Bearer wrong", "Bearer ", "Basic dGVzdDp0ZXN0", "Bearer " + TestKeys.ADMIN + "X"}) {
             assertProblem(call("GET", "/api/v1/enrollments?q=x", auth, null, null), 401, "UNAUTHENTICATED");
         }
     }

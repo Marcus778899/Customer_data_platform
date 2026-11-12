@@ -16,6 +16,8 @@ import java.util.UUID;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import com.cdp.acceptance.support.TestKeys;
+
 /**
  * 驗收共用：auth.md 的 HTTP 輔助（email 登入、cookie 罐、CSRF 標頭）。使用者一律經管理金鑰 {@code POST /api/v1/users}
  * 建立，不依賴任何預設帳號。cookie 以字串 {@code "CDP_SESSION=…; XSRF-TOKEN=…"} 傳遞；寫入請求由 {@link #send} 自動帶上
@@ -23,8 +25,8 @@ import tools.jackson.databind.ObjectMapper;
  */
 public final class AuthHttp {
 
-    public static final String ADMIN_KEY = "Bearer test-admin-key";
-    public static final String INGEST_KEY = "Bearer test-ingest-key";
+    public static final String ADMIN_KEY = "Bearer " + TestKeys.ADMIN;
+    public static final String INGEST_KEY = "Bearer " + TestKeys.INGEST;
     public static final String PASSWORD = "correct-horse-battery";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();

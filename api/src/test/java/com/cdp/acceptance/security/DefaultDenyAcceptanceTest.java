@@ -23,6 +23,8 @@ import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import com.cdp.acceptance.support.TestKeys;
+
 /**
  * user-auth-api 改寫（auth.md）：session 改為 email 登入的 VIEWER（取代 SUPPORT），寫入請求自動帶 CSRF 標頭；
  * UNLISTED 移除 {@code GET /api/v1/journeys}（auth.md §2 已列為 VIEWER 以上可讀）。意圖不變。
@@ -37,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
 @Import(SecurityTestSupport.class)
 class DefaultDenyAcceptanceTest {
 
-    private static final String INGEST = "Bearer test-ingest-key";
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
 
     /** 契約 §1.1 沒有列出的 method＋path。 */
     private static final List<String[]> UNLISTED = List.of(

@@ -17,6 +17,8 @@ import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import com.cdp.acceptance.support.TestKeys;
+
 /** user-auth-api 改寫：session 改為 email 登入的 VIEWER（取代 SUPPORT）。
  * FIX-04 回歸（qa FAIL 1）：enrollments 只放行契約 §4 的三個樣式，其餘子路徑對 SUPPORT 與 INGEST 回 403 §5 格式。 */
 @SpringBootTest(
@@ -26,7 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 @Import(SecurityTestSupport.class)
 class EnrollmentsPathAcceptanceTest {
 
-    private static final String INGEST = "Bearer test-ingest-key";
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
 
     private static final List<String> EXTRA_PATHS = List.of(
             "/api/v1/enrollments/x/foo",
