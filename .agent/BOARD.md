@@ -123,8 +123,9 @@
 | coverage-gate-setup | architect | qa | 0 |  |
 | journey-contract-fix | architect | qa | 0 |  |
 | security-hardening-api | backend | in-progress | 0 |  |
-| journey-canvas-ui | frontend | review | 1 |  |
+| journey-canvas-ui | frontend | qa-fail | 1 |  |
 | event-filter-ui | designer | qa-fail | 0 |  |
+| web-test-flake-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -134,6 +135,7 @@
 - 合併後甲方要更新 .env：CDP_LOGIN_IP_MAX_FAILURES；兩把金鑰改 ≥ 32 字、不含 CHANGE_ME（security-hardening-api）
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
+- 額度用盡暫停（2026-11-13）：canvas-ui 待派 frontend 修 review 2 項；contract-fix 待 architect 寫入 D-087；event-filter-ui 待 designer 視覺修正；security-hardening-api 待後端交件；web-test-flake-fix 待 qa A；coverage-gate-setup CI 已重跑待重驗。各單照 ae pr next 續做
 
 ## 注意事項（踩過的坑）
 
