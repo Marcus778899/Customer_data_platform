@@ -19,7 +19,7 @@
 |---|---|---|
 | 本機全部後端測試（含 `acceptance/`） | 在主目錄單獨一行：`docker compose --env-file .env -f .worktrees/<id>/compose.yaml run --rm test`（主目錄本身用 `-f compose.yaml`） | `compose.yaml` 的 `test` 服務：`eclipse-temurin:17-jdk`，把唯讀掛載的 `api/`（不含 `target/`）複製進容器後 `mvnw verify`；不讀 `.env` 的值 |
 | `make check` | 照舊 | Docker 連得到（或 CI 變數非空）跑全部；連不到或 `CONTAINER_TESTS=skip` 改 `-Punit-only`（`api/pom.xml`，排除 `com/cdp/acceptance/**`、`*IntegrationTest`），並印出上一列指令 |
-| CI | `make check`（不變） | GitHub Actions 設 `CI=true`，一律全跑，Docker 壞了就紅燈 |
+| CI | `make check`；開到 develop 的 PR 改跑 `make lint` + `make coverage`（見「覆蓋率」） | GitHub Actions 設 `CI=true`，一律全跑，Docker 壞了就紅燈 |
 
 | 項目 | 做法與取捨 |
 |---|---|
@@ -27,6 +27,14 @@
 | 安全 | socket 等同主機 Docker root 權限，故只掛 `api/`、`.env.example`（皆唯讀）與 Maven 快取 volume，不寫回主機（所以以 root 跑、不需 `HOST_UID`）；Testcontainers 對外 port 與在主機直接跑時相同 |
 | 隔離與殘留 | 不設 `name:`，專案名 = worktree 目錄；`run --rm` 刪 `test` 容器，Testcontainers 容器由 Ryuk 收；留下的只有專案網路（`docker compose -f … down` 可刪）與共用快取 volume `cdp-test-m2` |
 | 新測試慣例 | 需要容器的測試只放 `acceptance/` 或命名 `*IntegrationTest`，否則 sandbox 的 `make check` 會失敗 |
+
+## 覆蓋率（coverage-gate-setup）
+| 項目 | 做法 |
+|---|---|
+| `make coverage` | 跑與 `make test` 相同的測試（同樣的 Docker 判斷），寫 `coverage-reports/api.xml`（JaCoCo，`api/pom.xml` 的 `jacoco-maven-plugin` 每次 `verify` 都產 `api/target/site/jacoco/jacoco.xml`）與 `coverage-reports/web.xml`（Cobertura，`@vitest/coverage-v8`，設定在 `web/vite.config.ts` 的 `test.coverage`，`include: src/**` 讓沒被 import 的檔也進報告）；本機 sandbox 連不到 Docker 時只含單元測試的結果，數字偏低屬正常 |
+| CI | 開到 develop 的 PR：`make lint` → `make coverage` → `ae ci coverage-gate --self-test`（每個程式檔都在報告裡）→ `ae ci coverage-gate`（改到的行 ≥ 80%）；`COVERAGE_SRC_ROOTS=api/src/main/java`；不另跑 `make check`，免得測試跑兩次。測試照舊由 Testcontainers 起容器，不用 `docker compose up` |
+| 不量的檔 | `.coverage-exempt`（附理由）：進入點 `CdpApplication.java`、`web/src/main.tsx`；純介面與只有型別的 `web/src/api/types.ts`（報告裡 0 行）；`tools/*` 手動開發工具。新增純介面時 self-test 會指出，加進清單要 architect review |
+| 本機確認路徑 | `diff-cover coverage-reports/*.xml --compare-branch develop --src-roots api/src/main/java`（Windows 的 diff-cover 會把路徑轉小寫，以 CI 的 Linux 結果為準） |
 
 ## RabbitMQ（D-006；守計劃書 7.2.1 三條紅線）
 | 項目 | 設計 |
@@ -44,7 +52,7 @@
 | `api/src/test/java/com/cdp/acceptance/`、`web/tests/acceptance/` | 驗收測試：類別名 `*AcceptanceTest`／檔名 `*.test.ts(x)`，`make test` 已涵蓋 | qa（worker 不可改） |
 | `web/src/`、`web/tests/unit/` | 前端程式與單元測試 | frontend worker |
 | `web/src/styles/tokens.css` | 設計 token（`web/src/main.tsx` 已載入） | designer |
-| `Makefile`、`.env.example`、`.gitattributes`、`.gitignore`、`.github/workflows/ci.yml`、`docker-compose.yml`、`package.json`、`package-lock.json`、`api/pom.xml`、`api/mvnw*`、`api/.mvn/`、`api/src/main/resources/application.yml`、`api/src/test/resources/`、`web/package.json`、`web/{vite.config.ts,tsconfig.json,eslint.config.js}`、`docs/design/`、`docs/contracts/`、`docs/spec/` | 跨界檔案、設計與 spec；加相依須經 architect | architect |
+| `Makefile`、`.coverage-exempt`、`.env.example`、`.gitattributes`、`.gitignore`、`.github/workflows/ci.yml`、`docker-compose.yml`、`package.json`、`package-lock.json`、`api/pom.xml`、`api/mvnw*`、`api/.mvn/`、`api/src/main/resources/application.yml`、`api/src/test/resources/`、`web/package.json`、`web/{vite.config.ts,tsconfig.json,eslint.config.js}`、`docs/design/`、`docs/contracts/`、`docs/spec/` | 跨界檔案、設計與 spec；加相依須經 architect | architect |
 
 ## 計劃書審視
 | 結論 | 項目 | 理由／做法 |

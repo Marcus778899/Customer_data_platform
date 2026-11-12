@@ -24,12 +24,13 @@ WEB_DIR := web
 MVNW := ./mvnw -B
 COMPOSE := docker compose --env-file "$(ROOT)/.env" -f docker-compose.yml
 
-.PHONY: help setup ci-setup check lint test api-run web-dev infra-up infra-down demo-seed demo-verify perf
+.PHONY: help setup ci-setup check lint test coverageapi-run web-dev infra-up infra-down demo-seed demo-verify perf
 
 help:
 	@echo "make setup      install deps (Maven repo in ~/.m2, node_modules at checkout root)"
 	@echo "make ci-setup   install deps in CI (same steps as setup)"
 	@echo "make check      lint + tests (container tests skipped when Docker is unreachable)"
+	@echo "make coverage   same tests as make test + JaCoCo/Cobertura XML in coverage-reports/ (CI)"
 	@echo "backend tests incl. containers, from main checkout as one command:"
 	@echo "  docker compose --env-file .env -f .worktrees/<task_id>/compose.yaml run --rm test"
 	@echo "make infra-up   start local PostgreSQL + RabbitMQ (docker compose)"
@@ -50,6 +51,7 @@ setup:
 # CI 與本機走同一套步驟，避免兩邊不一致
 ci-setup: setup
 
+# CI 開到 develop 的 PR 改跑 lint + coverage（coverage 跑同一套測試），check 加了新步驟要同步改 ci.yml
 check: lint test
 	@echo "check passed"
 
@@ -76,8 +78,23 @@ test:
 		fi; \
 	else echo "skip api tests: no $(API_DIR)/pom.xml"; fi
 	@if [ -f "$(WEB_DIR)/package.json" ]; then \
-		$(NO_DOTENV) npm test -w "$(WEB_DIR)"; \
+		$(NO_DOTENV) npm test -w "$(WEB_DIR)" -- $(VITEST_ARGS); \
 	else echo "skip web tests: no $(WEB_DIR)/package.json"; fi
+
+# 覆蓋率報告（CI 的 ae ci coverage-gate 讀 coverage-reports/*.xml；見 docs/design/INIT-01.md「覆蓋率」）
+# 跑的測試與 make test 相同（同樣的 Docker 判斷）：後端 jacoco-maven-plugin 每次 verify 都產 XML，前端加 --coverage。
+# 先刪舊的 jacoco.exec：prepare-agent 預設 append，不刪會混進上一次的執行資料。
+coverage:
+	@rm -rf coverage-reports "$(WEB_DIR)/coverage" "$(API_DIR)/target/jacoco.exec" "$(API_DIR)/target/site/jacoco"
+	@"$(MAKE)" --no-print-directory test VITEST_ARGS=--coverage
+	@mkdir -p coverage-reports
+	@if [ -f "$(API_DIR)/pom.xml" ]; then \
+		cp "$(API_DIR)/target/site/jacoco/jacoco.xml" coverage-reports/api.xml; \
+	fi
+	@if [ -f "$(WEB_DIR)/package.json" ]; then \
+		cp "$(WEB_DIR)/coverage/cobertura-coverage.xml" coverage-reports/web.xml; \
+	fi
+	@ls coverage-reports
 
 api-run:
 	cd "$(API_DIR)" && $(MVNW) spring-boot:run

@@ -89,11 +89,57 @@ jobs:
       - name: Install dependencies
         if: steps.detect.outputs.found == 'true'
         run: make ci-setup
+      # 開到 develop 的 PR 要量改動覆蓋率：make coverage 跑的測試與 make test 相同，所以這種 PR 跑 lint + coverage，
+      # 不再跑 make check（避免整套測試跑兩次，約 3 分鐘）；其他事件照跑 make check。見 docs/design/INIT-01.md「覆蓋率」
+      - name: Detect coverage run
+        id: cov
+        if: steps.detect.outputs.found == 'true'
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: if [ "$EVENT" = "pull_request" ] && [ "$BASE_REF" = "develop" ]; then echo "on=true" >> "$GITHUB_OUTPUT"; else echo "on=false" >> "$GITHUB_OUTPUT"; fi
       # Actions 會設 CI=true：make test 一律跑含容器的全部測試（見 docs/design/INIT-01.md「驗證方式」）
       - name: Check
-        if: steps.detect.outputs.found == 'true'
+        if: steps.detect.outputs.found == 'true' && steps.cov.outputs.on != 'true'
         run: make check
-      # 改到的程式碼覆蓋率（ae ci coverage-gate）：Makefile 還沒有 coverage target，加上後再補這一步
+      - name: Lint
+        if: steps.cov.outputs.on == 'true'
+        run: make lint
+      # 測試用 Testcontainers 自起 PostgreSQL／RabbitMQ，不需先 docker compose up；測試在 runner 上跑，報告路徑對得回 repo
+      - name: Test with coverage
+        if: steps.cov.outputs.on == 'true'
+        run: make coverage
+      # ae 在 private 的 agent-engineering 裡：與 security job 同樣用 AE_TOKEN 取 submodule 指到的版本
+      - name: Locate agent-engineering
+        id: ae
+        if: steps.cov.outputs.on == 'true'
+        run: |
+          url=$(git config -f .gitmodules --get submodule..claude/skills/agent-engineering.url)
+          repo=${url#https://github.com/}
+          echo "repo=${repo%.git}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD:.claude/skills/agent-engineering)" >> "$GITHUB_OUTPUT"
+      - name: Checkout agent-engineering
+        if: steps.cov.outputs.on == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.ae.outputs.repo }}
+          ref: ${{ steps.ae.outputs.sha }}
+          path: .claude/skills/agent-engineering
+          token: ${{ secrets.AE_TOKEN || github.token }}
+          persist-credentials: false
+      - name: Set up Python
+        if: steps.cov.outputs.on == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # 改到的程式碼覆蓋率 >= 80%；--self-test 先確認 repo 裡每個程式檔都在報告裡（路徑對不上時閘門會永遠綠）
+      - name: Coverage of changed lines
+        if: steps.cov.outputs.on == 'true'
+        env:
+          COVERAGE_SRC_ROOTS: "api/src/main/java"
+        run: |
+          "$AE" ci coverage-gate --self-test
+          "$AE" ci coverage-gate
 
   # 資安稽核：每個 PR 都跑，ae pr merge 要求所有 check 綠
   security:
