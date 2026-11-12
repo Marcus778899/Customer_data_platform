@@ -357,6 +357,7 @@ PRIMARY KEY (event_id)
 | V7_1 | `V7_1__app_user_session_epoch.sql` | §12：`app_user.session_epoch`（D-071；用 7.1 不佔 V8） |
 | V7_2 | `V7_2__due_queue_tiebreak_index.sql` | §12「V7_2」：`ix_enrollment_wake`、`ix_effect_outbox_due` 同名重建並補第二排序欄（D-077；不佔 V8） |
 | V8 | `V8__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
+| V9 | `V9__journey_draft_created_at.sql` | §12「V9」：`journey.draft_created_at`（「這份草稿的審核」的起點，`journeys.md` §3；v0.3.0，journey-draft-review-scope-api） |
 
 ### 鐵則
 
@@ -439,7 +440,7 @@ DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作：FIX-
 
 ---
 
-## 12. v0.2.0 新增（V5～V8；設計見 `docs/design/DESIGN-03.md`）
+## 12. v0.2.0 起新增（V5～V9；設計見 `docs/design/DESIGN-03.md`、`DESIGN-05.md`）
 
 DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `Clock`。
 
@@ -448,7 +449,7 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 | `app_user` | `user_id`、`email`（存小寫）、`display_name`、`password_hash`（BCrypt）、`role`（`VIEWER`／`EDITOR`／`ADMIN`）、`status`（`ACTIVE`／`DISABLED`）、`created_at`、`updated_at`、`session_epoch`（INT，預設 0；管理員重設密碼 +1，session 比對，D-071，V7_1） | PK `user_id`；`uq_app_user_email (email)`（回到多租戶時另加成員表，D-051） |
 | `profile` | `profile_id`、`attributes` JSONB（預設 `{}`）、`created_at`、`updated_at` | PK `profile_id`；`ck_profile_attributes_size`：`octet_length(attributes::text) <= 32768` |
 | `profile_identifier` | `id_type`、`id_value`（已正規化，`profiles.md` §1.1）、`profile_id`、`created_at` | PK `(id_type, id_value)`（一個識別碼只屬於一位客戶）；`ix_profile_identifier_profile (profile_id)`；`ck_profile_identifier_type`（五種 `IdentifierType`）；`ck_profile_identifier_norm`：`EMAIL` = `lower(btrim(id_value))` 且含 `@`、`PHONE` 符合 `^\+[1-9][0-9]{6,14}$`、其他 = `btrim(id_value)` 且 1–200 字 |
-| `journey` | `journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (updated_at DESC, journey_id DESC)`；V8 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
+| `journey` | `journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`draft_updated_at`、`draft_created_at`（可 null，V9，見下「V9」）、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (updated_at DESC, journey_id DESC)`；V8 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
 | `journey_review` | `review_id`、`journey_id`、`action`（`PUBLISH`；停止不審核，依 D-060）、`status`（`PENDING`／`APPROVED`／`REJECTED`／`WITHDRAWN`）、`revision` INT（可 null，管理金鑰建立的紀錄，D-061）、`base_version` INT（可 null）、`note`、`submitted_by`（可 null）、`submitted_at`、`decided_by`（可 null）、`decided_at`、`reason`、`version` INT（可 null） | PK `review_id`；`uq_journey_review_pending (journey_id) WHERE status = 'PENDING'`；`ix_journey_review_journey (journey_id, submitted_at DESC, review_id DESC)`；`ck_journey_review_reject_reason`：`status <> 'REJECTED' OR reason IS NOT NULL`；只 `INSERT` 與 `PENDING` → 終態的條件式 `UPDATE`，不刪除；V8 回填不建紀錄 |
 | `journey_definition.layout` | JSONB，可 null | 版本不可變，`layout` 隨版本一起寫入 |
 | `enrollment_record.trigger_event_id` | TEXT，可 null | `uq_enrollment_trigger (journey_id, trigger_event_id) WHERE trigger_event_id IS NOT NULL`；V8 以 `trigger_snapshot->>'event_id'` 回填（`02` §6「落地」） |
@@ -487,6 +488,15 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 
 - down：同名重建回單欄 `(next_wake_at)`、`(available_at)`，條件不變（寫在 migration 檔頭）
 - 不用 `CREATE INDEX CONCURRENTLY`：Flyway 在應用程式啟動、迴圈與 API 開始前執行，這兩類列少；`CONCURRENTLY` 不能在交易內、失敗會留 INVALID 索引。收件區（v0.4.0）之後的大表索引變更改用 `CONCURRENTLY`
+
+### V9：草稿建立時間（`journeys.md` §3「這份草稿的審核」）
+
+| 項目 | 規則 |
+|---|---|
+| 欄位 | `journey.draft_created_at` TIMESTAMPTZ，可 null；expand，只加欄不回填、不加索引（依 `journey_id` 單列讀） |
+| 寫入 | 建立草稿時設為現在（`POST /journeys/drafts`、`PUT` 在 `draft` 為 null 時以最新版本為底建立）；之後存草稿不變；`DELETE` 草稿、核准清除草稿時與 `draft` 一起設 null；§3.1 同步不動它 |
+| 讀取 | 「這份草稿的審核」= 該旅程 `journey_review` 中 `submitted_at >= draft_created_at` 且 `submitted_by IS NOT NULL` 的列；`draft_created_at` 為 null 而 `draft` 不為 null（V9 前建立的草稿）時不以時間過濾，行為同 V8 |
+| down | `ALTER TABLE journey DROP COLUMN draft_created_at;`（寫在 migration 檔頭；舊版程式不讀此欄，可並存） |
 
 ### relay（`effect_outbox`，不需 migration）
 
