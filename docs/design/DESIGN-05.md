@@ -11,8 +11,7 @@
 | 6 | #190：`docs/uat/artifacts/` 已由 1384f31 移出版控並 ignore；本單另加 `docs/uat/**/*.yml`、`docs/uat/**/*.yaml`（`*.log` 已全域 ignore），截圖 `docs/uat/<版本>/*.png` 照常進版控 | 防 uat 換輸出位置又被提交 |
 | 7 | 不建程式骨架（本單禁區為程式碼）：每張實作單自建；共用檔依下表一次只歸一張，序列化避免重疊 | 派工單限制 |
 ## 業務規則與術語：新增 `docs/domain/glossary.md`（術語 18 條）、`rules.md`（審核 8 條、版本綁定、停止、節點、遮罩、驗收場景）；`README.md` 索引 9 條
-## 設定（寫進 .env.example，這裡不寫值）
-- `CDP_TRACE_PLAIN_KEYS` 改選填（註解，做法 #3）；新增 `CDP_LOGIN_IP_MAX_FAILURES`、選填 `CDP_TRUSTED_PROXIES`（做法 #5，皆非機密）；`CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`（機密）說明加「≥ 32 字，`openssl rand -hex 32`」
+## 設定（寫進 .env.example，這裡不寫值）：`CDP_TRACE_PLAIN_KEYS` 改選填（註解，做法 #3）；新增 `CDP_LOGIN_IP_MAX_FAILURES`、選填 `CDP_TRUSTED_PROXIES`（做法 #5，皆非機密）；`CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`（機密）說明加「≥ 32 字，`openssl rand -hex 32`」
 ## 威脅與對策
 | 資產 | 威脅 | 對策 |
 |---|---|---|
@@ -40,6 +39,7 @@
 | 4 | trace-branch-ui | frontend | FE-05：分支與迴圈軌跡（journey-engine §4.5）、旅程頁節點統計 | `W/graph/`、`W/pages/JourneyPage.tsx`、`TracePage.tsx`、`W/pages/trace/`、`W/api/` | review-ui、node-stats（可 mock） | `WA/trace-branch-ui/` | |
 | 5 | enrollment-reentry-engine | backend | DESIGN-03 #9（G1、G3、`reentry`） | `J/engine/runtime/`、`J/engine/model/` | branch-engine | `A/enrollment-reentry-engine/` | |
 | 5 | ux-polish-web | frontend | #146 首頁與導覽標示、#150 favicon、#180 客戶欄、#187 客戶頁標題（依 designer 規格） | `W/router.ts`、`W/App.tsx`、`W/components/Shell.tsx`、`W/pages/CustomerPage.tsx`、`EnrollmentBrowsePage.tsx`、`SearchPage.tsx`、`W/api/types.ts`、`web/index.html` | designer ux 規格、masking-default-api（可 mock） | `WA/ux-polish-web/` | |
+| 5 | journey-draft-review-scope-api | backend | `journeys.md` §3「這份草稿的審核」（自行決定表）：建議 V9 加 `journey.draft_created_at`（expand、可空，down = 刪欄；空值 = 不過濾），建立草稿時寫入、刪除／核准清草稿時清空，`review_status`、`latest_review`、`Draft.latest_review` 只取 `submitted_at` ≥ 它且 `submitted_by` 不為 null 的審核。驗收：退回→刪草稿→`PUT revision 0`，三處皆 `null` 且不在 `?review_status=REJECTED`；退回→改草稿仍 `REJECTED`（回歸）；撤回→刪→新草稿 `null`；退回後金鑰經 §3.1 建版本，草稿與列表仍 `REJECTED` | `V9__journey_draft_created_at.sql`（新）、`J/journey/`、`J/persistence/JdbcJourneyStore`、`JdbcJourneyQueryStore`、`JdbcJourneyReviewStore`（不含 `JdbcJourneyDefinitionStore`）；spec 07 §12 補欄位另由 architect 處理 | lifecycle-service（已合併） | `A/journey-draft-review-scope-api/` | 可與 branch-engine、前端平行（不同檔）；前端型別不變 |
 | 6 | journey-builder-integration | frontend | 接真 API、demo-seed 加縮減版場景一與迴圈旅程；API 端到端：畫布產出的定義送審→他人核准→事件→送達／`GOAL_MET`、v1／v2 並存、停止 | `tools/demo-seed/`、`W/` 修正 | 全部 | `A/journey-builder-integration/`、`WA/integration/journey-builder-integration/` | |
 ## 驗收條件對應（布告欄 10 條 → 單）
 - 1 場景一：canvas-ui、branch-engine、integration＋uat；2 審核：lifecycle-api、review-ui；3 v1／v2：lifecycle-api、integration；4 `cart_id`：reentry-engine、integration；5 停止：lifecycle-api（在途列 `CANCELLED`、Mock 0 則）；6 軌跡與人數：node-stats-api、trace-branch-ui；7 遮罩：masking-default-api；8 uat 產物：本單；9 金鑰與鎖定：security-hardening-api；10 UX：兩張 fast＋ux-polish-web＋manager（#149）。designer（不在上表）：`journey-builder-ui` 進行中；#146、#150（`web/public/favicon.*` 歸 designer）、#180、#187 需 UI 規格；#149（README）歸 manager
@@ -48,11 +48,11 @@
 |---|---|
 | 數值 | 金鑰下限 32 字、`CDP_LOGIN_IP_MAX_FAILURES` 建議 30、計數表上限 100,000、統計逾時 5 秒、節點 id ≤ 64 字 |
 | 介面細節 | 訊息節點的管道／範本本版不給清單與預覽 API，手動輸入（`journeys.md` §4）；統計每版本全部 Enrollment、`entered` 以人計＋`visits`＋`out_ports`（§5）；`profile_name` 不明文回 `null` |
+| 草稿寫入憑證（journey-contract-fix） | 收緊：草稿 `POST`／`PUT`／`DELETE`、`validate` 只收 session，管理金鑰 403（`auth.md` §2、`journeys.md` `Draft.updated_by` 改為必有）。理由：已合併的實作（`SecurityConfig` `editorSession`）與驗收（`RoleMatrixAcceptanceTest`）本來就如此；草稿紀錄要對得到人；金鑰的用途（腳本、demo-seed）已有 journey-engine §3.1；收緊不需 D-編號，放寬才屬 ④ |
+| 刪草稿後的審核狀態（journey-contract-fix） | 收斂：「這份草稿的審核」= 草稿建立後送審的 `Review`（`journeys.md` §3），刪除或核准清除草稿後，新草稿不再帶出舊的 `REJECTED`。理由：刪草稿 = 放棄內容，帶出舊退回原因會誤導，且讓旅程誤入 `?review_status=REJECTED` 清單；同定義一併統一 `Draft.latest_review`（現排除 `APPROVED`）與 `review_status`（現取最新一筆）在金鑰紀錄上的差異。實作交 journey-draft-review-scope-api |
 ## 待甲方決定／需要調查
-- 待決定 1（④，#184）`.env` 對明文清單的調整：A. 選填，有設定就取代內建（建議：既有 `name` 設定不變、要更嚴可設 `-`）／B. 只能追加、不能移除 `name`／C. 移除變數，只能改程式。理由：A 保留各客戶合約要求全遮的彈性，且不需遷移
-- 待決定 2（④，#153，修改 D-045）登入限速維度：A. email＋來源 IP 鎖定＋來源 IP 總量＋全域併發（建議；`auth.md` §3 v0.3.0）／B. 裝置 cookie（登入成功過的瀏覽器不受鎖定，需新密鑰）／C. 維持現狀、接受風險。理由：A 不加相依、改動集中在 `LoginRateLimiter`
-- 待決定 3（①，D-046 補充）縮減版場景一的 `event_filter`（金額 > 500）：A. 本版支援 `EventSourceNode.event_filter`（條件子集，branch-engine 多一項）／B. 場景拿掉篩選。建議 A：場景的核心規則，重用 `ConditionEvaluator`
-- 需調查 1：`json-schema-validator` 3.0.8 與 Boot BOM 的 Jackson 並用（DESIGN-03 需調查 1，lifecycle-api 開工實測，不行維持 Java 規則）；需調查 2：正式環境反向代理的網段與是否覆寫 `X-Forwarded-For`（決定 `CDP_TRUSTED_PROXIES` 的值；代管維運提供）
+- 待決定 1～3 已定案，皆採建議案 A：1（#184 明文清單）→ D-083；2（#153 限速維度）→ D-084；3（場景一 `event_filter`）→ D-085
+- 需調查 1：已結案，可並用但不採用（結論與理由見 DESIGN-03 需調查 1）；需調查 2：正式環境反向代理的網段與是否覆寫 `X-Forwarded-For`（決定 `CDP_TRUSTED_PROXIES` 的值；代管維運提供）
 ## 風險
 | 風險 | 對策 |
 |---|---|

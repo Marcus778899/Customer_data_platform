@@ -15,7 +15,7 @@
 | | `status` | `JourneyStatus` | |
 | | `latest_version` | int \| null | `DRAFT` 為 `null` |
 | | `has_draft` | bool | 有未發佈的草稿（§3） |
-| | `review_status` | `PENDING` \| `REJECTED` \| null | 目前草稿的審核狀態（§3.2）：送審中 `PENDING`；最新一筆審核被退回且草稿仍在 `REJECTED`；其他 `null` |
+| | `review_status` | `PENDING` \| `REJECTED` \| null | 目前草稿的審核狀態（§3.2）：取「這份草稿的審核」（定義見 §3 `Draft` 下一條）最新一筆，送審中 `PENDING`、被退回 `REJECTED`；其他（含沒有草稿、新草稿尚未送審）`null` |
 | | `updated_at` | time | |
 | | `published_at` | time \| null | 最新版本的發佈時間 |
 | | `latest_review` | `ReviewBrief` \| null | 第二版：`review_status` 不為 `null` 時帶出那一筆審核的摘要（待審清單顯示送審者與等待時間，等待時間由前端以 `submitted_at` 計算）；其他為 `null`。第一版一律 `null` |
@@ -65,7 +65,7 @@
 | `published_at` | 最新列的 `published_at` | 最新版本的 `published_at` |
 | `updated_at` | 最新列的 `created_at` | `journey.updated_at`（建立、存草稿、發佈、停止、§3.1 同步時更新） |
 | `has_draft` | 一律 `false` | `journey.draft` 不為 `null` |
-| `review_status` | 一律 `null`（第一版沒有審核，列表不顯示「待審核」） | 依 §1 定義，由 `journey_review` 該旅程最新一筆與 `journey.draft` 推導 |
+| `review_status` | 一律 `null`（第一版沒有審核，列表不顯示「待審核」） | 依 §1 定義，由 `journey.draft` 與「這份草稿的審核」（§3）推導 |
 | `versions` | 該 `journey_id` 全部列 | 同左 |
 
 - `q`、`status` 篩選與排序都套在推導後的值上；第二版另加篩選 `review_status`（選填，`PENDING`／`REJECTED`），管理員的「待審核」清單 = `?review_status=PENDING`
@@ -84,7 +84,8 @@
 - 新草稿的骨架：`definition` = `{ "name": <請求的 name>, "description": null, "settings": {}, "entry_node": "start", "nodes": [ { "id": "start", "type": "StartNode", "name": null, "config": {}, "outputs": {} } ] }`、`layout` = `null`、`revision` = 1；骨架本身 `validate` 不通過（缺 Source），可照常存檔
 - 節點 `id` 由前端產生：旅程內唯一、符合 `^[a-z][a-z0-9_]*$`（spec 03 §4 的 snake_case）、≤ 64 字；不合 = `validate` 錯誤，存檔不擋；送審後 `id` 隨版本固定，§5 統計與軌跡都以它對應
 - 沒有直接發佈的 API：經 §3.2 送審、核准
-- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`UserRef` \| null；金鑰呼叫為 `null`）、`latest_review`（`Review` \| null：這份草稿最新一筆審核紀錄；`status` = `PENDING` 時草稿鎖定）
+- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`UserRef`；草稿寫入只收 session，見 `auth.md` §2）、`latest_review`（`Review` \| null：這份草稿最新一筆審核紀錄，「這份草稿的審核」定義見下；`status` = `PENDING` 時草稿鎖定）
+- 這份草稿的審核：草稿建立（`POST /journeys/drafts`，或 `PUT` 在沒有草稿時建立）之後送審的 `Review`；§3.3 第 3 列的金鑰紀錄不算。草稿被 `DELETE` 或核准清除後，之前的審核不再屬於任何草稿：再建立的新草稿 `latest_review` 為 `null`、§1 `review_status`／`latest_review` 為 `null`，直到它自己送審
 - `ValidationReport`：`valid` bool、`errors` `Issue[]`、`warnings` `Issue[]`；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
 - `Issue`：`field` string（JSON 路徑，例 `definition.nodes[3].outputs.yes`）、`message` string（繁體中文一句，可直接顯示）、`rule` int \| null（spec 03 §6 規則編號；該表沒有編號的檢查，例 §4 的 `config` 必填，為 `null`）、`node_id` string \| null（錯誤所在節點；`settings`、`name` 等不屬於單一節點者為 `null`；規則 7 每個違規的迴圈一筆，取迴圈中在 `nodes` 陣列最前的節點，`message` 列出迴圈全部節點 id）
 - 送審、核准的 `400` `VALIDATION_FAILED`：`errors` 每筆同 `Issue`（journey-engine §5 的 `{ field, message }` 再加 `rule`、`node_id`）
