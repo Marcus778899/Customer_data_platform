@@ -13,5 +13,14 @@ export default defineConfig({
   test: {
     // tests/acceptance 由 qa 撰寫、worker 不可改；單元測試放 tests/unit 或與原始碼同目錄
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
+    // make coverage 加 --coverage 才啟用；Cobertura XML 給 CI 的改動覆蓋率檢查（docs/design/INIT-01.md「覆蓋率」）
+    // include 讓沒被任何測試 import 的檔也列進報告，新檔不寫測試也量得到
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}'],
+      reporter: ['cobertura', 'text-summary'],
+      reportsDirectory: 'coverage',
+    },
   },
 })

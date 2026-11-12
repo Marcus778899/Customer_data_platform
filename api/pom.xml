@@ -21,6 +21,7 @@
     <spotless.version>3.10.4</spotless.version>
     <archunit.version>1.5.1</archunit.version>
     <rabbit-amqp-client.version>5.37.0</rabbit-amqp-client.version>
+    <jacoco.version>0.8.16</jacoco.version>
   </properties>
 
   <dependencies>
@@ -151,6 +152,34 @@
           <forkCount>2</forkCount>
           <reuseForks>true</reuseForks>
         </configuration>
+      </plugin>
+      <!-- 覆蓋率（docs/design/INIT-01.md「覆蓋率」）：每次 verify 都掛 agent，報告寫 target/site/jacoco/jacoco.xml，
+           make coverage 複製到 coverage-reports/。prepare-agent 設 argLine 給 surefire（surefire 不可另設 argLine 蓋掉）。
+           報告涵蓋 target/classes 全部類別，沒被測試載入的也在內。 -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <configuration>
+              <formats>
+                <format>XML</format>
+              </formats>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

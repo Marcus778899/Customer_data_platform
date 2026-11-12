@@ -8,6 +8,7 @@
 node_modules
 __pycache__/
 coverage-reports/
+web/coverage/
 api/target/
 web/dist/
 .agent/tasks/
