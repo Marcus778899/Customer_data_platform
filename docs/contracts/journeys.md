@@ -15,7 +15,7 @@
 | | `status` | `JourneyStatus` | |
 | | `latest_version` | int \| null | `DRAFT` 為 `null` |
 | | `has_draft` | bool | 有未發佈的草稿（§3） |
-| | `review_status` | `PENDING` \| `REJECTED` \| null | 目前草稿的審核狀態（§3.2）：送審中 `PENDING`；最新一筆審核被退回且草稿仍在 `REJECTED`；其他 `null` |
+| | `review_status` | `PENDING` \| `REJECTED` \| null | 目前草稿的審核狀態（§3.2）：取「這份草稿的審核」（定義見 §3 `Draft` 下一條）最新一筆，送審中 `PENDING`、被退回 `REJECTED`；其他（含沒有草稿、新草稿尚未送審）`null` |
 | | `updated_at` | time | |
 | | `published_at` | time \| null | 最新版本的發佈時間 |
 | | `latest_review` | `ReviewBrief` \| null | 第二版：`review_status` 不為 `null` 時帶出那一筆審核的摘要（待審清單顯示送審者與等待時間，等待時間由前端以 `submitted_at` 計算）；其他為 `null`。第一版一律 `null` |
@@ -65,7 +65,7 @@
 | `published_at` | 最新列的 `published_at` | 最新版本的 `published_at` |
 | `updated_at` | 最新列的 `created_at` | `journey.updated_at`（建立、存草稿、發佈、停止、§3.1 同步時更新） |
 | `has_draft` | 一律 `false` | `journey.draft` 不為 `null` |
-| `review_status` | 一律 `null`（第一版沒有審核，列表不顯示「待審核」） | 依 §1 定義，由 `journey_review` 該旅程最新一筆與 `journey.draft` 推導 |
+| `review_status` | 一律 `null`（第一版沒有審核，列表不顯示「待審核」） | 依 §1 定義，由 `journey.draft` 與「這份草稿的審核」（§3）推導 |
 | `versions` | 該 `journey_id` 全部列 | 同左 |
 
 - `q`、`status` 篩選與排序都套在推導後的值上；第二版另加篩選 `review_status`（選填，`PENDING`／`REJECTED`），管理員的「待審核」清單 = `?review_status=PENDING`
@@ -84,7 +84,8 @@
 - 新草稿的骨架：`definition` = `{ "name": <請求的 name>, "description": null, "settings": {}, "entry_node": "start", "nodes": [ { "id": "start", "type": "StartNode", "name": null, "config": {}, "outputs": {} } ] }`、`layout` = `null`、`revision` = 1；骨架本身 `validate` 不通過（缺 Source），可照常存檔
 - 節點 `id` 由前端產生：旅程內唯一、符合 `^[a-z][a-z0-9_]*$`（spec 03 §4 的 snake_case）、≤ 64 字；不合 = `validate` 錯誤，存檔不擋；送審後 `id` 隨版本固定，§5 統計與軌跡都以它對應
 - 沒有直接發佈的 API：經 §3.2 送審、核准
-- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`UserRef` \| null；金鑰呼叫為 `null`）、`latest_review`（`Review` \| null：這份草稿最新一筆審核紀錄；`status` = `PENDING` 時草稿鎖定）
+- `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`UserRef`；草稿寫入只收 session，見 `auth.md` §2）、`latest_review`（`Review` \| null：這份草稿最新一筆審核紀錄，「這份草稿的審核」定義見下；`status` = `PENDING` 時草稿鎖定）
+- 這份草稿的審核：草稿建立（`POST /journeys/drafts`，或 `PUT` 在沒有草稿時建立）之後送審的 `Review`；§3.3 第 3 列的金鑰紀錄不算。草稿被 `DELETE` 或核准清除後，之前的審核不再屬於任何草稿：再建立的新草稿 `latest_review` 為 `null`、§1 `review_status`／`latest_review` 為 `null`，直到它自己送審
 - `ValidationReport`：`valid` bool、`errors` `Issue[]`、`warnings` `Issue[]`；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
 - `Issue`：`field` string（JSON 路徑，例 `definition.nodes[3].outputs.yes`）、`message` string（繁體中文一句，可直接顯示）、`rule` int \| null（spec 03 §6 規則編號；該表沒有編號的檢查，例 §4 的 `config` 必填，為 `null`）、`node_id` string \| null（錯誤所在節點；`settings`、`name` 等不屬於單一節點者為 `null`；規則 7 每個違規的迴圈一筆，取迴圈中在 `nodes` 陣列最前的節點，`message` 列出迴圈全部節點 id）
 - 送審、核准的 `400` `VALIDATION_FAILED`：`errors` 每筆同 `Issue`（journey-engine §5 的 `{ field, message }` 再加 `rule`、`node_id`）
@@ -139,18 +140,26 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 | `type` | `config` 必填 | `outputs` 必填 |
 |---|---|---|
 | v0.1.0 五種 | journey-engine §3.1 | 同左 |
-| `EventSourceNode` 的 `event_filter` | 依待決定 3（DESIGN-05）：A 案 = 同下方條件樹子集、`field` 只能是 `properties.<鍵>`；未決定前維持 journey-engine §3.1（`null` 或省略） | — |
-| `WaitForEventNode` | `event_name`；`timeout`（正 Duration 或 `null` = 不逾時）；`event_filter`（同 `EventSourceNode` 規則：`null` 或省略） | `occurred`；`timeout` 不為 `null` 時 `timeout` 必填 |
+| `EventSourceNode` 的 `event_filter` | 選填（D-085）：`null`／省略 = 不篩選；否則為下方條件樹子集，葉節點 `field` 只能是 `properties.<鍵>`（欄位根見下方「條件欄位的根」） | — |
+| `WaitForEventNode` | `event_name`；`timeout`（正 Duration 或 `null` = 不逾時）；`event_filter`：`null` 或省略（D-085 只含觸發節點；是否開放見 DESIGN-05 待決定 4） | `occurred`；`timeout` 不為 `null` 時 `timeout` 必填 |
 | `ConditionNode` | `condition`（下表子集） | `yes` `no` |
 | `SplitTestNode` | `variants`（2–10 個；`port` snake_case、`weight` 正整數、總和 100、`label`；至多一個 `is_control`）；`assignment_seed` 省略或 `STABLE` | 每個 `variants[].port` |
 | `MergeNode` | — | `next` |
 | `ExitNode` | `reason`（1–200 字） | — |
 | `GoalNode` | `goal_id` | — |
 
-- 條件樹子集（spec 06 §2～§4）：群組 `op` = `AND` `OR` `NOT`（`NOT` 恰一個子節點），深度 ≤ 5；葉節點只支援 `type: "attribute"`，`field` = 客戶屬性鍵或 `trigger.properties.<鍵>`；`operator` = `EQ` `NEQ` `IN` `NOT_IN` `GT` `GTE` `LT` `LTE` `CONTAINS` `IS_NULL` `IS_NOT_NULL`；`behavior`、`segment` 葉節點 → 驗證錯誤
+- 條件樹子集（spec 06 §2～§4）：根可以是群組或單一葉節點；群組 `op` = `AND` `OR` `NOT`（`NOT` 恰一個子節點），深度 ≤ 5；葉節點只支援 `type: "attribute"`，`field` 依下條；`operator` = `EQ` `NEQ` `IN` `NOT_IN` `GT` `GTE` `LT` `LTE` `CONTAINS` `IS_NULL` `IS_NOT_NULL`；`behavior`、`segment` 葉節點 → 驗證錯誤
+- 條件欄位的根（兩種寫法對應不同的判斷對象，不是同一件事的兩種寫法）：
+  | 用在哪裡 | 判斷對象 | `field` 寫法 |
+  |---|---|---|
+  | `EventSourceNode.event_filter`（`WaitForEventNode` 的見該列） | 正在比對的那一筆事件（事件本身） | `properties.<鍵>`（事件的 `properties`）；不可用客戶屬性 |
+  | `ConditionNode.condition`、`settings.global_exit` 的 `attribute` 葉節點 | 這筆旅程進度：客戶屬性＋觸發事件（建立 Enrollment 的那筆，journey-engine `EnrollmentDetail.trigger_snapshot`） | 客戶屬性鍵（不加前綴）或 `trigger.properties.<鍵>` |
+  - `<鍵>` 與客戶屬性鍵皆符合 `^[a-z][a-z0-9_]*$`；不合 = `validate` 錯誤
+- 比較語意（欄位沒有型別字典，型別不進契約；前端依欄位與使用者選的比較推斷輸入方式，送出時 `value` 用對應的 JSON 型別：數字比較送 number，其他送 string，`IN`／`NOT_IN` 為陣列）：`GT` `GTE` `LT` `LTE` 只在實際值與 `value` 都是 number 時比較；`EQ` `NEQ` `IN` `NOT_IN` 以 JSON 值相等比較（`500` 與 `"500"` 不相等）；`CONTAINS` = 實際值為字串且包含 `value`，或為陣列且含 `value`；欄位不存在或為 `null` 時 `IS_NULL` 成立、`IS_NOT_NULL` 不成立，其他運算子一律不成立（含 `NEQ`、`NOT_IN`）；型別不合 = 不成立，不報錯
+- 條件的驗證錯誤：`Issue.field` 指到出錯的那一層，路徑 = `definition.nodes[<陣列索引>].config.<event_filter｜condition>` 接每層 `.children[<n>]`，葉節點再接 `.field`／`.operator`／`.value`／`.type`，群組接 `.op`／`.children`（例 `definition.nodes[0].config.event_filter.children[1].value`）；節點以陣列索引定位，`node_id` 另外帶出
 - `settings` 支援：`reentry`（spec 03 §3，五種 `mode`；省略 = `UNLIMITED`）；`goal`（`condition` 只支援 `{ "type": "event", "event" }`）；`global_exit`（條件為 `event`〔`since` 只支援 `ENROLLMENT`〕或上列 `attribute` 葉節點）；其他鍵存而不用
 - 訊息節點的管道與範本：本版**沒有**清單、預覽 API（沒有範本／管道資料表，spec 03 §6 規則 10、11 不執行）。`SendMessageNode.config.template_id`、`channel_id` 由使用者手動輸入：去前後空白後 1–100 字、符合 `^[A-Za-z0-9_.:-]+$`，不合 = `validate` 錯誤；發送一律經 Mock 通道（journey-engine §4.1 `channel_type` = `MOCK`）。清單 API 等真實通道（v0.6.0 LINE，D-059）再定
-- 條件欄位建議清單 `GET /api/v1/journeys/field-keys?event_name=<名稱>`（選填；角色同 §2）→ `200` `{ "profile_attributes": string[], "event_properties": string[], "as_of" }`：`profile_attributes` = 任取 1000 位客戶的 `attributes` 鍵聯集；`event_properties` = 帶 `event_name` 時該事件最近 1000 筆 `properties` 的鍵聯集（`ix_event_name_time`），未帶為 `[]`；皆字母序。只是建議、不保證完整：前端仍允許手動輸入符合 `^[a-z][a-z0-9_]*$` 的鍵（事件屬性填 `trigger.properties.<鍵>`）；正式欄位字典屬 spec 06（未排期）
+- 條件欄位建議清單 `GET /api/v1/journeys/field-keys?event_name=<名稱>`（選填；角色同 §2）→ `200` `{ "profile_attributes": string[], "event_properties": string[], "as_of" }`：`profile_attributes` = 任取 1000 位客戶的 `attributes` 鍵聯集；`event_properties` = 帶 `event_name` 時該事件最近 1000 筆 `properties` 的鍵聯集（`ix_event_name_time`），未帶為 `[]`；皆字母序。只是建議、不保證完整：前端仍允許手動輸入符合 `^[a-z][a-z0-9_]*$` 的鍵；`event_properties` 的鍵在 `event_filter` 寫成 `properties.<鍵>`、在條件節點寫成 `trigger.properties.<鍵>`（見上「條件欄位的根」）；正式欄位字典屬 spec 06（未排期）
 - 迴圈：允許，但每個強連通分量須含 `WaitDelayNode` 或 `WaitForEventNode`（spec 03 §6 規則 7）
 - `EnrollmentStatus` 本版會出現 `GOAL_MET` `EXITED` `ABORTED`；`TraceEntry.out_port` 會出現各節點的出口名
 
