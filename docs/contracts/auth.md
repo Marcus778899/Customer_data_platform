@@ -34,13 +34,13 @@
 | `PUT /api/v1/profiles/{id}`（profiles §2） | ✓ | | | ✓（僅管理金鑰；session 不可） |
 | `GET /api/v1/enrollments*`（journey-engine §4）、`GET /api/v1/profiles*`（profiles §3）、`GET /api/v1/journeys*`（journeys §2；第二版含草稿與審核紀錄） | | ✓ | ✓ | ✓ |
 | `POST /api/v1/journeys`（journey-engine §3.1） | | | | ✓（僅管理金鑰；session 不可，D-056 發佈須經審核；可依 D-061 關閉，見 journeys §3.3 第 3 列） |
-| journeys §3 草稿寫入、`draft/validate`、`draft/submit`（送審）；§3.5 停止（依 D-060 不經審核） | | | ✓ | ✓ |
+| journeys §3 草稿寫入（`POST /journeys/drafts`、`PUT`／`DELETE …/draft`）、`draft/validate`、`draft/submit`（送審）；§3.5 停止（依 D-060 不經審核） | | | ✓ | ✓（草稿寫入、`validate`、送審僅 session；停止另收管理金鑰） |
 | journeys §3.2 `withdraw`（撤回送審） | | | ✓（僅自己送審的） | ✓ |
 | journeys §3.2 `approve`（核准）、`reject`（退回） | | | | ✓（不可核准自己送審的，依 D-060） |
 | §4 `/api/v1/users*` | | | | ✓ |
 | §3 `/api/v1/auth/*` | | session（不分角色） | | |
 
-- journeys §3.2 的送審、撤回、核准、退回只收 session（紀錄要對得到人，含 `ADMIN`）；以 Bearer（含管理金鑰）呼叫 → `403` `FORBIDDEN`
+- journeys §3 草稿寫入、`draft/validate` 與 §3.2 的送審、撤回、核准、退回只收 session（草稿與審核紀錄要對得到人，含 `ADMIN`）；以 Bearer（含管理金鑰）呼叫 → `403` `FORBIDDEN`。管理金鑰在旅程上只能經 journey-engine §3.1 建立版本與 §3.5 停止（`stopped_by` 為 `null`）
 - 不需認證：`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`；其他 `/api/**` 未列者：未認證 `401`；`INGEST`、`VIEWER`、`EDITOR` `403` `FORBIDDEN`；`ADMIN`（含管理金鑰）不擋，交給路由（不存在 `404`、方法不符 `405`）
 
 ## §3 登入
@@ -58,13 +58,13 @@
 - 登入失敗限速（D-045）：
   | 項目 | 規則 |
   |---|---|
-  | 計算維度 | 請求的 `email`（轉小寫）；帳號不存在也計數、回應與存在者相同；不依來源 IP（v0.3.0 依待決定 2 修改，見本節末） |
+  | 計算維度 | 請求的 `email`（轉小寫）；帳號不存在也計數、回應與存在者相同；不依來源 IP（v0.3.0 依 D-084 修改，見本節末） |
   | 計數 | 密碼錯（`401` `INVALID_CREDENTIALS`）才 +1；`400` 不計；距上次失敗超過 `CDP_LOGIN_LOCKOUT` 先歸零再計；登入成功歸零 |
   | 門檻與鎖定 | 計數達 `CDP_LOGIN_MAX_FAILURES` → 鎖定到「最後一次失敗 + `CDP_LOGIN_LOCKOUT`」；鎖定中的嘗試不計數、不延長 |
   | 超限回應 | 鎖定中任何登入（含正確密碼）→ `429` `LOGIN_RATE_LIMITED`，標頭 `Retry-After` = 剩餘秒數（整數，無條件進位）；不跑 BCrypt |
   | 併發 | 同一 `email` 的「計數 + 進行中的嘗試」達門檻、但尚未鎖定時，新的嘗試也回 `429` `LOGIN_RATE_LIMITED`、`Retry-After: 1`；不計數、不跑 BCrypt（同時最多門檻數個嘗試在比對密碼） |
   | 範圍 | 只限 `POST /auth/login`（`/auth/password` 不計）；計數存記憶體，後端重啟歸零（同 session） |
-- v0.3.0 修改（#153；待決定 2 建議案 A，甲方核可後取代上表「計算維度」與「範圍」兩列，其他列不變）：
+- v0.3.0 修改（#153；D-084 採建議案 A，取代上表「計算維度」與「範圍」兩列，其他列不變）：
   | 項目 | 規則 |
   |---|---|
   | 帳號鎖定 | 計數與鎖定改以「`email` ＋ 來源 IP」為單位：鎖住的只有該來源對該帳號的嘗試，其他來源輸入正確密碼照常登入 |

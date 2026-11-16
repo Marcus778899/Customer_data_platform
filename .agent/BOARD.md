@@ -122,9 +122,9 @@
 | ux-fix-customer-pages | frontend | done | 0 | PR #206 |
 | coverage-gate-setup | architect | done | 0 | PR #213 |
 | journey-contract-fix | architect | review | 0 |  |
-| security-hardening-api | backend | qa | 0 |  |
+| security-hardening-api | backend | in-progress | 1 |  |
 | journey-canvas-ui | frontend | done | 1 | PR #216 |
-| event-filter-ui | designer | in-progress | 0 |  |
+| event-filter-ui | designer | review | 0 |  |
 | web-test-flake-fix | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
