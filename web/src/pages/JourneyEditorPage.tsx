@@ -1,5 +1,5 @@
 // 旅程編輯畫布頁（FE-04）：載入／空／錯誤／權限狀態，頁首、工具列、畫布、狀態列、右側面板。
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox } from '../components/ui'
@@ -22,6 +22,7 @@ import {
   fillLayout,
   type Def,
 } from '../canvas/model'
+import { LockProvider } from '../canvas/lock'
 import { NodePanel } from '../canvas/NodePanel'
 import { SettingsPanel } from '../canvas/SettingsPanel'
 import { useDraftEditor } from '../canvas/useDraftEditor'
@@ -41,38 +42,6 @@ function NoAccess({ id }: { id: string }) {
       </p>
     </div>
   )
-}
-
-/** 送審中鎖定：把右側面板內的欄位與按鈕（關閉面板除外）設為停用；面板內容之後變動也會重新套用 */
-function useLockControls(ref: React.RefObject<HTMLElement | null>, locked: boolean) {
-  const was = useRef(false)
-  useEffect(() => {
-    const root = ref.current
-    if (!root || (!locked && !was.current)) return
-    was.current = locked
-    const apply = () => {
-      root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLButtonElement>('input, textarea, select, button').forEach((el) => {
-        const keep = el instanceof HTMLButtonElement && /關閉/.test(el.textContent ?? '')
-        if (locked && !keep) {
-          if (!el.disabled) {
-            el.disabled = true
-            el.dataset.lockedBy = 'review'
-          }
-        } else if (el.dataset.lockedBy === 'review') {
-          el.disabled = false
-          delete el.dataset.lockedBy
-        }
-      })
-    }
-    apply()
-    const mo = new MutationObserver(() => {
-      mo.disconnect()
-      apply()
-      mo.observe(root, { childList: true, subtree: true })
-    })
-    mo.observe(root, { childList: true, subtree: true })
-    return () => mo.disconnect()
-  })
 }
 
 function AddButtons({ onAdd, locked }: { onAdd: (type: string) => void; locked: boolean }) {
@@ -98,14 +67,13 @@ function Editor({ id }: { id: string }) {
   const ed = useDraftEditor(id)
   const [selected, setSelected] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [locate, setLocate] = useState<{ field: string; seq: number } | null>(null)
   const flowId = useId()
   const { def, layout } = ed
   const [dialog, setDialog] = useState<'submit' | 'withdraw' | null>(null)
-  const sideRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
   const pending = ed.review?.status === 'PENDING'
   const locked = pending || ed.banner?.kind === 'inReview'
-  useLockControls(sideRef, locked)
 
   const errorIds = useMemo(() => new Set((ed.report?.errors ?? []).map((i) => i.node_id).filter((x): x is string => !!x)), [ed.report])
   const loops = useMemo(() => (def ? findLoops(def) : []), [def])
@@ -358,7 +326,8 @@ function Editor({ id }: { id: string }) {
           </details>
         </div>
 
-        <div className="edside" ref={sideRef}>
+        <LockProvider value={locked}>
+        <div className="edside">
           {sel && (
             <NodePanel
               key={sel.id}
@@ -377,6 +346,8 @@ function Editor({ id }: { id: string }) {
               }}
               onClose={() => setSelected(null)}
               openSettings={openSettings}
+              issues={ed.report?.errors ?? []}
+              locate={locate}
             />
           )}
           {settingsOpen && <SettingsPanel def={def} onChange={setDef} onClose={() => setSettingsOpen(false)} />}
@@ -386,11 +357,15 @@ function Editor({ id }: { id: string }) {
               busy={ed.validating}
               onRevalidate={() => void ed.validate()}
               onClose={() => ed.setReportOpen(false)}
-              onLocate={(nid) => select(nid)}
+              onLocate={(nid, field) => {
+                select(nid)
+                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
+              }}
               onSettings={openSettings}
             />
           )}
         </div>
+        </LockProvider>
       </div>
       {dialog === 'submit' && (
         <SubmitDialog

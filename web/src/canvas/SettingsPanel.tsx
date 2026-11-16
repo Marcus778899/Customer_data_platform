@@ -1,6 +1,7 @@
 // 「旅程設定」面板：名稱、描述、重新進入（五選一）、達標、隨時退出（spec 03 §3；journeys.md §4）
 import { useId, useState } from 'react'
 import { OPERATORS, condValueText, parseCondValue, shownText, withSettings, type Def } from './model'
+import { useLocked } from './lock'
 import { TextField } from './NodePanel'
 
 const PREFIX = '$.trigger.properties.'
@@ -33,8 +34,10 @@ function ExitValue({ index, cond, onChange }: { index: number; cond: ExitCond; o
   const [raw, setRaw] = useState(condValueText(cond.value))
   const op = cond.operator ?? 'EQ'
   const text = shownText(raw, (t) => parseExitValue(op, t), cond.value)
+  const locked = useLocked()
   return (
     <input
+      readOnly={locked}
       aria-label={`退出值 ${index + 1}`}
       type="text"
       value={text}
@@ -48,6 +51,7 @@ function ExitValue({ index, cond, onChange }: { index: number; cond: ExitCond; o
 
 export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: (fn: (d: Def) => Def) => void; onClose: () => void }) {
   const hid = useId()
+  const locked = useLocked()
   const reentry = (def.settings.reentry ?? { mode: 'UNLIMITED' }) as Reentry
   const mode = reentry.mode ?? 'UNLIMITED'
   const goal = def.settings.goal as { goal_id?: string; condition?: { event?: string } } | undefined
@@ -92,7 +96,7 @@ export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: 
         {MODES.map((m) => (
           <div className="radio-row" key={m.mode}>
             <label>
-              <input type="radio" name="reentry" checked={mode === m.mode} aria-describedby={`${hid}-${m.mode}`} onChange={() => pickMode(m.mode)} /> {m.label}
+              <input type="radio" name="reentry" checked={mode === m.mode} disabled={locked} aria-describedby={`${hid}-${m.mode}`} onChange={() => pickMode(m.mode)} /> {m.label}
             </label>
             <span className="hint" id={`${hid}-${m.mode}`}>
               {m.hint}
@@ -151,7 +155,7 @@ export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: 
                     ['GOAL_MET', '視為達標'],
                     ['EXITED', '退出'],
                   ].map(([v, t]) => (
-                    <button key={v} type="button" className="btn secondary sm" aria-pressed={(c.on_match ?? gx.on_match ?? 'EXITED') === v} onClick={() => setCond(i, { on_match: v })}>
+                    <button key={v} type="button" className="btn secondary sm" aria-pressed={(c.on_match ?? gx.on_match ?? 'EXITED') === v} disabled={locked} onClick={() => setCond(i, { on_match: v })}>
                       {t}
                     </button>
                   ))}
@@ -159,8 +163,8 @@ export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: 
               </>
             ) : (
               <div className="cond-line">
-                <input aria-label={`退出屬性 ${i + 1}`} type="text" value={c.field ?? ''} placeholder="客戶屬性，例：marketing_opt_out" onChange={(e) => setCond(i, { field: e.target.value })} />
-                <select aria-label={`退出比較 ${i + 1}`} value={c.operator ?? 'EQ'} onChange={(e) => setCond(i, { operator: e.target.value })}>
+                <input aria-label={`退出屬性 ${i + 1}`} type="text" value={c.field ?? ''} readOnly={locked} placeholder="客戶屬性，例：marketing_opt_out" onChange={(e) => setCond(i, { field: e.target.value })} />
+                <select aria-label={`退出比較 ${i + 1}`} value={c.operator ?? 'EQ'} disabled={locked} onChange={(e) => setCond(i, { operator: e.target.value })}>
                   {OPERATORS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
@@ -170,17 +174,17 @@ export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: 
                 <ExitValue index={i} cond={c} onChange={(value) => setCond(i, { value })} />
               </div>
             )}
-            <button type="button" className="btn ghost-dark sm" onClick={() => setConds(conds.filter((_, j) => j !== i))}>
+            <button type="button" className="btn ghost-dark sm" disabled={locked} onClick={() => setConds(conds.filter((_, j) => j !== i))}>
               移除這個退出條件
             </button>
           </li>
         ))}
       </ul>
       <div className="cond-add">
-        <button type="button" className="btn secondary sm" onClick={() => setConds([...conds, { type: 'event', event: '', since: 'ENROLLMENT', on_match: 'EXITED' }])}>
+        <button type="button" className="btn secondary sm" disabled={locked} onClick={() => setConds([...conds, { type: 'event', event: '', since: 'ENROLLMENT', on_match: 'EXITED' }])}>
           加入退出事件
         </button>
-        <button type="button" className="btn secondary sm" onClick={() => setConds([...conds, { type: 'attribute', field: '', operator: 'EQ', value: '' }])}>
+        <button type="button" className="btn secondary sm" disabled={locked} onClick={() => setConds([...conds, { type: 'attribute', field: '', operator: 'EQ', value: '' }])}>
           加入客戶屬性條件
         </button>
       </div>
