@@ -121,11 +121,11 @@
 | ux-fix-login-trace | frontend | done | 0 | PR #203 |
 | ux-fix-customer-pages | frontend | done | 0 | PR #206 |
 | coverage-gate-setup | architect | done | 0 | PR #213 |
-| journey-contract-fix | architect | review | 0 |  |
-| security-hardening-api | backend | in-progress | 1 |  |
+| journey-contract-fix | architect | done | 0 | PR #214 |
+| security-hardening-api | backend | review | 1 |  |
 | journey-canvas-ui | frontend | done | 1 | PR #216 |
-| event-filter-ui | designer | review | 0 |  |
-| web-test-flake-fix | frontend | in-progress | 0 |  |
+| event-filter-ui | designer | done | 0 | PR #217 |
+| web-test-flake-fix | frontend | qa | 0 |  |
 
 ## 卡住／待甲方決定
 
