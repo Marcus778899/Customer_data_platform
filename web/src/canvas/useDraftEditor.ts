@@ -1,7 +1,7 @@
 // 草稿狀態與自動儲存：編輯後停手 SAVE_DELAY 毫秒再 PUT；同時只送一個請求；revision 取自上一次回應。
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, getDraft, getFieldKeys, getJourney, putDraft, submitDraft, validateDraft, withdrawReview } from '../api/client'
-import type { Draft, FieldKeys, Issue, JourneyDetail, UserRef, ValidationReport } from '../api/types'
+import type { Draft, FieldKeys, Issue, JourneyDetail, Review, UserRef, ValidationReport } from '../api/types'
 import { entryEventName, fillLayout, type Def, type Layout } from './model'
 
 export const SAVE_DELAY = 1000
@@ -23,6 +23,7 @@ export function useDraftEditor(journeyId: string) {
   const [layout, setLayout] = useState<Layout | null>(null)
   const [meta, setMeta] = useState<{ updatedAt: string; updatedBy: UserRef | null } | null>(null)
   const [detail, setDetail] = useState<JourneyDetail | null>(null)
+  const [review, setReview] = useState<Review | null>(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -38,6 +39,9 @@ export function useDraftEditor(journeyId: string) {
   const revRef = useRef(0)
   const dirtyRef = useRef(false)
   const haltRef = useRef(false)
+  /** 送審中：草稿鎖定，編輯與儲存都不動作（契約 §3.2） */
+  const lockedRef = useRef(false)
+  const reviewRef = useRef<Review | null>(null)
   const timer = useRef<number | null>(null)
   const inflight = useRef<Promise<void> | null>(null)
   const alive = useRef(true)
@@ -48,6 +52,9 @@ export function useDraftEditor(journeyId: string) {
     revRef.current = d.revision
     dirtyRef.current = false
     haltRef.current = false
+    lockedRef.current = d.latest_review?.status === 'PENDING'
+    reviewRef.current = d.latest_review ?? null
+    setReview(d.latest_review ?? null)
     setDef(d.definition)
     setLayout(d.layout)
     setMeta({ updatedAt: d.updated_at, updatedBy: d.updated_by })
@@ -95,7 +102,7 @@ export function useDraftEditor(journeyId: string) {
   }, [])
   const save = useCallback((): Promise<void> => {
     if (inflight.current) return inflight.current
-    if (haltRef.current || !dirtyRef.current || !defRef.current) return Promise.resolve()
+    if (haltRef.current || lockedRef.current || !dirtyRef.current || !defRef.current) return Promise.resolve()
     const definition = defRef.current
     const full = fillLayout(definition, layoutRef.current)
     dirtyRef.current = false
@@ -120,6 +127,7 @@ export function useDraftEditor(journeyId: string) {
             () => undefined,
           )
         } else if (err.status === 409 && err.code === 'DRAFT_IN_REVIEW') {
+          lockedRef.current = true
           setBanner({ kind: 'inReview' })
         } else if (err.status === 409 && err.code === 'JOURNEY_ABORTED') {
           setBanner({ kind: 'aborted', detail: null })
@@ -160,7 +168,7 @@ export function useDraftEditor(journeyId: string) {
 
   const edit = useCallback(
     (fn: (d: Def, l: Layout) => [Def, Layout]) => {
-      if (!defRef.current) return
+      if (!defRef.current || lockedRef.current) return
       const [d, l] = fn(defRef.current, fillLayout(defRef.current, layoutRef.current))
       defRef.current = d
       layoutRef.current = l
@@ -205,15 +213,19 @@ export function useDraftEditor(journeyId: string) {
     }
   }, [journeyId, apply])
 
-  const withdraw = useCallback(async () => {
-    try {
-      const d = await getDraft(journeyId)
-      if (d.latest_review?.status === 'PENDING') await withdrawReview(journeyId, d.latest_review.review_id)
+  /** 撤回送審；失敗丟出 ApiError 由對話框顯示。成功後重新載入草稿（解鎖） */
+  const withdraw = useCallback(
+    async (reason: string) => {
+      let target = lockedRef.current ? reviewRef.current : null
+      if (target?.status !== 'PENDING') {
+        const d = await getDraft(journeyId)
+        target = d.latest_review?.status === 'PENDING' ? d.latest_review : null
+      }
+      if (target) await withdrawReview(journeyId, target.review_id, reason)
       apply(await getDraft(journeyId))
-    } catch (e) {
-      setBanner({ kind: 'saveFailed', requestId: asError(e).requestId })
-    }
-  }, [journeyId, apply])
+    },
+    [journeyId, apply],
+  )
 
   // ---------- 驗證與送審 ----------
   const validate = useCallback(async () => {
@@ -230,10 +242,13 @@ export function useDraftEditor(journeyId: string) {
     }
   }, [flush, journeyId])
 
-  const submit = useCallback(async (): Promise<boolean> => {
+  const submit = useCallback(async (note: string): Promise<boolean> => {
     if (!(await flush())) return false
     try {
-      await submitDraft(journeyId, revRef.current)
+      const r = await submitDraft(journeyId, revRef.current, note || undefined)
+      lockedRef.current = true
+      reviewRef.current = r
+      setReview(r)
       return true
     } catch (e) {
       const err = asError(e)
@@ -250,6 +265,7 @@ export function useDraftEditor(journeyId: string) {
         )
       } else if (err.status === 409 && err.code === 'REVIEW_PENDING') {
         haltRef.current = true
+        lockedRef.current = true
         setBanner({ kind: 'inReview' })
       } else if (err.status === 409 && err.code === 'JOURNEY_ABORTED') {
         haltRef.current = true
@@ -283,7 +299,7 @@ export function useDraftEditor(journeyId: string) {
   }, [eventName])
 
   return {
-    phase, loadError, reload, def, layout, meta, detail, dirty, saving, savedAt, banner, setBanner,
+    phase, loadError, reload, def, layout, meta, detail, review, dirty, saving, savedAt, banner, setBanner,
     report, setReport, reportOpen, setReportOpen, validating, fieldKeys,
     edit, flush, retrySave, loadLatest, withdraw, validate, submit,
   }
