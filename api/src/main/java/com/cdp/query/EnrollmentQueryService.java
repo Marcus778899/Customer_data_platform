@@ -63,7 +63,8 @@ public class EnrollmentQueryService {
         int size = limit(limit, DEFAULT_LIST_LIMIT);
         PageCursor after = cursor == null ? null : PageCursor.decode(cursor);
         List<EnrollmentSummary> rows = store.list(q, profileId, journeyId, statuses, after, size + 1);
-        return page(rows, size, r -> new PageCursor(r.enrolledAt(), r.enrollmentId()));
+        Page<EnrollmentSummary> raw = page(rows, size, r -> new PageCursor(r.enrolledAt(), r.enrollmentId()));
+        return new Page<>(raw.items().stream().map(masker::maskSummary).toList(), raw.nextCursor());
     }
 
     /** 不存在丟 ApiException(ENROLLMENT_NOT_FOUND)。 */
@@ -94,7 +95,9 @@ public class EnrollmentQueryService {
                         history.items(),
                         history.nextCursor(),
                         clock.instant(),
-                        List.of()));
+                        List.of(),
+                        raw.profileName(),
+                        raw.profileIdentifier()));
     }
 
     public Page<DeliveryEntry> deliveries(

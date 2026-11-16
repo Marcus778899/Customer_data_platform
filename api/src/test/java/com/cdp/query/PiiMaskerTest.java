@@ -22,7 +22,7 @@ class PiiMaskerTest {
                 "e", "j", 1, "n", "p", EnrollmentStatus.WAITING, "w", null, "WaitDelayNode", t, t, null, null,
                 null, Map.of("v", 1), new TriggerSnapshot("id", "ev", t, "CUSTOMER_BEHAVIOR", props, Map.of()),
                 List.of(new TraceEntry(1, "w", "WaitDelayNode", null, t, null, null, "r", evaluated)),
-                List.of(), null, t, List.of());
+                List.of(), null, t, List.of(), "Alice", null);
     }
 
     @Test
