@@ -1,6 +1,6 @@
 // 「旅程設定」面板：名稱、描述、重新進入（五選一）、達標、隨時退出（spec 03 §3；journeys.md §4）
 import { useId, useState } from 'react'
-import { OPERATORS, parseCondValue, withSettings, type Def } from './model'
+import { OPERATORS, condValueText, parseCondValue, shownText, withSettings, type Def } from './model'
 import { TextField } from './NodePanel'
 
 const PREFIX = '$.trigger.properties.'
@@ -25,6 +25,25 @@ interface ExitCond {
   operator?: string
   value?: unknown
   on_match?: string
+}
+
+const parseExitValue = (op: string, t: string): unknown => (t === 'true' ? true : t === 'false' ? false : parseCondValue(op, t))
+
+function ExitValue({ index, cond, onChange }: { index: number; cond: ExitCond; onChange: (v: unknown) => void }) {
+  const [raw, setRaw] = useState(condValueText(cond.value))
+  const op = cond.operator ?? 'EQ'
+  const text = shownText(raw, (t) => parseExitValue(op, t), cond.value)
+  return (
+    <input
+      aria-label={`退出值 ${index + 1}`}
+      type="text"
+      value={text}
+      onChange={(e) => {
+        setRaw(e.target.value)
+        onChange(parseExitValue(op, e.target.value))
+      }}
+    />
+  )
 }
 
 export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: (fn: (d: Def) => Def) => void; onClose: () => void }) {
@@ -148,12 +167,7 @@ export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: 
                     </option>
                   ))}
                 </select>
-                <input
-                  aria-label={`退出值 ${i + 1}`}
-                  type="text"
-                  defaultValue={String(c.value ?? '')}
-                  onChange={(e) => setCond(i, { value: e.target.value === 'true' ? true : e.target.value === 'false' ? false : parseCondValue(c.operator ?? 'EQ', e.target.value) })}
-                />
+                <ExitValue index={i} cond={c} onChange={(value) => setCond(i, { value })} />
               </div>
             )}
             <button type="button" className="btn ghost-dark sm" onClick={() => setConds(conds.filter((_, j) => j !== i))}>

@@ -94,6 +94,12 @@ export interface CondGroup {
 export type Cond = CondLeaf | CondGroup
 export const isGroup = (c: Cond): c is CondGroup => 'op' in c
 
+/** 輸入框顯示的文字：本地暫存的文字仍對應目前的值就沿用（保留輸入中的 "1."），否則（例如刪列後列位移）改顯示值本身 */
+export function shownText(text: string, parse: (t: string) => unknown, value: unknown): string {
+  const same = JSON.stringify(parse(text)) === JSON.stringify(value) || (value === undefined && text === '')
+  return same ? text : condValueText(value)
+}
+
 /** 常見欄位的白話名（設計稿 ed-condition）；沒有對照的欄位顯示原代碼 */
 const FIELD_LABEL: Record<string, string> = {
   tier: '會員等級',

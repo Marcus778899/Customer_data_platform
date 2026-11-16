@@ -14,6 +14,7 @@ import {
   OPERATORS,
   outputSpecs,
   parseCondValue,
+  shownText,
   condValueText,
   parseDuration,
   targetOfPort,
@@ -148,8 +149,12 @@ function LeafRow({
   onRemove: () => void
 }) {
   const known = new Set([...(keys?.profile_attributes ?? []), ...(keys?.event_properties ?? []).map((k) => `trigger.properties.${k}`)])
-  const [custom, setCustom] = useState(false)
-  const [text, setText] = useState(condValueText(leaf.value))
+  const [customPick, setCustom] = useState(false)
+  const [rawText, setText] = useState(condValueText(leaf.value))
+  // 以陣列位置當 key 時，刪列後狀態會落到別列：一律以目前的值校正顯示
+  const unknownField = !!leaf.field && !known.has(leaf.field)
+  const custom = (customPick && unknownField) || (customPick && !leaf.field) || (!!keys && unknownField)
+  const text = shownText(rawText, (t) => parseCondValue(leaf.operator, t), leaf.value)
   const op = OPERATORS.find((o) => o.value === leaf.operator)
   const setField = (f: string) => onChange({ ...leaf, field: f })
   return (

@@ -219,7 +219,7 @@ export function useDraftEditor(journeyId: string) {
   const validate = useCallback(async () => {
     setValidating(true)
     try {
-      await flush()
+      if (!(await flush())) return
       const r = await validateDraft(journeyId)
       setReport(r)
       setReportOpen(true)
@@ -231,7 +231,7 @@ export function useDraftEditor(journeyId: string) {
   }, [flush, journeyId])
 
   const submit = useCallback(async (): Promise<boolean> => {
-    await flush()
+    if (!(await flush())) return false
     try {
       await submitDraft(journeyId, revRef.current)
       return true
