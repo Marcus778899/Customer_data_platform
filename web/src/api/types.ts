@@ -160,3 +160,45 @@ export interface ProfileDetail {
   masked_paths: string[]
   as_of: string
 }
+
+// 型別對應 docs/contracts/journeys.md §3（草稿、驗證）、§4（field-keys）
+export interface DraftLayout {
+  nodes: Record<string, { x: number; y: number }>
+}
+export interface DraftDefinition {
+  name: string
+  description: string | null
+  settings: Record<string, unknown>
+  entry_node: string
+  nodes: JourneyNode[]
+}
+export interface Review {
+  review_id: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN'
+  [key: string]: unknown
+}
+export interface Draft {
+  journey_id: string
+  revision: number
+  definition: DraftDefinition
+  layout: DraftLayout | null
+  updated_at: string
+  updated_by: UserRef | null
+  latest_review: Review | null
+}
+export interface Issue {
+  field: string
+  message: string
+  rule: number | null
+  node_id: string | null
+}
+export interface ValidationReport {
+  valid: boolean
+  errors: Issue[]
+  warnings: Issue[]
+}
+export interface FieldKeys {
+  profile_attributes: string[]
+  event_properties: string[]
+  as_of: string
+}

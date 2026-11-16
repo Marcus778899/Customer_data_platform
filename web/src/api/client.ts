@@ -3,6 +3,12 @@
 import type {
   CurrentUser,
   Delivery,
+  Draft,
+  DraftDefinition,
+  DraftLayout,
+  FieldKeys,
+  Issue,
+  ValidationReport,
   EnrollmentDetail,
   EnrollmentSummary,
   JourneyDetail,
@@ -19,8 +25,18 @@ export class ApiError extends Error {
   readonly requestId: string | null
   /** 429 的 Retry-After（秒）；其他情況為 null */
   readonly retryAfter: number | null
-  constructor(status: number, code: string | null, requestId: string | null, message?: string, retryAfter: number | null = null) {
+  /** 400 VALIDATION_FAILED 的 errors（契約 journeys.md §3）；其他情況為空陣列 */
+  readonly issues: Issue[]
+  constructor(
+    status: number,
+    code: string | null,
+    requestId: string | null,
+    message?: string,
+    retryAfter: number | null = null,
+    issues: Issue[] = [],
+  ) {
     super(message ?? `HTTP ${status}`)
+    this.issues = issues
     this.status = status
     this.code = code
     this.requestId = requestId
@@ -69,7 +85,7 @@ function xsrfToken(): string | null {
 }
 
 async function toError(res: Response): Promise<ApiError> {
-  const body: { code?: string; request_id?: string } | null = await res.json().catch(() => null)
+  const body: { code?: string; request_id?: string; errors?: Issue[] } | null = await res.json().catch(() => null)
   const ra = Number.parseInt(res.headers.get('Retry-After') ?? '', 10)
   return new ApiError(
     res.status,
@@ -77,6 +93,7 @@ async function toError(res: Response): Promise<ApiError> {
     body?.request_id ?? res.headers.get('X-Request-Id'),
     undefined,
     Number.isFinite(ra) && ra >= 0 ? ra : null,
+    Array.isArray(body?.errors) ? body.errors : [],
   )
 }
 
@@ -155,3 +172,20 @@ export const searchProfiles = (q: string) =>
 export const getProfile = (id: string) => request<ProfileDetail>('GET', `/api/v1/profiles/${enc(id)}`)
 export const listProfileEnrollments = (id: string, cursor?: string) =>
   request<Page<EnrollmentSummary>>('GET', `/api/v1/profiles/${enc(id)}/enrollments${qs({ cursor })}`, { pageOn403: false })
+
+// ---------- 草稿與畫布（journeys.md §3、§4）；錯誤一律由編輯器自己顯示，不切整頁無權限 ----------
+export const createDraft = (name: string) =>
+  request<{ journey_id: string; status: string; revision: number }>('POST', '/api/v1/journeys/drafts', { body: { name } })
+export const getDraft = (id: string) => request<Draft>('GET', `/api/v1/journeys/${enc(id)}/draft`, { pageOn403: false })
+export const putDraft = (id: string, body: { revision: number; definition: DraftDefinition; layout: DraftLayout | null }) =>
+  request<Draft>('PUT', `/api/v1/journeys/${enc(id)}/draft`, { body })
+export const validateDraft = (id: string) =>
+  request<ValidationReport>('POST', `/api/v1/journeys/${enc(id)}/draft/validate`)
+export const submitDraft = (id: string, revision: number, note?: string) =>
+  request<unknown>('POST', `/api/v1/journeys/${enc(id)}/draft/submit`, {
+    body: note ? { revision, note } : { revision },
+  })
+export const withdrawReview = (id: string, reviewId: string) =>
+  request<unknown>('POST', `/api/v1/journeys/${enc(id)}/reviews/${enc(reviewId)}/withdraw`, { body: {} })
+export const getFieldKeys = (eventName?: string) =>
+  request<FieldKeys>('GET', `/api/v1/journeys/field-keys${qs({ event_name: eventName })}`, { pageOn403: false })
