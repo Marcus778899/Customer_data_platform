@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
 import com.cdp.acceptance.relayloop.RelayLoopTestSupport.MutableClock;
+import com.cdp.acceptance.support.TestKeys;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -84,7 +85,7 @@ abstract class RelayLoopBase {
                                 Map.of("template_id", "tpl_a", "channel_id", "ch_a"),
                                 Map.of("sent", "end_1")),
                         node("end_1", "EndNode", Map.of(), Map.of())));
-        postJson("/api/v1/journeys", "test-admin-key", j).andExpect(status().isCreated());
+        postJson("/api/v1/journeys", TestKeys.ADMIN, j).andExpect(status().isCreated());
         return eventName;
     }
 
@@ -99,7 +100,7 @@ abstract class RelayLoopBase {
         e.put("occurred_at", clock.instant().minusSeconds(60).toString());
         e.put("identity", Map.of("profile_id", profile));
         e.put("properties", Map.of("cart_id", "CART-1"));
-        postJson("/api/v1/events", "test-ingest-key", e).andExpect(status().isAccepted());
+        postJson("/api/v1/events", TestKeys.INGEST, e).andExpect(status().isAccepted());
         return profile;
     }
 

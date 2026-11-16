@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.cdp.acceptance.engine.EngineTestSupport.MutableClock;
+import com.cdp.acceptance.support.TestKeys;
 import com.cdp.engine.runtime.AdvanceLoop;
 import com.cdp.ingest.EventDispatcher;
 
@@ -129,7 +130,7 @@ class JourneyEngineAcceptanceTest {
     }
 
     private String createJourney(String eventName) throws Exception {
-        postJson("/api/v1/journeys", "test-admin-key", journey(eventName, "PT1H"))
+        postJson("/api/v1/journeys", TestKeys.ADMIN, journey(eventName, "PT1H"))
                 .andExpect(status().isCreated());
         return eventName;
     }
@@ -155,7 +156,7 @@ class JourneyEngineAcceptanceTest {
     }
 
     private ResultActions ingest(Map<String, Object> e) throws Exception {
-        return postJson("/api/v1/events", "test-ingest-key", e);
+        return postJson("/api/v1/events", TestKeys.INGEST, e);
     }
 
     private String enrollmentId(String profileId) {
@@ -215,7 +216,7 @@ class JourneyEngineAcceptanceTest {
     void createJourney_returns201_andSameIdBecomesNewVersion() throws Exception {
         Map<String, Object> j = journey(newEventName(), "PT1H");
         String body =
-                postJson("/api/v1/journeys", "test-admin-key", j)
+                postJson("/api/v1/journeys", TestKeys.ADMIN, j)
                         .andExpect(status().isCreated())
                         .andExpect(jsonPath("$.journey_id").isString())
                         .andExpect(jsonPath("$.version").value(1))
@@ -227,7 +228,7 @@ class JourneyEngineAcceptanceTest {
         String id = json.readTree(body).get("journey_id").asString();
 
         j.put("journey_id", id);
-        postJson("/api/v1/journeys", "test-admin-key", j)
+        postJson("/api/v1/journeys", TestKeys.ADMIN, j)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.journey_id").value(id))
                 .andExpect(jsonPath("$.version").value(2));
@@ -297,7 +298,7 @@ class JourneyEngineAcceptanceTest {
     }
 
     private void expectValidationFailed(Map<String, Object> j) throws Exception {
-        postJson("/api/v1/journeys", "test-admin-key", j)
+        postJson("/api/v1/journeys", TestKeys.ADMIN, j)
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.type").value("about:blank"))
@@ -385,12 +386,12 @@ class JourneyEngineAcceptanceTest {
         String body =
                 json.writeValueAsString(event(ulid(), newEventName(), ulid(), clock.instant()));
         mvc.perform(
-                        authed(post("/api/v1/events"), "test-ingest-key")
+                        authed(post("/api/v1/events"), TestKeys.INGEST)
                                 .header("X-Request-Id", "my-req.1")
                                 .content(body))
                 .andExpect(header().string("X-Request-Id", "my-req.1"));
         mvc.perform(
-                        authed(post("/api/v1/events"), "test-ingest-key")
+                        authed(post("/api/v1/events"), TestKeys.INGEST)
                                 .header("X-Request-Id", "bad id!")
                                 .content(body))
                 .andExpect(header().string("X-Request-Id", not("bad id!")))
@@ -406,7 +407,7 @@ class JourneyEngineAcceptanceTest {
         ingest(dup).andExpect(status().isAccepted());
         Map<String, Object> bad = event(ulid(), "Bad-Name", ulid(), now);
 
-        postJson("/api/v1/events/batch", "test-ingest-key", Map.of("events", List.of(ok, dup, bad)))
+        postJson("/api/v1/events/batch", TestKeys.INGEST, Map.of("events", List.of(ok, dup, bad)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.accepted").value(2))
                 .andExpect(jsonPath("$.rejected").value(1))
@@ -425,14 +426,14 @@ class JourneyEngineAcceptanceTest {
         for (int i = 0; i < 501; i++) {
             events.add(event(ulid(), name, ulid(), clock.instant()));
         }
-        postJson("/api/v1/events/batch", "test-ingest-key", Map.of("events", events))
+        postJson("/api/v1/events/batch", TestKeys.INGEST, Map.of("events", events))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BATCH_TOO_LARGE"));
     }
 
     @Test
     void errorResponses_carryRequestIdInBody() throws Exception {
-        postJson("/api/v1/events/batch", "test-ingest-key", Map.of("events", List.of()))
+        postJson("/api/v1/events/batch", TestKeys.INGEST, Map.of("events", List.of()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.request_id", matchesPattern("[A-Za-z0-9._-]{1,64}")));
     }
@@ -577,7 +578,7 @@ class JourneyEngineAcceptanceTest {
                         eid);
         Map<String, Object> v2 = journey(name, "PT5H");
         v2.put("journey_id", jid);
-        postJson("/api/v1/journeys", "test-admin-key", v2).andExpect(status().isCreated());
+        postJson("/api/v1/journeys", TestKeys.ADMIN, v2).andExpect(status().isCreated());
 
         clock.advance(Duration.ofHours(1).plusSeconds(1));
         advanceLoop.runOnce();

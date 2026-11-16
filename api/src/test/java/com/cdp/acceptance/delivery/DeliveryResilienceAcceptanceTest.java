@@ -48,6 +48,7 @@ import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 import com.cdp.acceptance.delivery.DeliveryTestSupport.MutableClock;
 import com.cdp.acceptance.engine.EngineTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 import com.cdp.delivery.RabbitTopology;
 import com.cdp.delivery.relay.OutboxRelay;
 import com.cdp.engine.runtime.AdvanceLoop;
@@ -173,7 +174,7 @@ class DeliveryResilienceAcceptanceTest {
     /** 建旅程 → 事件 → 派發 → 快轉 → 喚醒；回傳 outbox 中等待推送的那一列。 */
     private Scheduled scheduleSend() throws Exception {
         String eventName = "evt_" + ulid().toLowerCase();
-        postJson("/api/v1/journeys", "test-admin-key", journey(eventName))
+        postJson("/api/v1/journeys", TestKeys.ADMIN, journey(eventName))
                 .andExpect(status().isCreated());
         String profile = ulid();
         Map<String, Object> e = new LinkedHashMap<>();
@@ -184,7 +185,7 @@ class DeliveryResilienceAcceptanceTest {
         e.put("occurred_at", clock.instant().minusSeconds(60).toString());
         e.put("identity", Map.of("profile_id", profile));
         e.put("properties", Map.of("cart_id", "CART-1"));
-        postJson("/api/v1/events", "test-ingest-key", e).andExpect(status().isAccepted());
+        postJson("/api/v1/events", TestKeys.INGEST, e).andExpect(status().isAccepted());
         dispatcher.runOnce();
         String eid =
                 jdbc.queryForObject(

@@ -20,6 +20,8 @@ import org.springframework.boot.web.server.servlet.context.ServletWebServerAppli
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -37,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
 @Import(SecurityTestSupport.class)
 class DefaultDenyAcceptanceTest {
 
-    private static final String INGEST = "Bearer test-ingest-key";
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
 
     /** 契約 §1.1 沒有列出的 method＋path。 */
     private static final List<String[]> UNLISTED = List.of(

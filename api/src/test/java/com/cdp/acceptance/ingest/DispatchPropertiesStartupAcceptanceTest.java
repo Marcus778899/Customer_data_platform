@@ -13,6 +13,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import com.cdp.CdpApplication;
 import com.cdp.acceptance.security.SecurityTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 
 /**
  * FIX-05 驗收：事件派發重試設定不合法 → 啟動失敗，cause 鏈訊息點出 cdp.engine.dispatch. 設定名且不含所給的值；
@@ -29,8 +30,8 @@ class DispatchPropertiesStartupAcceptanceTest {
                 "--spring.rabbitmq.listener.simple.auto-startup=false",
                 "--cdp.engine.poll-interval=PT1H",
                 "--cdp.relay.poll-interval=PT1H",
-                "--cdp.security.ingest-api-key=SECRET-aaaa-1111",
-                "--cdp.security.admin-api-key=SECRET-bbbb-2222",
+                "--cdp.security.ingest-api-key=" + TestKeys.VALID_A,
+                "--cdp.security.admin-api-key=" + TestKeys.VALID_B,
                 P + "max-attempts=5",
                 P + "backoff-initial=PT10S",
                 P + "backoff-max=PT10M")) {
