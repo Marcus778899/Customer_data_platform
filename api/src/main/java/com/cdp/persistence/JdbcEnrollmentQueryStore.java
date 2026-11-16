@@ -19,6 +19,8 @@ import com.cdp.engine.model.EnrollmentStatus;
 import com.cdp.engine.model.MessageType;
 import com.cdp.engine.model.SkipReason;
 import com.cdp.engine.model.TriggerSnapshot;
+import com.cdp.profile.IdentifierType;
+import com.cdp.profile.IdentifierView;
 import com.cdp.query.DeliveryEntry;
 import com.cdp.query.EnrollmentDetail;
 import com.cdp.query.EnrollmentQueryStore;
@@ -40,7 +42,10 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
     private static final String SUMMARY_SELECT =
             "select e.enrollment_id, e.journey_id, e.journey_version, coalesce(jd.name, '') as journey_name,"
                     + " e.profile_id, e.status, e.current_node_id, n.name as node_name, n.type as node_type,"
-                    + " e.enrolled_at, e.updated_at, e.terminated_at";
+                    + " e.enrolled_at, e.updated_at, e.terminated_at,"
+                    + " case when jsonb_typeof(p.attributes -> 'name') = 'string'"
+                    + " then p.attributes ->> 'name' end as profile_name,"
+                    + " pid.id_type as ident_type, pid.id_value as ident_value";
 
     /** 目前節點的名稱與型別以 lateral 從綁定版本的 nodes 取出。 */
     private static final String SUMMARY_FROM =
@@ -49,7 +54,11 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
                     + " and jd.version = e.journey_version"
                     + " left join lateral (select x ->> 'name' as name, x ->> 'type' as type"
                     + " from jsonb_array_elements(jd.nodes) x where x ->> 'id' = e.current_node_id"
-                    + " limit 1) n on true";
+                    + " limit 1) n on true"
+                    + " left join profile p on p.profile_id = e.profile_id"
+                    + " left join lateral (select i.id_type, i.id_value from profile_identifier i"
+                    + " where i.profile_id = e.profile_id"
+                    + " order by i.id_type collate \"C\", i.id_value collate \"C\" limit 1) pid on true";
 
     private final JdbcClient jdbc;
     private final JsonMapper json;
@@ -141,7 +150,9 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
                                     List.of(),
                                     null,
                                     null,
-                                    List.of());
+                                    List.of(),
+                                    s.profileName(),
+                                    s.profileIdentifier());
                         })
                 .optional();
     }
@@ -191,7 +202,14 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
                 rs.getString("node_type"),
                 instant(rs, "enrolled_at"),
                 instant(rs, "updated_at"),
-                instant(rs, "terminated_at"));
+                instant(rs, "terminated_at"),
+                rs.getString("profile_name"),
+                rs.getString("ident_type") == null
+                        ? null
+                        : new IdentifierView(
+                                IdentifierType.valueOf(rs.getString("ident_type")),
+                                rs.getString("ident_value"),
+                                false));
     }
 
     private static WakeConditionView wake(ResultSet rs, EnrollmentStatus status) throws SQLException {
