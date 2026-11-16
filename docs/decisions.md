@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-087 「等事件」節點也能設事件篩選（D-085 補充）
+- 決定：A. 擴及「等事件」節點（`WaitForEventNode.event_filter`），與旅程入口同一套驗證與判斷
+- 理由：資料欄位已存在、驗證器已接受、設計稿已畫，分支引擎只多一處呼叫
+- 影響：journeys.md §4 等事件那列改為支援（journey-contract-fix）；journey-branch-engine 加等事件的篩選判斷；event-filter-ui 保留等事件篩選
+- 日期：2026-11-13
+
 ### D-086 #144 客戶頁旅程表三欄卡在流程工具，要怎麼續做
 - 決定：C. 作廢 ux-fix-customer-list，#144、#148、#178、#179、#188 重開有驗收範圍的 full 單（ux-fix-customer-pages），從 qa「A」改寫兩個舊驗收測試開始
 - 理由：不必繞兩輪仲裁、也不必等工具更新；已驗證的前端改法可沿用
