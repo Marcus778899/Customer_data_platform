@@ -15,6 +15,7 @@ import type {
   JourneySummary,
   JourneyVersion,
   Page,
+  Review,
   ProfileDetail,
   ProfileSummary,
 } from './types'
@@ -160,8 +161,11 @@ export const getEnrollment = (id: string) => request<EnrollmentDetail>('GET', `/
 export const listDeliveries = (id: string, cursor: string) =>
   request<Page<Delivery>>('GET', `/api/v1/enrollments/${enc(id)}/deliveries${qs({ cursor })}`, { pageOn403: false })
 
-export const listJourneys = (p: { q?: string; status?: string; cursor?: string; limit?: number }) =>
-  request<Page<JourneySummary>>('GET', `/api/v1/journeys${qs({ q: p.q, status: p.status, cursor: p.cursor, limit: p.limit })}`)
+export const listJourneys = (p: { q?: string; status?: string; review_status?: string; cursor?: string; limit?: number }) =>
+  request<Page<JourneySummary>>(
+    'GET',
+    `/api/v1/journeys${qs({ q: p.q, status: p.status, review_status: p.review_status, cursor: p.cursor, limit: p.limit })}`,
+  )
 export const getJourney = (id: string) => request<JourneyDetail>('GET', `/api/v1/journeys/${enc(id)}`)
 /** 版本定義失敗只影響圖，不切整頁無權限 */
 export const getJourneyVersion = (id: string, version: number) =>
@@ -181,11 +185,25 @@ export const putDraft = (id: string, body: { revision: number; definition: Draft
   request<Draft>('PUT', `/api/v1/journeys/${enc(id)}/draft`, { body })
 export const validateDraft = (id: string) =>
   request<ValidationReport>('POST', `/api/v1/journeys/${enc(id)}/draft/validate`)
+export const deleteDraft = (id: string) => request<void>('DELETE', `/api/v1/journeys/${enc(id)}/draft`)
 export const submitDraft = (id: string, revision: number, note?: string) =>
-  request<unknown>('POST', `/api/v1/journeys/${enc(id)}/draft/submit`, {
+  request<Review>('POST', `/api/v1/journeys/${enc(id)}/draft/submit`, {
     body: note ? { revision, note } : { revision },
   })
-export const withdrawReview = (id: string, reviewId: string) =>
-  request<unknown>('POST', `/api/v1/journeys/${enc(id)}/reviews/${enc(reviewId)}/withdraw`, { body: {} })
+
+// ---------- 審核與停止（journeys.md §3.2、§3.5）；錯誤交給對話框自己顯示 ----------
+const reviewPath = (id: string, reviewId: string, action: string) =>
+  `/api/v1/journeys/${enc(id)}/reviews/${enc(reviewId)}/${action}`
+const reasonBody = (reason?: string) => (reason ? { reason } : {})
+export const approveReview = (id: string, reviewId: string, reason?: string) =>
+  request<Review>('POST', reviewPath(id, reviewId, 'approve'), { body: reasonBody(reason) })
+export const rejectReview = (id: string, reviewId: string, reason: string) =>
+  request<Review>('POST', reviewPath(id, reviewId, 'reject'), { body: { reason } })
+export const withdrawReview = (id: string, reviewId: string, reason?: string) =>
+  request<Review>('POST', reviewPath(id, reviewId, 'withdraw'), { body: reasonBody(reason) })
+export const listReviews = (id: string, cursor?: string) =>
+  request<Page<Review>>('GET', `/api/v1/journeys/${enc(id)}/reviews${qs({ cursor })}`, { pageOn403: false })
+export const stopJourney = (id: string, reason: string) =>
+  request<JourneyDetail>('POST', `/api/v1/journeys/${enc(id)}/stop`, { body: { reason } })
 export const getFieldKeys = (eventName?: string) =>
   request<FieldKeys>('GET', `/api/v1/journeys/field-keys${qs({ event_name: eventName })}`, { pageOn403: false })

@@ -111,6 +111,8 @@ export interface JourneySummary {
   review_status: 'PENDING' | 'REJECTED' | null
   updated_at: string
   published_at: string | null
+  /** review_status 不為 null 時帶出那一筆審核的摘要（契約 §1）；舊資料可能沒有此欄 */
+  latest_review?: ReviewBrief | null
 }
 export interface JourneyDetail extends JourneySummary {
   description: string | null
@@ -172,10 +174,25 @@ export interface DraftDefinition {
   entry_node: string
   nodes: JourneyNode[]
 }
-export interface Review {
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN'
+/** 列表用的摘要（契約 §1 ReviewBrief） */
+export interface ReviewBrief {
   review_id: string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN'
-  [key: string]: unknown
+  status: ReviewStatus
+  submitted_by: UserRef | null
+  submitted_at: string
+  decided_by: UserRef | null
+  decided_at: string | null
+  reason: string | null
+}
+/** 契約 journeys.md §1 Review */
+export interface Review extends ReviewBrief {
+  journey_id: string
+  action: string
+  revision: number | null
+  base_version: number | null
+  note: string | null
+  version: number | null
 }
 export interface Draft {
   journey_id: string

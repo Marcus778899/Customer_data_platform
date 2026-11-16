@@ -78,7 +78,7 @@ export const EID = '01JD3A5B7C9D1E3F5G7H9J2K4M'
 
 export function journeySummary(over: Record<string, unknown> = {}) {
   return {
-    journey_id: JID, name: '棄單挽回', status: 'ACTIVE', latest_version: 3, has_draft: false, review_status: null,
+    journey_id: JID, name: '棄單挽回', status: 'ACTIVE', latest_version: 3, has_draft: false, review_status: null, latest_review: null,
     updated_at: '2026-10-18T01:12:00Z', published_at: '2026-10-18T01:12:00Z', ...over,
   }
 }
