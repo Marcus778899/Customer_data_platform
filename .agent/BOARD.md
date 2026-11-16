@@ -106,6 +106,7 @@
 | 2026-11-07 | D-084 | v0.3.0 | 登入限速改 email＋來源 IP，加 IP 總量與全域併發上限 |
 | 2026-11-07 | D-085 | v0.3.0 | 場景一保留金額 > 500 篩選，v0.3.0 支援 event_filter |
 | 2026-11-08 | D-086 | v0.3.0 | ux-fix-customer-list 作廢，#144 等五項重開 full 單 ux-fix-customer-pages |
+| 2026-11-12 | D-087 | v0.3.0 | 「等事件」節點也能設事件篩選（擴及 WaitForEventNode） |
 
 ## 任務狀態
 
@@ -119,18 +120,21 @@
 | journey-node-stats-api | backend | done | 0 | PR #201 |
 | ux-fix-login-trace | frontend | done | 0 | PR #203 |
 | ux-fix-customer-pages | frontend | done | 0 | PR #206 |
-| coverage-gate-setup | architect | qa | 0 |  |
-| journey-contract-fix | architect | qa | 0 |  |
-| security-hardening-api | backend | in-progress | 0 |  |
-| journey-canvas-ui | frontend | in-progress | 0 |  |
+| coverage-gate-setup | architect | done | 0 | PR #213 |
+| journey-contract-fix | architect | review | 0 |  |
+| security-hardening-api | backend | in-progress | 1 |  |
+| journey-canvas-ui | frontend | done | 1 | PR #216 |
+| event-filter-ui | designer | review | 0 |  |
+| web-test-flake-fix | frontend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
-- 待辦：畫布的 event_filter（D-085）編輯 UI 沒有規格，canvas-ui 未做；待確認歸 designer 補規格＋哪張前端單
 - 合併後甲方要更新 .env：CDP_LOGIN_IP_MAX_FAILURES；兩把金鑰改 ≥ 32 字、不含 CHANGE_ME（security-hardening-api）
+- event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
+- 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
 
 ## 注意事項（踩過的坑）
 

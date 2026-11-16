@@ -1,0 +1,33 @@
+# ae ci coverage-gate 不量的程式檔（一行一個 fnmatch 樣式，* 也比對 /）。受保護路徑：加一條要 architect review。
+# 原則：只列「沒有可執行的行」或「測試不會執行的進入點」；有邏輯的檔不可加（見 docs/design/INIT-01.md「覆蓋率」）。
+
+# 進入點：只呼叫框架啟動，測試用 @SpringBootTest／render(<App/>) 起，不經過 main
+api/src/main/java/com/cdp/CdpApplication.java
+web/src/main.tsx
+
+# 開發工具：make demo-seed／demo-verify／perf 手動對執行中的後端跑，不是產品程式、沒有測試套件
+tools/*
+
+# 只有型別宣告：TypeScript 型別編譯後沒有程式，v8 報告裡 0 行
+web/src/api/types.ts
+
+# 純介面（沒有 default／static 方法）：JaCoCo 量的是 bytecode，抽象方法沒有行，報告裡 0 行。
+# 之後替介面加 default／static 方法時，要把它從這裡移除
+api/src/main/java/com/cdp/common/IdGenerator.java
+api/src/main/java/com/cdp/common/fault/FaultInjector.java
+api/src/main/java/com/cdp/delivery/DeliveryTaskStore.java
+api/src/main/java/com/cdp/delivery/KillSwitch.java
+api/src/main/java/com/cdp/delivery/channel/ChannelAdapter.java
+api/src/main/java/com/cdp/engine/EffectExecutor.java
+api/src/main/java/com/cdp/engine/JourneyRuntime.java
+api/src/main/java/com/cdp/engine/StateStore.java
+api/src/main/java/com/cdp/engine/Timer.java
+api/src/main/java/com/cdp/engine/node/JourneyNode.java
+api/src/main/java/com/cdp/engine/runtime/EnrollmentAdvancer.java
+api/src/main/java/com/cdp/ingest/EventStore.java
+api/src/main/java/com/cdp/journey/JourneyDefinitionStore.java
+api/src/main/java/com/cdp/journey/JourneyQueryStore.java
+api/src/main/java/com/cdp/journey/JourneyReviewStore.java
+api/src/main/java/com/cdp/nodestats/NodeStatsStore.java
+api/src/main/java/com/cdp/profile/ProfileReadStore.java
+api/src/main/java/com/cdp/query/EnrollmentQueryStore.java
