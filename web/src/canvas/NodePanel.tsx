@@ -1,7 +1,7 @@
 // 右側節點屬性面板：名稱、各型別欄位、下一步（連線）、刪除。欄位標籤同設計稿 ed-*。
 import { useId, useState, type ReactNode } from 'react'
 import type { FieldKeys, Issue } from '../api/types'
-import { EventFilterEditor } from './EventFilterEditor'
+import { EventFilterEditor, type Locate } from './EventFilterEditor'
 import { useLocked } from './lock'
 import {
   buildDuration,
@@ -318,6 +318,7 @@ function Body({
   set,
   openSettings,
   issues,
+  locate,
 }: {
   node: DefNode
   def: Def
@@ -325,6 +326,7 @@ function Body({
   set: (fn: (n: DefNode) => DefNode) => void
   openSettings: () => void
   issues: readonly Issue[]
+  locate?: Locate | null
 }) {
   const locked = useLocked()
   const cfg = (patch: Record<string, unknown>) => set((n) => ({ ...n, config: { ...n.config, ...patch } }))
@@ -342,7 +344,7 @@ function Body({
       return (
         <>
           <TextField label="事件名稱" value={str('event_name')} onChange={(v) => cfg({ event_name: v })} hint="客戶做了這件事就進入旅程；小寫英文與底線，例如 cart_item_added" />
-          <EventFilterEditor kind="source" event={str('event_name')} unlimited={false} value={node.config.event_filter} onCommit={setFilter} issues={issues} nodeIndex={nodeIndex} />
+          <EventFilterEditor kind="source" event={str('event_name')} unlimited={false} value={node.config.event_filter} onCommit={setFilter} issues={issues} nodeIndex={nodeIndex} locate={locate} />
         </>
       )
     case 'SendMessageNode':
@@ -371,7 +373,7 @@ function Body({
               不設時限，一直等到事件發生
             </label>
           </div>
-          <EventFilterEditor kind="wait" event={str('event_name')} unlimited={unlimited} value={node.config.event_filter} onCommit={setFilter} issues={issues} nodeIndex={nodeIndex} />
+          <EventFilterEditor kind="wait" event={str('event_name')} unlimited={unlimited} value={node.config.event_filter} onCommit={setFilter} issues={issues} nodeIndex={nodeIndex} locate={locate} />
         </>
       )
     }
@@ -480,6 +482,7 @@ export function NodePanel({
   onClose,
   openSettings,
   issues = [],
+  locate = null,
 }: {
   node: DefNode
   def: Def
@@ -491,6 +494,7 @@ export function NodePanel({
   openSettings: () => void
   /** 驗證結果的錯誤；事件篩選依 field 路徑標到對應條件 */
   issues?: readonly Issue[]
+  locate?: Locate | null
 }) {
   const hid = useId()
   const locked = useLocked()
@@ -508,7 +512,7 @@ export function NodePanel({
         </button>
       </div>
       <TextField label="名稱" value={node.name ?? ''} onChange={(v) => onChange((n) => ({ ...n, name: v }))} />
-      <Body node={node} def={def} keys={keys} set={onChange} openSettings={openSettings} issues={issues} />
+      <Body node={node} def={def} keys={keys} set={onChange} openSettings={openSettings} issues={issues} locate={locate} />
       {specs.length > 0 && (
         <>
           <h3 className="sub">下一步</h3>

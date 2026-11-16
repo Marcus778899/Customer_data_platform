@@ -67,6 +67,7 @@ function Editor({ id }: { id: string }) {
   const ed = useDraftEditor(id)
   const [selected, setSelected] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [locate, setLocate] = useState<{ field: string; seq: number } | null>(null)
   const flowId = useId()
   const { def, layout } = ed
   const [dialog, setDialog] = useState<'submit' | 'withdraw' | null>(null)
@@ -346,6 +347,7 @@ function Editor({ id }: { id: string }) {
               onClose={() => setSelected(null)}
               openSettings={openSettings}
               issues={ed.report?.errors ?? []}
+              locate={locate}
             />
           )}
           {settingsOpen && <SettingsPanel def={def} onChange={setDef} onClose={() => setSettingsOpen(false)} />}
@@ -355,7 +357,10 @@ function Editor({ id }: { id: string }) {
               busy={ed.validating}
               onRevalidate={() => void ed.validate()}
               onClose={() => ed.setReportOpen(false)}
-              onLocate={(nid) => select(nid)}
+              onLocate={(nid, field) => {
+                select(nid)
+                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
+              }}
               onSettings={openSettings}
             />
           )}

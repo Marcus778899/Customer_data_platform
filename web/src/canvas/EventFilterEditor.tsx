@@ -182,7 +182,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
   )
 
   return (
-    <li className={`leaf cond-row${bad ? ' bad' : ''}`}>
+    <li className={`leaf cond-row${bad ? ' bad' : ''}`} data-fid={leaf.id}>
       <div className="sentence">
         <div className="sf">{fieldControl}</div>
         <select
@@ -241,7 +241,7 @@ function UnsupRow({ node, ctx }: { node: FUnsup; ctx: Ctx }) {
   const iss = issuesAt(ctx.issues, ctx.paths.get(node.id))
   const msgs = [...iss.row, ...iss.field, ...iss.operator, ...iss.value]
   return (
-    <li className={`leaf unsup${msgs.length ? ' bad' : ''}`}>
+    <li className={`leaf unsup${msgs.length ? ' bad' : ''}`} data-fid={node.id}>
       <div className="uhead">
         <strong>不支援的條件（{rawKind(node.raw)}）</strong>
         <span className="tagx">畫面無法編輯</span>
@@ -266,7 +266,7 @@ function GroupView({ group, depth, ctx, root, onAdd }: { group: FGroup; depth: n
   const ops = GROUP_OPS.filter((o) => o.op !== 'NOT' || !root || group.op === 'NOT')
   const setOp = (op: FGroup['op']) => ctx.update(group.id, (n) => ({ ...(n as FGroup), op }))
   return (
-    <div className="cond-group">
+    <div className="cond-group" data-fid={group.id}>
       <div className="seg" role="group" aria-label="組合方式">
         {ops.map((o) => (
           <button key={o.op} type="button" className="btn secondary sm" aria-pressed={group.op === o.op} disabled={ctx.locked} onClick={() => setOp(o.op)}>
@@ -319,6 +319,11 @@ function updateGroup(g: FGroup, id: string, fn: (g: FGroup) => FGroup): FGroup {
   return { ...g, children: g.children.map((c) => (c.kind === 'group' ? updateGroup(c, id, fn) : c)) }
 }
 
+export interface Locate {
+  field: string
+  seq: number
+}
+
 export function EventFilterEditor({
   kind,
   event,
@@ -327,6 +332,7 @@ export function EventFilterEditor({
   onCommit,
   issues,
   nodeIndex,
+  locate = null,
 }: {
   kind: 'source' | 'wait'
   event: string
@@ -338,6 +344,8 @@ export function EventFilterEditor({
   onCommit: (filter: unknown) => void
   issues: readonly Issue[]
   nodeIndex: number
+  /** 驗證結果按「定位節點」：依 field 捲到並聚焦對應條件列 */
+  locate?: Locate | null
 }) {
   const locked = useLocked()
   const curKey = wireKey(value)
@@ -354,6 +362,19 @@ export function EventFilterEditor({
   const wired = useMemo(() => toWire(tree), [tree])
   const issueList = useMemo(() => filterIssues(issues, nodeIndex), [issues, nodeIndex])
   const uid = useId()
+  const boxRef = useRef<HTMLFieldSetElement>(null)
+  const wiredPaths = wired.paths
+  useEffect(() => {
+    if (!locate) return
+    const m = new RegExp(String.raw`^definition\.nodes\[${nodeIndex}\]\.config\.(event_filter(?:\.children\[\d+\])*)`).exec(locate.field)
+    if (!m) return
+    const id = [...wiredPaths].find(([, p]) => p === m[1])?.[0]
+    const el = id ? boxRef.current?.querySelector<HTMLElement>(`[data-fid="${id}"]`) : boxRef.current
+    if (!el) return
+    el.scrollIntoView?.({ block: 'center' })
+    el.querySelector<HTMLElement>('[aria-invalid="true"], select, input, button')?.focus()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locate?.seq])
 
   const commit = (next: FGroup, snap: { tree: FGroup; count: number } | null = null) => {
     if (locked) return
@@ -379,7 +400,7 @@ export function EventFilterEditor({
   const legend = kind === 'source' ? '只讓符合條件的事件進入（選填）' : '只算符合條件的事件（選填）'
 
   return (
-    <fieldset className="field ef">
+    <fieldset className="field ef" ref={boxRef}>
       <legend>{legend}</legend>
       <p className={`fsum${sum.tone === 'todo' ? ' todo' : ''}`} role="status" aria-live="polite">
         {sum.text}
