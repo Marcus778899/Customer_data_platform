@@ -128,6 +128,32 @@ class JdbcJourneyReviewStoreIntegrationTest {
     }
 
     @Test
+    void latest_onlyCountsReviewsOfThisDraft() {
+        jdbc.sql(
+                        "insert into journey (journey_id, status, draft_created_at, created_at, updated_at)"
+                                + " values ('j', 'ACTIVE', :at, :at, :at)")
+                .param("at", java.sql.Timestamp.from(T0.plusSeconds(100)))
+                .update();
+        store.insert(pending("old", "j", T0));
+        store.decide("old", ReviewStatus.REJECTED, "u2", T0, "不合格", null);
+        assertThat(store.latest("j")).isEmpty();
+
+        store.insert(pending("new", "j", T0.plusSeconds(100)));
+        assertThat(store.latest("j").orElseThrow().reviewId()).isEqualTo("new");
+
+        // 金鑰建版本的紀錄（submitted_by 為 null）不算
+        store.insert(new JourneyReview(
+                "key", "j", "PUBLISH", ReviewStatus.APPROVED, null, null, "管理金鑰建立", null,
+                T0.plusSeconds(200), null, T0, null, 1));
+        assertThat(store.latest("j").orElseThrow().reviewId()).isEqualTo("new");
+
+        // 欄位為 null（舊草稿）：不以時間過濾
+        jdbc.sql("update journey set draft_created_at = null where journey_id = 'j'").update();
+        store.decide("new", ReviewStatus.WITHDRAWN, "u1", T0, null, null);
+        assertThat(store.latest("j").orElseThrow().reviewId()).isEqualTo("new");
+    }
+
+    @Test
     void list_newestFirst_withKeysetPaging() {
         for (int i = 1; i <= 3; i++) {
             store.insert(pending("r" + i, "j", T0.plusSeconds(i)));

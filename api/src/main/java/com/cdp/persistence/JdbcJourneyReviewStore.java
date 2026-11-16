@@ -81,7 +81,9 @@ public class JdbcJourneyReviewStore implements JourneyReviewStore {
     public Optional<JourneyReview> latest(String journeyId) {
         return jdbc.sql(
                         SELECT
-                                + " where r.journey_id = :journey"
+                                + " where r.journey_id = :journey and r.submitted_by is not null"
+                                + " and not exists (select 1 from journey j where j.journey_id = r.journey_id"
+                                + " and j.draft_created_at is not null and r.submitted_at < j.draft_created_at)"
                                 + " order by (r.status = 'PENDING') desc, r.submitted_at desc, r.seq desc limit 1")
                 .param("journey", journeyId)
                 .query((rs, n) -> map(rs))
