@@ -11,6 +11,12 @@ export default defineConfig({
     proxy: { '/api': `http://localhost:${process.env.API_PORT}` },
   },
   test: {
+    // 負載下 jsdom 測試偶發超過預設 5000ms；RTL 等待逾時見 tests/setup.ts
+    testTimeout: 20000,
+    hookTimeout: 20000,
+    setupFiles: ['tests/setup.ts'],
+    // 限制並行 worker，避免 jsdom 啟動競爭 CPU 造成逾時
+    maxWorkers: 4,
     // tests/acceptance 由 qa 撰寫、worker 不可改；單元測試放 tests/unit 或與原始碼同目錄
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
   },
