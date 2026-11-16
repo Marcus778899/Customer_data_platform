@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   DRAFT_PATH, FK, and, bodyText, cleanup, deferred, efBackend, efDef, fieldKeysBody, filterOf, json, leaf, nodeButton, open,
-  putWith, resetEnv, rowsOf, screen, teardown, userEvent, waitFor, within, choose, optionCount,
+  putWith, resetEnv, rowsOf, screen, SRC_LEGEND, teardown, userEvent, waitFor, within, optionCount,
 } from './fixtures'
 
 beforeEach(resetEnv)
@@ -88,6 +88,30 @@ describe('驗證錯誤依 field 標到對應條件', () => {
     expect(r2.textContent).toContain('只能比對事件屬性')
     expect(within(r2).getByLabelText('欄位').getAttribute('aria-invalid')).toBe('true')
     expect(r2.textContent).not.toContain('「大於」要填數字')
+  })
+
+  it('驗證結果按「定位節點」後，依 field 捲到對應條件列（scrollIntoView 或焦點落在該列內）', async () => {
+    const scrolled: Element[] = []
+    const orig = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this) }
+    try {
+      efBackend(efDef(THREE), { [VALIDATE]: () => json(report()) })
+      const g = await open('加入購物車')
+      await userEvent.click(screen.getByRole('button', { name: '驗證' }))
+      await screen.findByRole('heading', { name: '驗證結果' })
+      const locates = await screen.findAllByRole('button', { name: '定位節點' })
+      scrolled.length = 0
+      await userEvent.click(locates[1]) // children[1].field
+      const r2 = rowsOf(screen.getByRole('group', { name: SRC_LEGEND }))[1]
+      await waitFor(() => {
+        const hit = scrolled.some((el) => r2.contains(el)) || r2.contains(document.activeElement)
+        expect(hit).toBe(true)
+      })
+      const [r1] = rowsOf(g)
+      expect(scrolled.some((el) => r1?.contains(el) && !r2.contains(el))).toBe(false)
+    } finally {
+      Element.prototype.scrollIntoView = orig
+    }
   })
 
   it('整個篩選層級的錯誤（超過 5 層）顯示在等事件的篩選區塊內，節點卡「有錯誤」', async () => {

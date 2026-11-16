@@ -88,8 +88,7 @@ describe('視覺評審項目（CSS）', () => {
     const inside: string[] = []
     let outside = css
     const re = /@media[^{]*max-width:\s*640px[^{]*\{/g
-    let m: RegExpExecArray | null
-    while ((m = re.exec(css))) {
+    while (re.exec(css)) {
       let depth = 1
       let i = re.lastIndex
       while (i < css.length && depth > 0) { if (css[i] === '{') depth++; else if (css[i] === '}') depth--; i++ }
