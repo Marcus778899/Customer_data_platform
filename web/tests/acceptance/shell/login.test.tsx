@@ -5,10 +5,14 @@
  * 與「無障礙依 UI 規格（role=alert／status、鍵盤可操作）」。
  * 429 倒數用真實計時器、Retry-After 取短值驗證恢復；jsdom 無法驗證讀屏，只驗「朗讀內容」不隨倒數改變。
  */
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, configure, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { announced, json, mockApi, noContent, problem, resetEnv, start, teardown, text, user } from './helpers'
+
+// 負載下 jsdom 慢：預設 5000ms 測試逾時與 1000ms 等待都放寬（斷言不變）
+vi.setConfig({ testTimeout: 20000 })
+configure({ asyncUtilTimeout: 5000 })
 
 beforeEach(resetEnv)
 afterEach(teardown)
