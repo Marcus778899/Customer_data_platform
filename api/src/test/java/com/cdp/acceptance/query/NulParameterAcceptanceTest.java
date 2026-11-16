@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -36,7 +37,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(EngineTestSupport.class)
 class NulParameterAcceptanceTest {
 
-    private static final String ADMIN = "Bearer test-admin-key";
+    private static final String ADMIN = "Bearer " + TestKeys.ADMIN;
     private static final String NO_SUCH = "01JNOTEXIST000000000000000";
 
     private final HttpClient http = HttpClient.newHttpClient();

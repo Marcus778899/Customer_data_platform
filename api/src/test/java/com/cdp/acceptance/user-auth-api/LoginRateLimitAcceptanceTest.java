@@ -18,6 +18,10 @@ import com.cdp.acceptance.security.SecurityTestSupport;
 /**
  * user-auth-api 驗收：auth.md §3 登入限速表格逐列。門檻 3 次、鎖定 4 秒。
  *
+ * <p>security-hardening-api（auth.md §3 v0.3.0，DESIGN-05 做法 #5）改寫：計數改以 email＋來源 IP 為單位；本類所有請求來自
+ * 同一個來源（本機），既有情境結果不變。來源總量門檻 {@code cdp.login.ip-max-failures} 調高到 1000，確認跨 email 的失敗數
+ * 不會在這裡觸發來源鎖定（來源鎖定另見 security-hardening-api 驗收）。
+ *
  * <p>假設：CDP_LOGIN_MAX_FAILURES／CDP_LOGIN_LOCKOUT 對應屬性 {@code cdp.login.max-failures}／{@code cdp.login.lockout}
  * （同 {@code CDP_LOOP_MAX_DRAIN → cdp.loop.max-drain} 的命名規則）；同時也設 {@code cdp.security.login-*} 以防另取名，多設的屬性無害。
  * 「鎖定中不跑 BCrypt」屬耗時行為，不在此斷言（由單元測試／verifier 驗證）。
@@ -28,6 +32,7 @@ import com.cdp.acceptance.security.SecurityTestSupport;
             "spring.rabbitmq.listener.simple.auto-startup=false",
             "cdp.login.max-failures=3",
             "cdp.login.lockout=PT4S",
+            "cdp.login.ip-max-failures=1000",
             "cdp.security.login-max-failures=3",
             "cdp.security.login-lockout=PT4S"
         })
@@ -129,6 +134,15 @@ class LoginRateLimitAcceptanceTest {
         assertWrong(login(email, WRONG));
         assertLocked(login(email.toLowerCase(), PASSWORD));
         assertLocked(login(email.toUpperCase(), PASSWORD));
+    }
+
+    @Test
+    void failures_across_different_emails_do_not_trigger_source_lock_when_ip_limit_is_high() throws Exception {
+        // 同一來源對 10 個不同 email 各錯 1 次（> CDP_LOGIN_MAX_FAILURES），來源總量門檻 1000 → 都只是 401，不鎖
+        String real = uniqueEmail();
+        AuthHttp.createUserId(port, real, "VIEWER");
+        for (int i = 0; i < 10; i++) assertWrong(login(uniqueEmail(), WRONG));
+        assertThat(login(real, PASSWORD).status()).isEqualTo(204);
     }
 
     @Test

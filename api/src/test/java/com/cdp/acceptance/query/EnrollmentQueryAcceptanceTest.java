@@ -31,6 +31,7 @@ import org.springframework.test.context.ActiveProfiles;
 import com.cdp.acceptance.engine.EngineTestSupport;
 import com.cdp.acceptance.engine.EngineTestSupport.MutableClock;
 import com.cdp.acceptance.security.AuthHttp;
+import com.cdp.acceptance.support.TestKeys;
 import com.cdp.engine.runtime.AdvanceLoop;
 import com.cdp.ingest.EventDispatcher;
 
@@ -53,8 +54,8 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(EngineTestSupport.class)
 class EnrollmentQueryAcceptanceTest {
 
-    private static final String ADMIN = "Bearer test-admin-key";
-    private static final String INGEST = "Bearer test-ingest-key";
+    private static final String ADMIN = "Bearer " + TestKeys.ADMIN;
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
     private static final Instant T0 = Instant.parse("2026-10-18T02:00:00Z");
     private static final String NO_SUCH = "01JNOTEXIST000000000000000";
 

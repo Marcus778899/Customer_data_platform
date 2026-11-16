@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
 import com.cdp.acceptance.engine.EngineTestSupport.MutableClock;
+import com.cdp.acceptance.support.TestKeys;
 import com.cdp.engine.runtime.AdvanceLoop;
 import com.cdp.ingest.EventDispatcher;
 
@@ -110,7 +111,7 @@ abstract class IngestAcceptanceBase {
                                 Map.of("sent", "end_1")),
                         node("end_1", "EndNode", Map.of(), Map.of())));
         String body =
-                postJson("/api/v1/journeys", j, "test-admin-key")
+                postJson("/api/v1/journeys", j, TestKeys.ADMIN)
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
@@ -131,7 +132,7 @@ abstract class IngestAcceptanceBase {
     }
 
     protected ResultActions ingest(Map<String, Object> event) throws Exception {
-        return postJson("/api/v1/events", event, "test-ingest-key");
+        return postJson("/api/v1/events", event, TestKeys.INGEST);
     }
 
     protected ResultActions postJson(String path, Object body, String key) throws Exception {

@@ -14,6 +14,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -74,7 +75,7 @@ abstract class PlainKeysSupport {
                         .send(
                                 HttpRequest.newBuilder(
                                                 URI.create("http://localhost:" + port + "/api/v1/enrollments/" + eid))
-                                        .header("Authorization", "Bearer test-admin-key")
+                                        .header("Authorization", "Bearer " + TestKeys.ADMIN)
                                         .GET()
                                         .build(),
                                 HttpResponse.BodyHandlers.ofString());

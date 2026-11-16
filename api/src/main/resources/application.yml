@@ -45,6 +45,11 @@ server:
         secure: true
         same-site: strict
         path: /api
+  tomcat:
+    remoteip:
+      # 來源 IP（auth.md §3）：只有信任代理（CDP_TRUSTED_PROXIES，Tomcat 正規式）帶的 X-Forwarded-For 才採信；未設定 = 私有網段與 loopback
+      remote-ip-header: X-Forwarded-For
+      internal-proxies: ${CDP_TRUSTED_PROXIES:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|127\.\d+\.\d+\.\d+|0:0:0:0:0:0:0:1|::1}
 cdp:
   engine:
     poll-interval: ${ENGINE_POLL_INTERVAL}
@@ -75,6 +80,8 @@ cdp:
     # 登入限速（D-045，auth.md §3）
     max-failures: ${CDP_LOGIN_MAX_FAILURES}
     lockout: ${CDP_LOGIN_LOCKOUT}
+    # 同一來源 IP 跨 email 的密碼錯誤上限
+    ip-max-failures: ${CDP_LOGIN_IP_MAX_FAILURES:30}
   phone:
     # profiles.md §1.1：0 開頭的手機號碼補上的國碼（只填數字，不含 +）
     default-country-code: ${CDP_PHONE_DEFAULT_COUNTRY_CODE}

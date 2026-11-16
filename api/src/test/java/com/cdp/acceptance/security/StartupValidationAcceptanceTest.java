@@ -20,10 +20,10 @@ import com.cdp.CdpApplication;
  */
 class StartupValidationAcceptanceTest {
 
-    private static final String SECRET_A = "SECRET-aaaa-1111";
-    private static final String SECRET_B = "SECRET-bbbb-2222";
-    private static final String SECRET_PW = "SECRET-pppp-3333";
-    private static final String SAME = "same-SECRET-key";
+    private static final String SECRET_A = "SECRET-aaaa-1111-0000000000000000000";
+    private static final String SECRET_B = "SECRET-bbbb-2222-0000000000000000000";
+    private static final String SECRET_PW = "SECRET-pppp-3333-0000000000000000000";
+    private static final String SAME = "same-SECRET-key-00000000000000000000";
 
     private void assertStartFails(String... overrides) {
         // 重複的命令列選項會被合併成逗號串，故以 Map 去重，後者覆蓋前者

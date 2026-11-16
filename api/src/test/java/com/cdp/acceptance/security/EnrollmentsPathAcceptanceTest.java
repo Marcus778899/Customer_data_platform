@@ -14,6 +14,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -26,7 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 @Import(SecurityTestSupport.class)
 class EnrollmentsPathAcceptanceTest {
 
-    private static final String INGEST = "Bearer test-ingest-key";
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
 
     private static final List<String> EXTRA_PATHS = List.of(
             "/api/v1/enrollments/x/foo",
