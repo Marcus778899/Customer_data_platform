@@ -42,4 +42,11 @@ class AuthPropertiesValidatorTest {
                 .satisfies(t -> assertThat(t.getMessage()).doesNotContain("0000"));
         assertThatCode(() -> of("a".repeat(32), "b".repeat(32)).afterPropertiesSet()).doesNotThrowAnyException();
     }
+
+    @Test
+    void keys_differing_only_by_surrounding_whitespace_are_treated_as_same() {
+        assertThatThrownBy(() -> of(SAME, " " + SAME + "  ").afterPropertiesSet())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("不可相同");
+    }
 }

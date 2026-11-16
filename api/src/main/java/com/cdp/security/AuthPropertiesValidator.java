@@ -25,7 +25,7 @@ class AuthPropertiesValidator implements InitializingBean {
     public void afterPropertiesSet() {
         require(properties.ingestApiKey(), "cdp.security.ingest-api-key（CDP_INGEST_API_KEY）");
         require(properties.adminApiKey(), "cdp.security.admin-api-key（CDP_ADMIN_API_KEY）");
-        if (properties.ingestApiKey().equals(properties.adminApiKey())) {
+        if (properties.ingestApiKey().strip().equals(properties.adminApiKey().strip())) {
             throw new IllegalStateException(
                     "cdp.security.ingest-api-key 與 cdp.security.admin-api-key 不可相同（兩把金鑰必須不同）");
         }
