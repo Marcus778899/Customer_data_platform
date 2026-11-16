@@ -140,8 +140,8 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 | `type` | `config` 必填 | `outputs` 必填 |
 |---|---|---|
 | v0.1.0 五種 | journey-engine §3.1 | 同左 |
-| `EventSourceNode` 的 `event_filter` | 選填（D-085）：`null`／省略 = 不篩選；否則為下方條件樹子集，葉節點 `field` 只能是 `properties.<鍵>`（欄位根見下方「條件欄位的根」） | — |
-| `WaitForEventNode` | `event_name`；`timeout`（正 Duration 或 `null` = 不逾時）；`event_filter`：`null` 或省略（D-085 只含觸發節點；是否開放見 DESIGN-05 待決定 4） | `occurred`；`timeout` 不為 `null` 時 `timeout` 必填 |
+| `EventSourceNode` 的 `event_filter` | 選填（D-085；`WaitForEventNode` 同，D-087）：`null`／省略 = 不篩選；否則為下方條件樹子集，葉節點 `field` 只能是 `properties.<鍵>`（欄位根見下方「條件欄位的根」） | — |
+| `WaitForEventNode` | `event_name`；`timeout`（正 Duration 或 `null` = 不逾時）；`event_filter`（選填，D-087：規則同 `EventSourceNode` 那列；不符合篩選的事件不算等到，繼續等到逾時） | `occurred`；`timeout` 不為 `null` 時 `timeout` 必填 |
 | `ConditionNode` | `condition`（下表子集） | `yes` `no` |
 | `SplitTestNode` | `variants`（2–10 個；`port` snake_case、`weight` 正整數、總和 100、`label`；至多一個 `is_control`）；`assignment_seed` 省略或 `STABLE` | 每個 `variants[].port` |
 | `MergeNode` | — | `next` |
@@ -152,7 +152,7 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 - 條件欄位的根（兩種寫法對應不同的判斷對象，不是同一件事的兩種寫法）：
   | 用在哪裡 | 判斷對象 | `field` 寫法 |
   |---|---|---|
-  | `EventSourceNode.event_filter`（`WaitForEventNode` 的見該列） | 正在比對的那一筆事件（事件本身） | `properties.<鍵>`（事件的 `properties`）；不可用客戶屬性 |
+  | `EventSourceNode`／`WaitForEventNode` 的 `event_filter`（D-085、D-087） | 正在比對的那一筆事件（事件本身） | `properties.<鍵>`（事件的 `properties`）；不可用客戶屬性 |
   | `ConditionNode.condition`、`settings.global_exit` 的 `attribute` 葉節點 | 這筆旅程進度：客戶屬性＋觸發事件（建立 Enrollment 的那筆，journey-engine `EnrollmentDetail.trigger_snapshot`） | 客戶屬性鍵（不加前綴）或 `trigger.properties.<鍵>` |
   - `<鍵>` 與客戶屬性鍵皆符合 `^[a-z][a-z0-9_]*$`；不合 = `validate` 錯誤
 - 比較語意（欄位沒有型別字典，型別不進契約；前端依欄位與使用者選的比較推斷輸入方式，送出時 `value` 用對應的 JSON 型別：數字比較送 number，其他送 string，`IN`／`NOT_IN` 為陣列）：`GT` `GTE` `LT` `LTE` 只在實際值與 `value` 都是 number 時比較；`EQ` `NEQ` `IN` `NOT_IN` 以 JSON 值相等比較（`500` 與 `"500"` 不相等）；`CONTAINS` = 實際值為字串且包含 `value`，或為陣列且含 `value`；欄位不存在或為 `null` 時 `IS_NULL` 成立、`IS_NOT_NULL` 不成立，其他運算子一律不成立（含 `NEQ`、`NOT_IN`）；型別不合 = 不成立，不報錯
