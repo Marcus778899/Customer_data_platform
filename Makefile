@@ -21,7 +21,7 @@ export CDP_TRACE_PLAIN_KEYS
 endif
 # 測試不受 .env 與外部環境影響：移除上列變數，改由 application-test.yml 提供
 # （Spring 環境變數優先於 profile yml，例如 ENGINE_POLL_INTERVAL 會覆蓋 cdp.engine.poll-interval）
-NO_DOTENV := env $(foreach v,$(ENV_VARS),-u $(v))
+NO_DOTENV := env $(foreach v,$(ENV_VARS) CDP_TRACE_PLAIN_KEYS,-u $(v))
 
 # 服務目錄；尚未建立時對應步驟自動略過
 API_DIR := api
