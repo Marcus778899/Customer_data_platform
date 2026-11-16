@@ -129,7 +129,8 @@
 | journey-review-ui | frontend | done | 0 | PR #225 |
 | journey-branch-engine | backend | in-progress | 0 |  |
 | masking-default-api | backend | done | 1 | PR #224 |
-| event-filter-canvas-ui | frontend | in-progress | 0 |  |
+| event-filter-canvas-ui | frontend | done | 0 | PR #229 |
+| journey-draft-review-scope-api | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -140,6 +141,7 @@
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
 - 待辦（architect 在 branch-engine review 一併判斷）：POST /api/v1/journeys（管理金鑰建立）仍拒絕分支節點與 event_filter，只有草稿流程收；demo-seed 要建場景一時會卡到
 - 待辦：DESIGN-05 做法 #3 兩句要跟實作更正（yml 用 :name、Makefile ifneq origin），新舊對照在 masking-default-api.review.md；併入下一張 architect 設計單
+- 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 
 ## 注意事項（踩過的坑）
 

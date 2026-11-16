@@ -216,7 +216,8 @@ export function Canvas({
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          defaultViewport={{ x: 24, y: 24, zoom: 0.8 }}
+          fitView
+          fitViewOptions={{ padding: 0.1, maxZoom: 0.8 }}
           minZoom={0.3}
           maxZoom={1.5}
           nodesConnectable={false}
