@@ -125,7 +125,7 @@
 | security-hardening-api | backend | done | 1 | PR #219 |
 | journey-canvas-ui | frontend | done | 1 | PR #216 |
 | event-filter-ui | designer | done | 0 | PR #217 |
-| web-test-flake-fix | frontend | qa | 0 |  |
+| web-test-flake-fix | frontend | review | 0 |  |
 | journey-review-ui | frontend | in-progress | 0 |  |
 | journey-branch-engine | backend | in-progress | 0 |  |
 
@@ -136,7 +136,6 @@
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
-- 待甲方更新 .env：加 CDP_LOGIN_IP_MAX_FAILURES；CDP_INGEST_API_KEY、CDP_ADMIN_API_KEY 換成 ≥ 32 字、不含 CHANGE_ME；填完在自己的終端機跑 ae check-env（之前 ae task new 會拒絕，masking-default-api 等著開）
 
 ## 注意事項（踩過的坑）
 
