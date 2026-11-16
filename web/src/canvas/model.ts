@@ -2,6 +2,7 @@
 // 契約：docs/contracts/journeys.md §3（節點 id 規則）、§4（節點與條件）；spec 03 §4。
 import { Graph, layout as dagreLayout } from '@dagrejs/dagre'
 import type { DraftDefinition, DraftLayout, JourneyNode } from '../api/types'
+import { cardFilterSummary } from './eventFilter'
 
 export type Def = DraftDefinition
 export type DefNode = JourneyNode
@@ -304,13 +305,16 @@ export function summaryOf(n: DefNode): string {
   const s = (v: unknown, empty: string) => (typeof v === 'string' && v.trim() ? v : empty)
   switch (n.type) {
     case 'EventSourceNode':
-      return `事件 ${s(c.event_name, '尚未設定')}`
+      return cardFilterSummary('source', c.event_filter) ?? `事件 ${s(c.event_name, '尚未設定')}`
     case 'SendMessageNode':
       return `範本 ${s(c.template_id, '尚未填')}`
     case 'WaitDelayNode':
       return `等 ${durationText(c.duration)}`
-    case 'WaitForEventNode':
+    case 'WaitForEventNode': {
+      const f = cardFilterSummary('wait', c.event_filter, c.timeout ? durationText(c.timeout) : '不設時限')
+      if (f) return f
       return c.timeout ? `事件 ${s(c.event_name, '尚未設定')}，最多 ${durationText(c.timeout)}` : `事件 ${s(c.event_name, '尚未設定')}，不設時限`
+    }
     case 'ConditionNode': {
       const k = countLeaves(condOf(n))
       return k ? `${k} 個條件` : '尚未設定條件'
