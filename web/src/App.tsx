@@ -18,6 +18,8 @@ import { SearchPage } from './pages/SearchPage'
 import { TracePage } from './pages/TracePage'
 import { NewDraftPage } from './canvas/NewDraftPage'
 import { JourneyEditorPage } from './pages/JourneyEditorPage'
+import { HistoryPage } from './pages/review/HistoryPage'
+import { ReviewPage } from './pages/review/ReviewPage'
 import { navigate, safeNext, useLocation } from './router'
 import { consumeLoggedIn, markLoggedIn } from './sessionFlag'
 
@@ -172,6 +174,8 @@ export function App() {
   const trace = /^\/enrollments\/([^/]+)\/?$/.exec(pathname)
   const journey = /^\/journeys\/([^/]+)\/?$/.exec(pathname)
   const editor = /^\/journeys\/([^/]+)\/edit\/?$/.exec(pathname)
+  const reviewRoute = /^\/journeys\/([^/]+)\/review\/?$/.exec(pathname)
+  const historyRoute = /^\/journeys\/([^/]+)\/history\/?$/.exec(pathname)
   const customer = /^\/customers\/([^/]+)\/?$/.exec(pathname)
   const here = pathname + search
   let page
@@ -179,6 +183,8 @@ export function App() {
   else if (pathname === '/') page = <SearchPage loc={loc} />
   else if (pathname === '/journeys') page = <JourneyListPage loc={loc} />
   else if (pathname === '/journeys/new') page = <NewDraftPage />
+  else if (reviewRoute) page = <ReviewPage id={decodeURIComponent(reviewRoute[1])} />
+  else if (historyRoute) page = <HistoryPage id={decodeURIComponent(historyRoute[1])} />
   else if (editor) page = <JourneyEditorPage id={decodeURIComponent(editor[1])} />
   else if (journey) page = <JourneyPage id={decodeURIComponent(journey[1])} loc={loc} />
   else if (pathname === '/enrollments') page = <EnrollmentBrowsePage loc={loc} />

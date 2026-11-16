@@ -1,5 +1,5 @@
 // 旅程編輯畫布頁（FE-04）：載入／空／錯誤／權限狀態，頁首、工具列、畫布、狀態列、右側面板。
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox } from '../components/ui'
@@ -26,7 +26,8 @@ import { NodePanel } from '../canvas/NodePanel'
 import { SettingsPanel } from '../canvas/SettingsPanel'
 import { useDraftEditor } from '../canvas/useDraftEditor'
 import { ValidationPanel } from '../canvas/ValidationPanel'
-import { navigate } from '../router'
+import { SubmitDialog, WithdrawDialog } from './review/Dialogs'
+import { withdrawBlock } from './review/model'
 
 function NoAccess({ id }: { id: string }) {
   return (
@@ -42,13 +43,48 @@ function NoAccess({ id }: { id: string }) {
   )
 }
 
-function AddButtons({ onAdd }: { onAdd: (type: string) => void }) {
+/** 送審中鎖定：把右側面板內的欄位與按鈕（關閉面板除外）設為停用；面板內容之後變動也會重新套用 */
+function useLockControls(ref: React.RefObject<HTMLElement | null>, locked: boolean) {
+  const was = useRef(false)
+  useEffect(() => {
+    const root = ref.current
+    if (!root || (!locked && !was.current)) return
+    was.current = locked
+    const apply = () => {
+      root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLButtonElement>('input, textarea, select, button').forEach((el) => {
+        const keep = el instanceof HTMLButtonElement && /關閉/.test(el.textContent ?? '')
+        if (locked && !keep) {
+          if (!el.disabled) {
+            el.disabled = true
+            el.dataset.lockedBy = 'review'
+          }
+        } else if (el.dataset.lockedBy === 'review') {
+          el.disabled = false
+          delete el.dataset.lockedBy
+        }
+      })
+    }
+    apply()
+    const mo = new MutationObserver(() => {
+      mo.disconnect()
+      apply()
+      mo.observe(root, { childList: true, subtree: true })
+    })
+    mo.observe(root, { childList: true, subtree: true })
+    return () => mo.disconnect()
+  })
+}
+
+function AddButtons({ onAdd, locked }: { onAdd: (type: string) => void; locked: boolean }) {
   return (
     <>
       {PALETTE.map((g) => (
         <span className="tb-group" role="group" aria-label={g.group} key={g.group}>
           {g.types.map((t) => (
-            <button key={t} type="button" className={`btn secondary sm tb-btn cat-${t}`} onClick={() => onAdd(t)}>
+            <button key={t} type="button" className={`btn secondary sm tb-btn cat-${t}`}
+              aria-disabled={locked ? true : undefined}
+              onClick={() => !locked && onAdd(t)}
+            >
               {typeLabel(t)}
             </button>
           ))}
@@ -64,6 +100,12 @@ function Editor({ id }: { id: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const flowId = useId()
   const { def, layout } = ed
+  const [dialog, setDialog] = useState<'submit' | 'withdraw' | null>(null)
+  const sideRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+  const pending = ed.review?.status === 'PENDING'
+  const locked = pending || ed.banner?.kind === 'inReview'
+  useLockControls(sideRef, locked)
 
   const errorIds = useMemo(() => new Set((ed.report?.errors ?? []).map((i) => i.node_id).filter((x): x is string => !!x)), [ed.report])
   const loops = useMemo(() => (def ? findLoops(def) : []), [def])
@@ -156,9 +198,8 @@ function Editor({ id }: { id: string }) {
   const errCount = ed.report?.errors.length ?? 0
   const outline = textOutline(def)
 
-  async function submit() {
-    if (await ed.submit()) navigate(`/journeys/${encodeURIComponent(id)}`)
-  }
+  const rejected = !pending && ed.review?.status === 'REJECTED' ? ed.review : null
+  const withdrawOff = pending ? withdrawBlock(ed.review, user) : undefined
 
   return (
     <div className="editor">
@@ -166,8 +207,8 @@ function Editor({ id }: { id: string }) {
         <div className="ed-top">
           <Crumbs items={crumbs} />
           <ol className="vflow" aria-label="版本流程">
-            {['草稿', '審核中', '上線'].map((s, i) => (
-              <li key={s} aria-current={i === 0 ? 'step' : undefined} className={i === 0 ? 'now' : ''}>
+            {['草稿', pending ? '審核中' : rejected ? '已退回' : '審核中', '上線'].map((s, i) => (
+              <li key={s} aria-current={i === (pending ? 1 : 0) ? 'step' : undefined} className={i === (pending ? 1 : 0) ? 'now' : ''}>
                 <span className="vn">{i + 1}</span>
                 <span>{s}</span>
               </li>
@@ -198,13 +239,51 @@ function Editor({ id }: { id: string }) {
             <button type="button" className="btn secondary" aria-disabled={ed.validating} onClick={() => !ed.validating && void ed.validate()}>
               驗證
             </button>
-            <button type="button" className="btn" onClick={() => void submit()}>
-              送審
-            </button>
+            {pending ? (
+              <span className="act">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  aria-disabled={withdrawOff ? true : undefined}
+                  aria-describedby={withdrawOff ? `${flowId}-wd` : undefined}
+                  onClick={() => !withdrawOff && setDialog('withdraw')}
+                >
+                  撤回送審
+                </button>
+                {withdrawOff && (
+                  <span id={`${flowId}-wd`} className="act-reason">
+                    {withdrawOff}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <button type="button" className="btn" onClick={() => setDialog('submit')}>
+                送審
+              </button>
+            )}
           </div>
         </div>
       </div>
 
+      {pending && (
+        <div className="msg info banner" role="status">
+          <div>
+            <p>
+              <strong>已送審，等待管理員審核</strong>
+            </p>
+            <p>草稿已鎖定，不能修改。要改內容請先撤回送審。</p>
+          </div>
+        </div>
+      )}
+      {rejected && (
+        <div className="msg warn banner" role="status">
+          <p>
+            <strong>{rejected.decided_by?.display_name ?? '管理員'}</strong>
+            {rejected.decided_at ? ` ${friendlyTime(rejected.decided_at)} ` : ' '}退回
+            {rejected.reason ? `「${rejected.reason}」` : ''}。草稿已解鎖，修改後可再送審。
+          </p>
+        </div>
+      )}
       {ed.banner && (
         <BannerBar
           banner={ed.banner}
@@ -212,7 +291,7 @@ function Editor({ id }: { id: string }) {
           def={def}
           layout={layout}
           onLoadLatest={() => void ed.loadLatest()}
-          onWithdraw={() => void ed.withdraw()}
+          onWithdraw={() => setDialog('withdraw')}
           onRetry={ed.banner.kind === 'submitFailed' ? () => ed.setBanner(null) : ed.retrySave}
           onShowReport={() => ed.setReportOpen(true)}
         />
@@ -221,12 +300,12 @@ function Editor({ id }: { id: string }) {
       <div className="edbody">
         <div className="edmain">
           <div className="tb-full" role="toolbar" aria-label="加入節點">
-            <AddButtons onAdd={addNode} />
+            <AddButtons onAdd={addNode} locked={locked} />
           </div>
           <details className="addmenu">
             <summary>＋ 新增節點</summary>
             <div className="addmenu-list">
-              <AddButtons onAdd={addNode} />
+              <AddButtons onAdd={addNode} locked={locked} />
             </div>
           </details>
 
@@ -279,7 +358,7 @@ function Editor({ id }: { id: string }) {
           </details>
         </div>
 
-        <div className="edside">
+        <div className="edside" ref={sideRef}>
           {sel && (
             <NodePanel
               key={sel.id}
@@ -313,6 +392,26 @@ function Editor({ id }: { id: string }) {
           )}
         </div>
       </div>
+      {dialog === 'submit' && (
+        <SubmitDialog
+          name={def.name || '未命名旅程'}
+          publishedVersion={published}
+          draftVersion={(published ?? 0) + 1}
+          onConfirm={(note) => ed.submit(note)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'withdraw' && (
+        <WithdrawDialog
+          run={(reason) => ed.withdraw(reason)}
+          onClose={() => setDialog(null)}
+          onDone={() => setDialog(null)}
+          onReload={() => {
+            setDialog(null)
+            ed.reload()
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -125,9 +125,10 @@
 | security-hardening-api | backend | done | 1 | PR #219 |
 | journey-canvas-ui | frontend | done | 1 | PR #216 |
 | event-filter-ui | designer | done | 0 | PR #217 |
-| web-test-flake-fix | frontend | review | 0 |  |
-| journey-review-ui | frontend | in-progress | 0 |  |
+| web-test-flake-fix | frontend | done | 0 | PR #220 |
+| journey-review-ui | frontend | done | 0 | PR #225 |
 | journey-branch-engine | backend | in-progress | 0 |  |
+| masking-default-api | backend | in-progress | 1 |  |
 
 ## 卡住／待甲方決定
 
@@ -136,6 +137,7 @@
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
+- 待辦（architect 在 branch-engine review 一併判斷）：POST /api/v1/journeys（管理金鑰建立）仍拒絕分支節點與 event_filter，只有草稿流程收；demo-seed 要建場景一時會卡到
 
 ## 注意事項（踩過的坑）
 

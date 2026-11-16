@@ -3,6 +3,7 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { user } from '../shell/helpers'
 import {
   JID, backend, bodyText, deferred, gotoNav, journeyDetail, journeySummary, journeyVersion, json, page, params,
   problem, problemWithId, resetEnv, start, teardown,
@@ -21,7 +22,7 @@ async function openList(routes: Parameters<typeof backend>[0]) {
 }
 
 describe('旅程列表', () => {
-  it('欄位依 JourneySummary：名稱、狀態、版本、最後更新、最近發佈；不顯示人數、優先度、更新者；v0.2.0 無審核欄與新增鈕', async () => {
+  it('欄位依 JourneySummary：名稱、狀態、版本、最後更新、最近發佈；不顯示人數、優先度、更新者；編輯者有新增鈕', async () => {
     await openList({
       'GET /api/v1/journeys': list([
         journeySummary(),
@@ -45,8 +46,8 @@ describe('旅程列表', () => {
     expect(within(row('舊版歡迎信')).getByText('已停止')).toBeTruthy()
     // D-050：不顯示人數；JourneySummary 以外的欄位不出現
     expect(bodyText()).not.toMatch(/人數|客戶數|優先度|更新者/)
-    expect(screen.queryByRole('button', { name: /新增旅程|建立/ })).toBeNull()
-    expect(screen.queryByRole('columnheader', { name: /審核/ })).toBeNull()
+    // v0.3.0：編輯者以上有「新增旅程」（檢視者沒有，見 journey-review-ui/matrix）；預設「全部」檢視欄位不變
+    expect(screen.queryAllByRole('button', { name: '新增旅程' }).length + screen.queryAllByRole('link', { name: '新增旅程' }).length).toBeGreaterThan(0)
   })
 
   it('載入中顯示骨架（role=status「載入中」），完成後消失', async () => {
@@ -150,8 +151,11 @@ describe('旅程頁（唯讀）', () => {
     expect(screen.queryByText(/不是最新版本/)).toBeNull()
   })
 
-  it('節點圖：每個節點是 button[aria-pressed]，圖為 role=group，另有依序的文字版節點清單；唯讀無編輯／停止／審核鈕；不疊軌跡', async () => {
-    await openDetail()
+  it('節點圖：每個節點是 button[aria-pressed]，圖為 role=group，另有依序的文字版節點清單；檢視者唯讀（無可用的編輯／停止／審核鈕）；不疊軌跡', async () => {
+    backend({ 'GET /api/v1/journeys': list([journeySummary()]), ...detailRoutes({}) }, user({ role: 'VIEWER', display_name: '林小雅' }))
+    start('/')
+    await gotoNav('旅程')
+    await userEvent.click(await screen.findByRole('link', { name: '棄單挽回' }))
     await screen.findByRole('heading', { level: 1, name: /棄單挽回/ })
     for (const name of [/開始/, /加入購物車/, /等 3 天/, /提醒信/, /結束/]) {
       const b = await nodeButton(name)
@@ -164,7 +168,9 @@ describe('旅程頁（唯讀）', () => {
     const order = ['開始', '加入購物車', '等 3 天', '提醒信', '結束'].map((n) => items.indexOf(n))
     expect(order.every((i) => i >= 0)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
-    expect(screen.queryByRole('button', { name: /編輯|停止|送審|核准|退回|發佈/ })).toBeNull()
+    // 檢視者：這些動作不存在或 aria-disabled（停用鈕保留並附原因，見 journey-review-ui/matrix）
+    const acts = [...document.querySelectorAll<HTMLElement>('button, a')].filter((e) => /^(編輯|停止旅程|送審|核准並發佈|退回|撤回送審|捨棄草稿)$/.test((e.getAttribute('aria-label') ?? e.textContent ?? '').trim()))
+    for (const a of acts) expect(a.getAttribute('aria-disabled')).toBe('true')
     expect(bodyText()).not.toMatch(/已經過|目前位置/)
     expect(bodyText()).toContain('窄螢幕：圖可左右捲動')
   })
