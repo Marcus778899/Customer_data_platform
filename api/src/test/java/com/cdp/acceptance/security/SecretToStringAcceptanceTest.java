@@ -29,9 +29,9 @@ class SecretToStringAcceptanceTest {
     @Test
     void authPropertiesToStringHasNoSecrets() {
         AuthProperties p = bind(Map.of(
-                "cdp.security.ingest-api-key", "ingest-SECRET-1a2b",
-                "cdp.security.admin-api-key", "admin-SECRET-3c4d"));
-        assertThat(p.toString()).doesNotContain("ingest-SECRET-1a2b", "admin-SECRET-3c4d");
+                "cdp.security.ingest-api-key", "ingest-SECRET-1a2b-00000000000000000000",
+                "cdp.security.admin-api-key", "admin-SECRET-3c4d-000000000000000000000"));
+        assertThat(p.toString()).doesNotContain("ingest-SECRET-1a2b-00000000000000000000", "admin-SECRET-3c4d-000000000000000000000");
     }
 
     @Test

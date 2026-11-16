@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.cdp.acceptance.delivery.DeliveryTestSupport.MutableClock;
 import com.cdp.acceptance.delivery.DeliveryTestSupport.ProgrammableFaultInjector;
 import com.cdp.acceptance.engine.EngineTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 import com.cdp.common.fault.FaultPoint;
 import com.cdp.delivery.RabbitTopology;
 import com.cdp.delivery.relay.OutboxRelay;
@@ -132,7 +133,7 @@ class DeliveryPipelineAcceptanceTest {
     private Scheduled scheduleSend() throws Exception {
         String eventName = "evt_" + ulid().toLowerCase();
         String body =
-                postJson("/api/v1/journeys", "test-admin-key", journey(eventName))
+                postJson("/api/v1/journeys", TestKeys.ADMIN, journey(eventName))
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
@@ -148,7 +149,7 @@ class DeliveryPipelineAcceptanceTest {
         e.put("occurred_at", clock.instant().minusSeconds(60).toString());
         e.put("identity", Map.of("profile_id", profile));
         e.put("properties", Map.of("cart_id", "CART-1"));
-        postJson("/api/v1/events", "test-ingest-key", e).andExpect(status().isAccepted());
+        postJson("/api/v1/events", TestKeys.INGEST, e).andExpect(status().isAccepted());
         dispatcher.runOnce();
 
         String eid =

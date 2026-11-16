@@ -36,16 +36,18 @@ class LoginRateLimiterTest {
         }
     }
 
+    private static final String IP = "203.0.113.1";
+
     private final MutableClock clock = new MutableClock();
-    private final LoginRateLimiter limiter = new LoginRateLimiter(new LoginProperties(3, Duration.ofSeconds(10)), clock);
+    private final LoginRateLimiter limiter = new LoginRateLimiter(new LoginProperties(3, Duration.ofSeconds(10), 5), clock);
 
     private void fail(String key) {
-        assertThat(limiter.tryBegin(key)).isEmpty();
-        limiter.finish(key, LoginRateLimiter.Outcome.FAILURE);
+        assertThat(limiter.tryBegin(key, IP)).isEmpty();
+        limiter.finish(key, IP, LoginRateLimiter.Outcome.FAILURE);
     }
 
     private Duration locked(String key) {
-        return limiter.tryBegin(key).orElse(Duration.ZERO);
+        return limiter.tryBegin(key, IP).orElse(Duration.ZERO);
     }
 
     @Test
@@ -57,7 +59,7 @@ class LoginRateLimiterTest {
         clock.advance(Duration.ofSeconds(4));
         assertThat(locked("a")).isEqualTo(Duration.ofSeconds(6));
         clock.advance(Duration.ofSeconds(6));
-        assertThat(limiter.tryBegin("a")).isEmpty();
+        assertThat(limiter.tryBegin("a", IP)).isEmpty();
     }
 
     @Test
@@ -76,35 +78,35 @@ class LoginRateLimiterTest {
         fail("a");
         fail("a");
         assertThat(locked("a")).isZero();
-        limiter.finish("a", LoginRateLimiter.Outcome.ABORTED);
+        limiter.finish("a", IP, LoginRateLimiter.Outcome.ABORTED);
     }
 
     @Test
     void success_resets_and_keys_are_independent() {
         fail("a");
         fail("a");
-        assertThat(limiter.tryBegin("a")).isEmpty();
-        limiter.finish("a", LoginRateLimiter.Outcome.SUCCESS);
+        assertThat(limiter.tryBegin("a", IP)).isEmpty();
+        limiter.finish("a", IP, LoginRateLimiter.Outcome.SUCCESS);
         fail("a");
         fail("a");
-        assertThat(limiter.tryBegin("b")).isEmpty();
+        assertThat(limiter.tryBegin("b", IP)).isEmpty();
     }
 
     @Test
     void aborted_attempt_releases_slot_without_counting() {
         for (int i = 0; i < 10; i++) {
-            assertThat(limiter.tryBegin("a")).isEmpty();
-            limiter.finish("a", LoginRateLimiter.Outcome.ABORTED);
+            assertThat(limiter.tryBegin("a", IP)).isEmpty();
+            limiter.finish("a", IP, LoginRateLimiter.Outcome.ABORTED);
         }
-        assertThat(limiter.tryBegin("a")).isEmpty();
+        assertThat(limiter.tryBegin("a", IP)).isEmpty();
     }
 
     @Test
     void in_flight_attempts_count_toward_the_threshold() {
-        assertThat(limiter.tryBegin("a")).isEmpty();
-        assertThat(limiter.tryBegin("a")).isEmpty();
-        assertThat(limiter.tryBegin("a")).isEmpty();
-        assertThat(limiter.tryBegin("a")).isPresent();
+        assertThat(limiter.tryBegin("a", IP)).isEmpty();
+        assertThat(limiter.tryBegin("a", IP)).isEmpty();
+        assertThat(limiter.tryBegin("a", IP)).isEmpty();
+        assertThat(limiter.tryBegin("a", IP)).isPresent();
     }
 
     @Test
@@ -117,10 +119,10 @@ class LoginRateLimiterTest {
         for (int i = 0; i < threads; i++) {
             fs.add(pool.submit(() -> {
                 go.await();
-                if (limiter.tryBegin("race").isEmpty()) {
+                if (limiter.tryBegin("race", IP).isEmpty()) {
                     admitted.incrementAndGet();
                     Thread.sleep(50); // 模擬 BCrypt
-                    limiter.finish("race", LoginRateLimiter.Outcome.FAILURE);
+                    limiter.finish("race", IP, LoginRateLimiter.Outcome.FAILURE);
                 }
                 return null;
             }));
@@ -129,7 +131,67 @@ class LoginRateLimiterTest {
         for (var f : fs) f.get();
         pool.shutdown();
         assertThat(admitted.get()).isEqualTo(3);
-        assertThat(limiter.tryBegin("race")).isPresent();
+        assertThat(limiter.tryBegin("race", IP)).isPresent();
+    }
+
+    @Test
+    void email_lock_is_per_source_and_does_not_lock_other_sources() {
+        for (int i = 0; i < 3; i++) {
+            assertThat(limiter.tryBegin("a", "1.1.1.1")).isEmpty();
+            limiter.finish("a", "1.1.1.1", LoginRateLimiter.Outcome.FAILURE);
+        }
+        assertThat(limiter.tryBegin("a", "1.1.1.1")).isPresent();
+        assertThat(limiter.tryBegin("a", "2.2.2.2")).isEmpty();
+    }
+
+    @Test
+    void source_lock_after_ip_max_failures_across_emails_and_success_does_not_reset_it() {
+        for (int i = 0; i < 4; i++) fail("u" + i);
+        assertThat(limiter.tryBegin("ok", IP)).isEmpty();
+        limiter.finish("ok", IP, LoginRateLimiter.Outcome.SUCCESS);
+        fail("u5");
+        assertThat(locked("new")).isEqualTo(Duration.ofSeconds(10));
+        assertThat(limiter.tryBegin("new", "9.9.9.9")).isEmpty();
+        clock.advance(Duration.ofSeconds(10));
+        assertThat(limiter.tryBegin("new", IP)).isEmpty();
+    }
+
+    @Test
+    void blocked_by_account_gives_back_the_source_slot() {
+        for (int i = 0; i < 3; i++) fail("a");
+        for (int i = 0; i < 20; i++) assertThat(limiter.tryBegin("a", IP)).isPresent();
+        assertThat(limiter.sourceEntries()).isEqualTo(1);
+    }
+
+    @Test
+    void global_concurrency_cap_blocks_with_retry_1s_and_releases_on_finish() {
+        LoginRateLimiter l = new LoginRateLimiter(new LoginProperties(50, Duration.ofSeconds(10), 50), clock, 2, 100);
+        assertThat(l.tryBegin("a", "1.1.1.1")).isEmpty();
+        assertThat(l.tryBegin("b", "1.1.1.2")).isEmpty();
+        assertThat(l.tryBegin("c", "1.1.1.3")).contains(Duration.ofSeconds(1));
+        l.finish("a", "1.1.1.1", LoginRateLimiter.Outcome.ABORTED);
+        assertThat(l.tryBegin("c", "1.1.1.3")).isEmpty();
+        // 被擋下的請求不計數
+        assertThat(l.sourceEntries()).isEqualTo(2);
+    }
+
+    @Test
+    void tables_are_capped_and_evict_least_recently_used() {
+        LoginRateLimiter l = new LoginRateLimiter(new LoginProperties(3, Duration.ofSeconds(10), 5), clock, 8, 3);
+        for (int i = 0; i < 10; i++) {
+            assertThat(l.tryBegin("e" + i, "ip" + i)).isEmpty();
+            l.finish("e" + i, "ip" + i, LoginRateLimiter.Outcome.FAILURE);
+        }
+        assertThat(l.accountEntries()).isEqualTo(3);
+        assertThat(l.sourceEntries()).isEqualTo(3);
+        assertThat(LoginRateLimiter.MAX_ENTRIES).isEqualTo(100_000);
+    }
+
+    @Test
+    void ip_max_failures_below_one_fails_startup() {
+        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(1, Duration.ofSeconds(1), 0), clock))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cdp.login.ip-max-failures");
     }
 
     @Test
@@ -142,13 +204,13 @@ class LoginRateLimiterTest {
 
     @Test
     void invalid_settings_fail_startup_with_property_name() {
-        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(0, Duration.ofSeconds(1)), clock))
+        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(0, Duration.ofSeconds(1), 5), clock))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("cdp.login.max-failures");
-        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(1, Duration.ZERO), clock))
+        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(1, Duration.ZERO, 5), clock))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("cdp.login.lockout");
-        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(1, null), clock))
+        assertThatThrownBy(() -> new LoginRateLimiter(new LoginProperties(1, null, 5), clock))
                 .isInstanceOf(IllegalStateException.class);
     }
 }

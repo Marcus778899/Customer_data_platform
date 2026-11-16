@@ -34,7 +34,7 @@ class AuthControllerTest {
     private final UserService users = mock(UserService.class);
     private final PasswordHasher hasher = mock(PasswordHasher.class);
     private final LoginRateLimiter limiter =
-            new LoginRateLimiter(new LoginProperties(2, Duration.ofMinutes(5)), Clock.systemUTC());
+            new LoginRateLimiter(new LoginProperties(2, Duration.ofMinutes(5), 100), Clock.systemUTC());
     private final SessionCsrfTokenRepository csrf = new SessionCsrfTokenRepository(false);
     private final AuthController controller =
             new AuthController(users, hasher, limiter, csrf, serverProperties());
@@ -140,7 +140,7 @@ class AuthControllerTest {
                         new LoginRequest(null, "x"), new MockHttpServletRequest(), new MockHttpServletResponse()))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.errors()).extracting("field")
                         .containsExactly("email"));
-        assertThat(limiter.tryBegin("a@example.com")).isEmpty();
+        assertThat(limiter.tryBegin("a@example.com", "127.0.0.1")).isEmpty();
     }
 
     @Test

@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cdp.acceptance.engine.EngineTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 
 /**
  * FIX-01 驗收：Spring MVC 內建例外也要依契約 §5 輸出（problem+json、code、request_id），
@@ -55,8 +56,8 @@ class FrameworkErrorFormatAcceptanceTest {
     @Autowired MockMvc mvc;
 
     // application-test.yml 的測試金鑰（cdp.security.*）
-    private static final String INGEST_KEY = "test-ingest-key";
-    private static final String ADMIN_KEY = "test-admin-key";
+    private static final String INGEST_KEY = TestKeys.INGEST;
+    private static final String ADMIN_KEY = TestKeys.ADMIN;
 
     /** 同時帶 Bearer（BE-04 後）與 mock user（BE-04 前沿用 Boot 預設安全設定），同 JourneyEngine 驗收做法。 */
     private MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder b) {

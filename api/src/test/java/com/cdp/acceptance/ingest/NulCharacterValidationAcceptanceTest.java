@@ -13,6 +13,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.cdp.acceptance.support.TestKeys;
+
 /** FIX-03a 驗收：含 U+0000 的字串 → 400 VALIDATION_FAILED，errors 指出欄位（jsonb 不收 U+0000）。 */
 class NulCharacterValidationAcceptanceTest extends IngestAcceptanceBase {
 
@@ -83,7 +85,7 @@ class NulCharacterValidationAcceptanceTest extends IngestAcceptanceBase {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("events", List.of(ok, bad));
 
-        postJson("/api/v1/events/batch", body, "test-ingest-key")
+        postJson("/api/v1/events/batch", body, TestKeys.INGEST)
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.accepted").value(1))
                 .andExpect(jsonPath("$.rejected").value(1))

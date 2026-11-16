@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,8 +25,8 @@ import tools.jackson.databind.ObjectMapper;
  */
 public final class AuthHttp {
 
-    public static final String ADMIN_KEY = "Bearer test-admin-key";
-    public static final String INGEST_KEY = "Bearer test-ingest-key";
+    public static final String ADMIN_KEY = "Bearer " + TestKeys.ADMIN;
+    public static final String INGEST_KEY = "Bearer " + TestKeys.INGEST;
     public static final String PASSWORD = "correct-horse-battery";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
