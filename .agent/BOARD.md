@@ -121,9 +121,9 @@
 | ux-fix-login-trace | frontend | done | 0 | PR #203 |
 | ux-fix-customer-pages | frontend | done | 0 | PR #206 |
 | coverage-gate-setup | architect | done | 0 | PR #213 |
-| journey-contract-fix | architect | qa | 0 |  |
-| security-hardening-api | backend | in-progress | 0 |  |
-| journey-canvas-ui | frontend | in-progress | 1 |  |
+| journey-contract-fix | architect | review | 0 |  |
+| security-hardening-api | backend | qa | 0 |  |
+| journey-canvas-ui | frontend | done | 1 | PR #216 |
 | event-filter-ui | designer | in-progress | 0 |  |
 | web-test-flake-fix | frontend | in-progress | 0 |  |
 
