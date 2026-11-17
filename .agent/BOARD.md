@@ -131,7 +131,7 @@
 | masking-default-api | backend | done | 1 | PR #224 |
 | event-filter-canvas-ui | frontend | done | 0 | PR #229 |
 | journey-draft-review-scope-api | backend | done | 0 | PR #231 |
-| trace-branch-ui | frontend | in-progress | 0 |  |
+| trace-branch-ui | frontend | done | 0 | PR #232 |
 
 ## 卡住／待甲方決定
 
@@ -144,6 +144,7 @@
 - 待辦：DESIGN-05 做法 #3 兩句要跟實作更正（yml 用 :name、Makefile ifneq origin），新舊對照在 masking-default-api.review.md；併入下一張 architect 設計單
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 - 待辦（下一張 architect 設計單）：spec 07 §12「V9」讀取列「行為同 V8」改成「只略過時間過濾，金鑰紀錄照樣不算」（draft-review-scope review）
+- 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 
 ## 注意事項（踩過的坑）
 
