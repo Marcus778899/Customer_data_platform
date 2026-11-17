@@ -15,6 +15,7 @@ export function Timeline({ steps }: { steps: StepVM[] }) {
               <div className="stitle">
                 <strong>{s.title}</strong>
                 <span className="slab">{s.label}</span>
+                {s.visit !== undefined && <span className="svisit">第 {s.visit} 次經過</span>}
               </div>
               {s.desc && <p className="sdesc">{s.desc}</p>}
               {s.time && <p className="stime muted">{s.time}</p>}

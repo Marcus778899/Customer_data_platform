@@ -16,6 +16,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cdp.acceptance.support.TestKeys;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -36,8 +38,8 @@ import tools.jackson.databind.ObjectMapper;
 @Import(SecurityTestSupport.class)
 class AuthenticationAcceptanceTest {
 
-    private static final String INGEST = "Bearer test-ingest-key";
-    private static final String ADMIN = "Bearer test-admin-key";
+    private static final String INGEST = "Bearer " + TestKeys.INGEST;
+    private static final String ADMIN = "Bearer " + TestKeys.ADMIN;
     private static final String PASS = AuthHttp.PASSWORD;
     private static final String ID = "01JXXXXXXXXXXXXXXXXXXXXXXX";
 
@@ -124,7 +126,7 @@ class AuthenticationAcceptanceTest {
 
     @Test
     void wrong_key_is_401() throws Exception {
-        for (String auth : new String[] {"Bearer wrong", "Bearer ", "Basic dGVzdDp0ZXN0", "Bearer test-admin-keyX"}) {
+        for (String auth : new String[] {"Bearer wrong", "Bearer ", "Basic dGVzdDp0ZXN0", "Bearer " + TestKeys.ADMIN + "X"}) {
             assertProblem(call("GET", "/api/v1/enrollments?q=x", auth, null, null), 401, "UNAUTHENTICATED");
         }
     }

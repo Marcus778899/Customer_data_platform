@@ -2,7 +2,7 @@
 import { useId } from 'react'
 import type { Issue, ValidationReport } from '../api/types'
 
-function Items({ items, onLocate, onSettings }: { items: Issue[]; onLocate: (id: string) => void; onSettings: () => void }) {
+function Items({ items, onLocate, onSettings }: { items: Issue[]; onLocate: (id: string, field: string) => void; onSettings: () => void }) {
   return (
     <ul className="issues">
       {items.map((it, i) => (
@@ -16,7 +16,7 @@ function Items({ items, onLocate, onSettings }: { items: Issue[]; onLocate: (id:
             </p>
           </details>
           {it.node_id ? (
-            <button type="button" className="btn secondary sm" onClick={() => onLocate(it.node_id!)}>
+            <button type="button" className="btn secondary sm" onClick={() => onLocate(it.node_id!, it.field)}>
               定位節點
             </button>
           ) : (
@@ -42,7 +42,7 @@ export function ValidationPanel({
   busy: boolean
   onRevalidate: () => void
   onClose: () => void
-  onLocate: (id: string) => void
+  onLocate: (id: string, field: string) => void
   onSettings: () => void
 }) {
   const hid = useId()

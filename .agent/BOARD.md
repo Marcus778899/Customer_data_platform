@@ -122,19 +122,29 @@
 | ux-fix-customer-pages | frontend | done | 0 | PR #206 |
 | coverage-gate-setup | architect | done | 0 | PR #213 |
 | journey-contract-fix | architect | done | 0 | PR #214 |
-| security-hardening-api | backend | review | 1 |  |
+| security-hardening-api | backend | done | 1 | PR #219 |
 | journey-canvas-ui | frontend | done | 1 | PR #216 |
 | event-filter-ui | designer | done | 0 | PR #217 |
-| web-test-flake-fix | frontend | qa | 0 |  |
+| web-test-flake-fix | frontend | done | 0 | PR #220 |
+| journey-review-ui | frontend | done | 0 | PR #225 |
+| journey-branch-engine | backend | in-progress | 0 |  |
+| masking-default-api | backend | done | 1 | PR #224 |
+| event-filter-canvas-ui | frontend | done | 0 | PR #229 |
+| journey-draft-review-scope-api | backend | done | 0 | PR #231 |
+| trace-branch-ui | frontend | done | 0 | PR #232 |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
-- 合併後甲方要更新 .env：CDP_LOGIN_IP_MAX_FAILURES；兩把金鑰改 ≥ 32 字、不含 CHANGE_ME（security-hardening-api）
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
+- 待辦（architect 在 branch-engine review 一併判斷）：POST /api/v1/journeys（管理金鑰建立）仍拒絕分支節點與 event_filter，只有草稿流程收；demo-seed 要建場景一時會卡到
+- 待辦：DESIGN-05 做法 #3 兩句要跟實作更正（yml 用 :name、Makefile ifneq origin），新舊對照在 masking-default-api.review.md；併入下一張 architect 設計單
+- 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
+- 待辦（下一張 architect 設計單）：spec 07 §12「V9」讀取列「行為同 V8」改成「只略過時間過濾，金鑰紀錄照樣不算」（draft-review-scope review）
+- 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 
 ## 注意事項（踩過的坑）
 

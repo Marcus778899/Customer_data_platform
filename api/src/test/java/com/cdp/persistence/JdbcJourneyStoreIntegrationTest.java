@@ -58,6 +58,39 @@ class JdbcJourneyStoreIntegrationTest {
         assertThat(store.lock("nope")).isEmpty();
     }
 
+    private Instant draftCreatedAt(String id) {
+        return jdbc.sql("select draft_created_at from journey where journey_id = :id")
+                .param("id", id)
+                .query((rs, n) -> java.util.Optional.ofNullable(rs.getTimestamp(1)).map(java.sql.Timestamp::toInstant))
+                .single()
+                .orElse(null);
+    }
+
+    @Test
+    void draftCreatedAt_setOnCreate_keptOnSave_clearedOnClearAndApprove() {
+        store.insertDraftJourney("j1", def("A"), "u1", T0);
+        assertThat(draftCreatedAt("j1")).isEqualTo(T0);
+        store.saveDraft("j1", 2, def("B"), null, "u1", T1);
+        assertThat(draftCreatedAt("j1")).isEqualTo(T0);
+
+        store.markPublished("j1", 1, false, T1);
+        assertThat(draftCreatedAt("j1")).isEqualTo(T0);
+        store.markPublished("j1", 2, true, T1);
+        assertThat(draftCreatedAt("j1")).isNull();
+
+        // draft 為 null 時存檔 = 新草稿，設為現在
+        store.saveDraft("j1", 1, def("C"), null, "u1", T1);
+        assertThat(draftCreatedAt("j1")).isEqualTo(T1);
+        store.clearDraft("j1", T1);
+        assertThat(draftCreatedAt("j1")).isNull();
+
+        // 舊草稿（欄位 null、draft 有值）存檔不補欄位
+        store.insertDraftJourney("j2", def("A"), "u1", T0);
+        jdbc.sql("update journey set draft_created_at = null where journey_id = 'j2'").update();
+        store.saveDraft("j2", 2, def("B"), null, "u1", T1);
+        assertThat(draftCreatedAt("j2")).isNull();
+    }
+
     @Test
     void saveDraft_updatesRevisionAndLayout_clearDraftResets() {
         store.insertDraftJourney("j1", def("A"), "u1", T0);

@@ -56,9 +56,10 @@ public class JdbcJourneyStore implements JourneyStore {
     public void insertDraftJourney(String journeyId, Map<String, Object> draft, String userId, Instant now) {
         jdbc.sql(
                         "insert into journey (journey_id, status, latest_version, draft, draft_layout,"
-                                + " draft_revision, draft_updated_by, draft_updated_at, created_at, updated_at)"
+                                + " draft_revision, draft_updated_by, draft_updated_at, draft_created_at,"
+                                + " created_at, updated_at)"
                                 + " values (:id, 'DRAFT', null, cast(:draft as jsonb), null, 1, :user,"
-                                + " :now, :now, :now)")
+                                + " :now, :now, :now, :now)")
                 .param("id", journeyId)
                 .param("draft", json.writeValueAsString(draft))
                 .param("user", userId)
@@ -100,7 +101,8 @@ public class JdbcJourneyStore implements JourneyStore {
         jdbc.sql(
                         "update journey set draft = cast(:draft as jsonb), draft_layout = cast(:layout as jsonb),"
                                 + " draft_revision = :rev, draft_updated_by = :user, draft_updated_at = :now,"
-                                + " updated_at = :now where journey_id = :id")
+                                + " draft_created_at = case when draft is null then :now else"
+                                + " draft_created_at end, updated_at = :now where journey_id = :id")
                 .param("id", journeyId)
                 .param("draft", json.writeValueAsString(definition))
                 .param("layout", layout == null ? null : json.writeValueAsString(layout))
@@ -114,7 +116,8 @@ public class JdbcJourneyStore implements JourneyStore {
     public void clearDraft(String journeyId, Instant now) {
         jdbc.sql(
                         "update journey set draft = null, draft_layout = null, draft_revision = 0,"
-                                + " draft_updated_by = null, draft_updated_at = null, updated_at = :now"
+                                + " draft_updated_by = null, draft_updated_at = null, draft_created_at = null,"
+                                + " updated_at = :now"
                                 + " where journey_id = :id")
                 .param("id", journeyId)
                 .param("now", ts(now))
@@ -126,7 +129,7 @@ public class JdbcJourneyStore implements JourneyStore {
         String draftReset =
                 clearDraft
                         ? ", draft = null, draft_layout = null, draft_revision = 0,"
-                                + " draft_updated_by = null, draft_updated_at = null"
+                                + " draft_updated_by = null, draft_updated_at = null, draft_created_at = null"
                         : "";
         jdbc.sql(
                         "update journey set status = 'ACTIVE', latest_version = :version, updated_at = :now"

@@ -1,6 +1,8 @@
 // 右側節點屬性面板：名稱、各型別欄位、下一步（連線）、刪除。欄位標籤同設計稿 ed-*。
 import { useId, useState, type ReactNode } from 'react'
-import type { FieldKeys } from '../api/types'
+import type { FieldKeys, Issue } from '../api/types'
+import { EventFilterEditor, type Locate } from './EventFilterEditor'
+import { useLocked } from './lock'
 import {
   buildDuration,
   condOf,
@@ -47,13 +49,14 @@ export function TextField({
 }) {
   const id = useId()
   const hid = `${id}-h`
+  const locked = useLocked()
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
       {multiline ? (
-        <textarea id={id} rows={3} value={value} maxLength={maxLength} aria-describedby={hint ? hid : undefined} onChange={(e) => onChange(e.target.value)} />
+        <textarea id={id} rows={3} value={value} maxLength={maxLength} readOnly={locked} aria-describedby={hint ? hid : undefined} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <input id={id} type="text" value={value} maxLength={maxLength} aria-describedby={hint ? hid : undefined} onChange={(e) => onChange(e.target.value)} />
+        <input id={id} type="text" value={value} maxLength={maxLength} readOnly={locked} aria-describedby={hint ? hid : undefined} onChange={(e) => onChange(e.target.value)} />
       )}
       {hint && (
         <span className="hint" id={hid}>
@@ -78,10 +81,11 @@ function SelectField({
   hint?: string
 }) {
   const id = useId()
+  const locked = useLocked()
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} value={value} disabled={locked} onChange={(e) => onChange(e.target.value)}>
         {children}
       </select>
       {hint && <span className="hint">{hint}</span>}
@@ -149,6 +153,7 @@ function LeafRow({
   onRemove: () => void
 }) {
   const known = new Set([...(keys?.profile_attributes ?? []), ...(keys?.event_properties ?? []).map((k) => `trigger.properties.${k}`)])
+  const locked = useLocked()
   const [customPick, setCustom] = useState(false)
   const [rawText, setText] = useState(condValueText(leaf.value))
   // 以陣列位置當 key 時，刪列後狀態會落到別列：一律以目前的值校正顯示
@@ -163,6 +168,7 @@ function LeafRow({
         <select
           aria-label="欄位"
           value={custom ? CUSTOM : leaf.field}
+          disabled={locked}
           onChange={(e) => {
             if (e.target.value === CUSTOM) {
               setCustom(true)
@@ -190,6 +196,7 @@ function LeafRow({
         <select
           aria-label="比較"
           value={leaf.operator}
+          disabled={locked}
           onChange={(e) => {
             const operator = e.target.value
             onChange({ ...leaf, operator, value: OPERATORS.find((o) => o.value === operator)?.noValue ? undefined : parseCondValue(operator, text) })
@@ -206,13 +213,14 @@ function LeafRow({
             aria-label="值"
             type="text"
             value={text}
+            readOnly={locked}
             onChange={(e) => {
               setText(e.target.value)
               onChange({ ...leaf, value: parseCondValue(leaf.operator, e.target.value) })
             }}
           />
         )}
-        <button type="button" className="btn ghost-dark sm" aria-label="移除這個條件" onClick={onRemove}>
+        <button type="button" className="btn ghost-dark sm" aria-label="移除這個條件" disabled={locked} onClick={onRemove}>
           移除
         </button>
       </div>
@@ -222,6 +230,7 @@ function LeafRow({
           type="text"
           placeholder="例：tier 或 trigger.properties.cart_total"
           value={leaf.field}
+          readOnly={locked}
           onChange={(e) => setField(e.target.value)}
         />
       )}
@@ -254,18 +263,19 @@ function GroupEditor({
   onChange: (g: CondGroup) => void
   onRemove?: () => void
 }) {
+  const locked = useLocked()
   const setChild = (i: number, c: Cond | null) =>
     onChange({ ...group, children: c ? group.children.map((x, j) => (j === i ? c : x)) : group.children.filter((_, j) => j !== i) })
   return (
     <div className="cond-group">
       <div className="seg" role="group" aria-label="符合方式">
         {GROUP_OPS.map((o) => (
-          <button key={o.op} type="button" className="btn secondary sm" aria-pressed={group.op === o.op} onClick={() => onChange({ ...group, op: o.op })}>
+          <button key={o.op} type="button" className="btn secondary sm" aria-pressed={group.op === o.op} disabled={locked} onClick={() => onChange({ ...group, op: o.op })}>
             {o.label}
           </button>
         ))}
         {onRemove && (
-          <button type="button" className="btn ghost-dark sm" onClick={onRemove}>
+          <button type="button" className="btn ghost-dark sm" disabled={locked} onClick={onRemove}>
             移除群組
           </button>
         )}
@@ -285,12 +295,13 @@ function GroupEditor({
         <button
           type="button"
           className="btn secondary sm"
+          disabled={locked}
           onClick={() => onChange({ ...group, children: [...group.children, { type: 'attribute', field: '', operator: 'EQ', value: '' }] })}
         >
           加入條件
         </button>
         {depth < MAX_COND_DEPTH && (
-          <button type="button" className="btn secondary sm" onClick={() => onChange({ ...group, children: [...group.children, { op: 'AND', children: [] }] })}>
+          <button type="button" className="btn secondary sm" disabled={locked} onClick={() => onChange({ ...group, children: [...group.children, { op: 'AND', children: [] }] })}>
             加入群組
           </button>
         )}
@@ -306,18 +317,36 @@ function Body({
   keys,
   set,
   openSettings,
+  issues,
+  locate,
 }: {
   node: DefNode
   def: Def
   keys: FieldKeys | null
   set: (fn: (n: DefNode) => DefNode) => void
   openSettings: () => void
+  issues: readonly Issue[]
+  locate?: Locate | null
 }) {
+  const locked = useLocked()
   const cfg = (patch: Record<string, unknown>) => set((n) => ({ ...n, config: { ...n.config, ...patch } }))
+  const setFilter = (filter: unknown) =>
+    set((n) => {
+      const config = { ...n.config }
+      if (filter) config.event_filter = filter
+      else delete config.event_filter
+      return { ...n, config }
+    })
+  const nodeIndex = def.nodes.findIndex((x) => x.id === node.id)
   const str = (k: string) => (typeof node.config[k] === 'string' ? (node.config[k] as string) : '')
   switch (node.type) {
     case 'EventSourceNode':
-      return <TextField label="事件名稱" value={str('event_name')} onChange={(v) => cfg({ event_name: v })} hint="客戶做了這件事就進入旅程；小寫英文與底線，例如 cart_item_added" />
+      return (
+        <>
+          <TextField label="事件名稱" value={str('event_name')} onChange={(v) => cfg({ event_name: v })} hint="客戶做了這件事就進入旅程；小寫英文與底線，例如 cart_item_added" />
+          <EventFilterEditor kind="source" event={str('event_name')} unlimited={false} value={node.config.event_filter} onCommit={setFilter} issues={issues} nodeIndex={nodeIndex} locate={locate} />
+        </>
+      )
     case 'SendMessageNode':
       return (
         <>
@@ -338,11 +367,13 @@ function Body({
               <input
                 type="checkbox"
                 checked={unlimited}
+                disabled={locked}
                 onChange={(e) => cfg({ timeout: e.target.checked ? null : 'P1D' })}
               />{' '}
               不設時限，一直等到事件發生
             </label>
           </div>
+          <EventFilterEditor kind="wait" event={str('event_name')} unlimited={unlimited} value={node.config.event_filter} onCommit={setFilter} issues={issues} nodeIndex={nodeIndex} locate={locate} />
         </>
       )
     }
@@ -394,6 +425,7 @@ function Body({
 }
 
 function SplitEditor({ node, cfg }: { node: DefNode; cfg: (p: Record<string, unknown>) => void }) {
+  const locked = useLocked()
   const vs = variantsOf(node)
   const total = vs.reduce((n, v) => n + (Number(v.weight) || 0), 0)
   const setV = (i: number, patch: Partial<Variant>) => cfg({ variants: vs.map((v, j) => (j === i ? { ...v, ...patch } : v)) })
@@ -408,19 +440,20 @@ function SplitEditor({ node, cfg }: { node: DefNode; cfg: (p: Record<string, unk
         <div className="row2" key={v.port}>
           <label>
             組名{v.is_control ? '（對照組）' : ''}
-            <input type="text" value={v.label} onChange={(e) => setV(i, { label: e.target.value })} />
+            <input type="text" value={v.label} readOnly={locked} onChange={(e) => setV(i, { label: e.target.value })} />
           </label>
           <label>
             權重 %
             <input
               type="text"
               inputMode="numeric"
+              readOnly={locked}
               value={String(v.weight ?? '')}
               onChange={(e) => setV(i, { weight: e.target.value === '' ? 0 : Number(e.target.value.replace(/\D/g, '')) })}
             />
           </label>
           {vs.length > 2 && (
-            <button type="button" className="btn ghost-dark sm" onClick={() => cfg({ variants: vs.filter((_, j) => j !== i) })}>
+            <button type="button" className="btn ghost-dark sm" disabled={locked} onClick={() => cfg({ variants: vs.filter((_, j) => j !== i) })}>
               移除
             </button>
           )}
@@ -430,7 +463,7 @@ function SplitEditor({ node, cfg }: { node: DefNode; cfg: (p: Record<string, unk
         合計 {total}%{total === 100 ? '' : `，請調整到剛好 100%。`}
       </p>
       {vs.length < 10 && (
-        <button type="button" className="btn secondary sm" onClick={() => cfg({ variants: [...vs, { port: nextPort(), label: `組別 ${vs.length + 1}`, weight: 0 }] })}>
+        <button type="button" className="btn secondary sm" disabled={locked} onClick={() => cfg({ variants: [...vs, { port: nextPort(), label: `組別 ${vs.length + 1}`, weight: 0 }] })}>
           新增分組
         </button>
       )}
@@ -448,6 +481,8 @@ export function NodePanel({
   onDelete,
   onClose,
   openSettings,
+  issues = [],
+  locate = null,
 }: {
   node: DefNode
   def: Def
@@ -457,8 +492,12 @@ export function NodePanel({
   onDelete: () => void
   onClose: () => void
   openSettings: () => void
+  /** 驗證結果的錯誤；事件篩選依 field 路徑標到對應條件 */
+  issues?: readonly Issue[]
+  locate?: Locate | null
 }) {
   const hid = useId()
+  const locked = useLocked()
   const targets = linkTargets(def, node.id)
   const specs = outputSpecs(node)
   return (
@@ -473,7 +512,7 @@ export function NodePanel({
         </button>
       </div>
       <TextField label="名稱" value={node.name ?? ''} onChange={(v) => onChange((n) => ({ ...n, name: v }))} />
-      <Body node={node} def={def} keys={keys} set={onChange} openSettings={openSettings} />
+      <Body node={node} def={def} keys={keys} set={onChange} openSettings={openSettings} issues={issues} locate={locate} />
       {specs.length > 0 && (
         <>
           <h3 className="sub">下一步</h3>
@@ -489,9 +528,9 @@ export function NodePanel({
           ))}
         </>
       )}
-      {node.type !== 'StartNode' && (
+      {node.type !== 'StartNode' && node.type !== 'EventSourceNode' && (
         <p>
-          <button type="button" className="btn danger" onClick={onDelete}>
+          <button type="button" className="btn danger" disabled={locked} onClick={onDelete}>
             刪除節點
           </button>
         </p>

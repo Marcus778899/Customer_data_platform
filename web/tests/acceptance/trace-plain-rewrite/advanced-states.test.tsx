@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 /** 軌跡頁白話改版：進階資訊、主要畫面禁字（D-079、D-080）、載入／404／錯誤、麵包屑、重新整理、無障礙。 */
-import { cleanup, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, configure, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DETAIL, EID, FORBIDDEN, JID, NOW_EARLY, NOW_LATE, PID, aborted, advanced, advancedText, completed, delivery, failed,
   freezeNow, heading, json, mainText, norm, openTrace, problem, problemWithId, resetEnv, start, teardown,
   unfreeze, waiting, VER, deferred,
 } from './fixtures'
+
+// 負載下 jsdom 慢（登入後還要 me、資料、頁面渲染）：放寬測試與等待逾時，斷言不變
+vi.setConfig({ testTimeout: 20000 })
+configure({ asyncUtilTimeout: 5000 })
 
 beforeEach(resetEnv)
 afterEach(() => { cleanup(); teardown(); unfreeze() })

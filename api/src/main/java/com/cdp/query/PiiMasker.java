@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 import com.cdp.engine.model.TriggerSnapshot;
+import com.cdp.profile.IdentifierView;
 
 /**
  * 契約 §4.4：對 EnrollmentDetail 的 variables、trigger_snapshot.properties、trigger_snapshot.profile_snapshot、
@@ -94,7 +95,41 @@ public class PiiMasker {
                 raw.deliveryHistory(),
                 raw.deliveryHistoryNextCursor(),
                 raw.asOf(),
-                paths);
+                paths,
+                maskName(raw.profileName()),
+                maskIdentifierView(raw.profileIdentifier()));
+    }
+
+    /** 列表項目的 profile_name、profile_identifier 遮罩（journey-engine §4.1）；不修改輸入。 */
+    public EnrollmentSummary maskSummary(EnrollmentSummary raw) {
+        return new EnrollmentSummary(
+                raw.enrollmentId(),
+                raw.journeyId(),
+                raw.journeyVersion(),
+                raw.journeyName(),
+                raw.profileId(),
+                raw.status(),
+                raw.currentNodeId(),
+                raw.currentNodeName(),
+                raw.currentNodeType(),
+                raw.enrolledAt(),
+                raw.updatedAt(),
+                raw.terminatedAt(),
+                maskName(raw.profileName()),
+                maskIdentifierView(raw.profileIdentifier()));
+    }
+
+    /** 姓名只在 name 在明文清單時帶出；否則 null（不回遮罩值）。 */
+    private String maskName(String name) {
+        return name != null && plainKeys().contains("name") ? name : null;
+    }
+
+    private IdentifierView maskIdentifierView(IdentifierView raw) {
+        if (raw == null) {
+            return null;
+        }
+        String masked = maskIdentifier(raw.type().name(), raw.value(), "profile_identifier", new ArrayList<>());
+        return masked == null ? new IdentifierView(raw.type(), raw.value(), false) : new IdentifierView(raw.type(), masked, true);
     }
 
     /** 客戶屬性遮罩（profiles.md §1）：根路徑 {@code attributes}，規則同 variables；遮罩的葉節點路徑加進 paths。 */

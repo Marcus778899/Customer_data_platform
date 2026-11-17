@@ -12,6 +12,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import com.cdp.CdpApplication;
 import com.cdp.acceptance.security.SecurityTestSupport;
+import com.cdp.acceptance.support.TestKeys;
 
 /**
  * 啟動驗證：OUTBOX_RELAY_LEASE（cdp.relay.lease）必須大於 OUTBOX_RELAY_CONFIRM_TIMEOUT
@@ -30,8 +31,8 @@ class RelayStartupValidationAcceptanceTest {
                     "--cdp.relay.confirm-timeout=PT5S",
                     "--cdp.relay.lease=PT30S",
                     "--spring.task.scheduling.pool.size=4",
-                    "--cdp.security.ingest-api-key=SECRET-aaaa-1111",
-                    "--cdp.security.admin-api-key=SECRET-bbbb-2222"
+                    "--cdp.security.ingest-api-key=" + TestKeys.VALID_A,
+                    "--cdp.security.admin-api-key=" + TestKeys.VALID_B
                 }) {
             merged.put(a.substring(0, a.indexOf('=')), a);
         }
