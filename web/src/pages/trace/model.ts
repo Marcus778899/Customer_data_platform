@@ -14,6 +14,8 @@ export interface StepVM {
   icon: 'in' | 'wait' | 'send' | 'end' | 'other'
   desc: string | null
   time: string | null
+  /** 同一節點出現 2 次以上時，這一列是第幾次經過（journey-engine §4.5 visit） */
+  visit?: number
 }
 
 export interface SummaryRow {
@@ -140,10 +142,13 @@ export function buildSteps(d: EnrollmentDetail, def: JourneyVersion | null, now:
   // 終態時停下的那一步：未離開的最後一筆；沒有就最後一筆（FAILED、ABORTED 才標示）
   const stopAt = d.status === 'FAILED' || d.status === 'ABORTED' ? (open ?? d.trace[d.trace.length - 1]) : undefined
   const out: StepVM[] = []
+  const total = new Map<string, number>()
+  for (const t of d.trace) total.set(t.node_id, (total.get(t.node_id) ?? 0) + 1)
   for (const t of d.trace) {
     const title = entryTitle(t, def)
     if (title === null) continue
-    const base = { key: `t${t.seq}`, title, icon: iconOf(t.node_type) }
+    const visit = (total.get(t.node_id) ?? 0) >= 2 ? 1 + d.trace.filter((x) => x.node_id === t.node_id && x.seq < t.seq).length : undefined
+    const base = { key: `t${t.seq}`, title, icon: iconOf(t.node_type), visit }
     const entered = plainAt(t.entered_at, now)
     if (t === stopAt && d.status === 'FAILED') {
       out.push({ ...base, kind: 'err', label: '發生問題', desc: '這一步發生錯誤，旅程停在這裡，不會自動繼續。', time: entered })

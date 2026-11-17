@@ -196,6 +196,18 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 .node.selected { box-shadow: 0 0 0 3px var(--color-focus); }
 .node:focus-visible, .graph:focus-visible { box-shadow: var(--focus-ring); }
 .graph-note { display: none; }
+.graph .e-label { font-size: var(--text-xs); fill: var(--color-text-muted); paint-order: stroke; stroke: var(--color-graph-bg); stroke-width: 4px; }
+.node .n-stat { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .n-stat b { color: var(--color-text); font-size: var(--text-sm); }
+.stats-bar { margin-bottom: var(--space-2); }
+.stats-bar p { margin: 0 0 var(--space-2); }
+.graph-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+@media (min-width: 1101px) { .graph-split { grid-template-columns: minmax(0, 1fr) var(--panel-width); } }
+.node-panel .kv { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-3); margin: 0; }
+.node-panel .kv dt { color: var(--color-text-muted); }
+.node-panel .kv dd { margin: 0; font-weight: 700; text-align: right; }
+.node-panel .plain-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.steps2 .svisit { font-size: var(--text-xs); color: var(--color-text-muted); }
 .react-flow__attribution { font-size: var(--text-xs); }
 
 /* 窄螢幕補充（<= 640px）：連結與篩選鈕達 44px、圖可左右捲動並提示改看文字版 */

@@ -14,6 +14,7 @@ import type {
   JourneyDetail,
   JourneySummary,
   JourneyVersion,
+  NodeStats,
   Page,
   Review,
   ProfileDetail,
@@ -170,6 +171,10 @@ export const getJourney = (id: string) => request<JourneyDetail>('GET', `/api/v1
 /** 版本定義失敗只影響圖，不切整頁無權限 */
 export const getJourneyVersion = (id: string, version: number) =>
   request<JourneyVersion>('GET', `/api/v1/journeys/${enc(id)}/versions/${version}`, { pageOn403: false })
+
+/** 統計失敗只影響人數，不切整頁無權限 */
+export const getNodeStats = (id: string, version: number) =>
+  request<NodeStats>('GET', `/api/v1/journeys/${enc(id)}/versions/${version}/node-stats`, { pageOn403: false })
 
 export const searchProfiles = (q: string) =>
   request<{ items: ProfileSummary[] }>('GET', `/api/v1/profiles/search${qs({ q })}`, { pageOn403: false })

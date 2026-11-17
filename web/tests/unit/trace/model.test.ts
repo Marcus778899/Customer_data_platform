@@ -41,3 +41,11 @@ describe('trace model', () => {
     expect(diagnosticText(d, NOW)).not.toContain('王小明')
   })
 })
+
+describe('step visit', () => {
+  it('同一節點出現 2 次以上才標第幾次', () => {
+    const e = (seq: number, node_id: string) => ({ ...d.trace[0], seq, node_id, exited_at: 'x' })
+    const dd = { ...d, status: 'COMPLETED', trace: [e(1, 'w'), e(2, 'e'), e(3, 'w')] } as unknown as EnrollmentDetail
+    expect(buildSteps(dd, def, NOW).map((x) => x.visit)).toEqual([1, undefined, 2])
+  })
+})

@@ -1,5 +1,5 @@
 import { Graph, layout } from '@dagrejs/dagre'
-import type { EnrollmentStatus, JourneyVersion, TraceEntry } from '../api/types'
+import type { EnrollmentStatus, JourneyVersion, NodeStat, TraceEntry } from '../api/types'
 import { TERMINAL } from '../format'
 
 /** 尺寸對應 tokens.css 的 --node-width／--node-height、--node-pitch（圖上相鄰欄中心距） */
@@ -36,6 +36,12 @@ export interface FlowNodeData extends Record<string, unknown> {
   category: Category
   categoryLabel: string
   state: NodeState
+  /** 軌跡：這個節點被經過幾次（>= 2 才標示） */
+  passes?: number
+  /** 軌跡：目前位置是第幾次進入 */
+  visit?: number
+  /** 節點統計（旅程頁）；沒有 = 不顯示人數 */
+  stat?: { entered: number; current: number }
 }
 export interface PlacedNode {
   id: string
@@ -65,6 +71,10 @@ export interface TraceOverlay {
   visited: ReadonlySet<string>
   current: string | null
   taken: ReadonlySet<string>
+  /** 各節點在軌跡裡出現的次數 */
+  passes?: ReadonlyMap<string, number>
+  /** 目前位置是第幾次進入（journey-engine §4.5 visit） */
+  currentVisit?: number
 }
 
 /** outputs 缺漏或為 null（舊資料、終端節點）視為空物件 */
@@ -99,10 +109,34 @@ export function deriveOverlay(
     const open = [...trace].reverse().find((t) => t.exited_at === null)
     current = open?.node_id ?? null
   }
-  return { visited, current, taken }
+  const passes = new Map<string, number>()
+  for (const t of trace) passes.set(t.node_id, (passes.get(t.node_id) ?? 0) + 1)
+  return { visited, current, taken, passes, currentVisit: current ? (passes.get(current) ?? 1) : 1 }
 }
 
-export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null): GraphModel {
+/** 位在迴圈裡的節點（能沿出口走回自己） */
+export function loopNodeIds(def: JourneyVersion): Set<string> {
+  const byId = new Map(def.nodes.map((n) => [n.id, n]))
+  const out = new Set<string>()
+  for (const n of def.nodes) {
+    const seen = new Set<string>()
+    const stack = Object.values(outsOf(n))
+    while (stack.length) {
+      const id = stack.pop()!
+      if (id === n.id) {
+        out.add(n.id)
+        break
+      }
+      if (seen.has(id) || !byId.has(id)) continue
+      seen.add(id)
+      stack.push(...Object.values(outsOf(byId.get(id))))
+    }
+  }
+  return out
+}
+
+export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null, stats?: readonly NodeStat[]): GraphModel {
+  const statById = new Map((stats ?? []).map((x) => [x.node_id, x]))
   const ids = new Set(def.nodes.map((n) => n.id))
   const g = new Graph()
   g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: MARGIN, marginy: MARGIN, acyclicer: 'greedy' })
@@ -134,11 +168,13 @@ export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null): G
     const [category, categoryLabel] = categoryOf(n.type)
     let state: NodeState = 'plain'
     if (overlay) state = overlay.current === n.id ? 'current' : overlay.visited.has(n.id) ? 'visited' : 'unvisited'
-    return {
-      id: n.id,
-      ...pos.get(n.id)!,
-      data: { name: n.name ?? n.type, type: n.type, category, categoryLabel, state },
-    }
+    const data: FlowNodeData = { name: n.name ?? n.type, type: n.type, category, categoryLabel, state }
+    const passes = overlay?.passes?.get(n.id) ?? 0
+    if (passes >= 2) data.passes = passes
+    if (state === 'current' && (overlay?.currentVisit ?? 1) >= 2) data.visit = overlay!.currentVisit
+    const st = statById.get(n.id)
+    if (st) data.stat = { entered: st.entered, current: st.current }
+    return { id: n.id, ...pos.get(n.id)!, data }
   })
   const edges: PlacedEdge[] = rawEdges.map((e) => ({
     ...e,
