@@ -188,11 +188,12 @@ describe('DOM 結構（說明文字在 table.stack 的單一 caption 內）', ()
       vi.fn(async (input: RequestInfo | URL) => {
         const u = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
         if (u.pathname.endsWith('/auth/me')) return json({ user_id: '01JD0USER0000000000000001', email: 'amy.chen@example.com', display_name: '陳小美', role: 'EDITOR' })
+        if (u.pathname.endsWith('/journeys')) return json({ items: [], next_cursor: null })
         if (u.pathname.endsWith('/enrollments')) return json({ items: [row], next_cursor: null })
         return json({}, 404)
       }),
     )
-    window.history.pushState({}, '', `/?q=${PID}`)
+    window.history.pushState({}, '', '/enrollments')
   })
   afterEach(() => {
     cleanup()
@@ -201,11 +202,11 @@ describe('DOM 結構（說明文字在 table.stack 的單一 caption 內）', ()
 
   it('列表：說明為 table.stack 的 caption，文字完整在同一元素', async () => {
     render(<App />)
-    await waitFor(() => expect(screen.getByText(/依進入時間新到舊/)).toBeTruthy())
-    const cap = screen.getByText(/依進入時間新到舊/)
+    await waitFor(() => expect(screen.getByText(/已載入 1 筆，新到舊/)).toBeTruthy())
+    const cap = screen.getByText(/已載入 1 筆，新到舊/)
     expect(cap.tagName).toBe('CAPTION')
     expect(cap.parentElement?.tagName).toBe('TABLE')
     expect(cap.parentElement?.classList.contains('stack')).toBe(true)
-    expect(cap.textContent).toBe('共 1 筆，依進入時間新到舊')
+    expect(cap.textContent).toBe('已載入 1 筆，新到舊')
   })
 })
