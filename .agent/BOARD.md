@@ -127,7 +127,7 @@
 | event-filter-ui | designer | done | 0 | PR #217 |
 | web-test-flake-fix | frontend | done | 0 | PR #220 |
 | journey-review-ui | frontend | done | 0 | PR #225 |
-| journey-branch-engine | backend | qa | 0 |  |
+| journey-branch-engine | backend | done | 0 | PR #234 |
 | masking-default-api | backend | done | 1 | PR #224 |
 | event-filter-canvas-ui | frontend | done | 0 | PR #229 |
 | journey-draft-review-scope-api | backend | done | 0 | PR #231 |
@@ -141,12 +141,14 @@
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
-- 待辦（architect 在 branch-engine review 一併判斷）：POST /api/v1/journeys（管理金鑰建立）仍拒絕分支節點與 event_filter，只有草稿流程收；demo-seed 要建場景一時會卡到
 - 待辦：DESIGN-05 做法 #3 兩句要跟實作更正（yml 用 :name、Makefile ifneq origin），新舊對照在 masking-default-api.review.md；併入下一張 architect 設計單
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 - 待辦（下一張 architect 設計單）：spec 07 §12「V9」讀取列「行為同 V8」改成「只略過時間過濾，金鑰紀錄照樣不算」（draft-review-scope review）
 - 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 - 待甲方決定 D-088：ux-polish-web 派工單最後一行被 ae 誤判成驗收路徑，lock 失敗
+- 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
+- 待辦（下一張 architect 設計單）：spec 02 §3、DESIGN-03 #8「進入任何終態都取消未送出訊息」改成限定中途結束的終態（goal、global_exit、停止）
+- 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
 
 ## 注意事項（踩過的坑）
 
