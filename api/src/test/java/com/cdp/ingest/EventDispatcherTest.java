@@ -110,4 +110,34 @@ class EventDispatcherTest {
         verify(store).scheduleRetry(eq("ev1"), any());
         verify(store, never()).markDispatched(eq("ev1"), any(), eq("DISPATCHED"));
     }
+
+    private NormalizedEvent lateEvent() {
+        return new NormalizedEvent(
+                "ev1", SourceType.values()[0], "src", "cart", NOW.minus(Duration.ofHours(30)), NOW,
+                new EventIdentity("p1", List.of()), Map.of(), null);
+    }
+
+    @Test
+    void lateEvent_doesNotStart_butStillReacts_andIsMarkedLate() {
+        when(store.lockUndispatched(anyInt(), any()))
+                .thenReturn(List.of(new UndispatchedEvent("ev1", lateEvent(), null)))
+                .thenReturn(List.of());
+        assertThat(dispatcher().runOnce()).isEqualTo(1);
+        verify(journeys, never()).findActiveEventSources(anyString());
+        verify(runtime, never()).start(anyString(), anyInt(), anyString(), anyString(), any(), anyString());
+        verify(reactor).react(eq("p1"), eq("ev1"), eq("cart"), any(), any());
+        verify(store).markDispatched("ev1", NOW, "LATE");
+    }
+
+    @Test
+    void lateEvent_reactorFailureSchedulesRetry() {
+        when(store.lockUndispatched(anyInt(), any()))
+                .thenReturn(List.of(new UndispatchedEvent("ev1", lateEvent(), null)))
+                .thenReturn(List.of());
+        when(reactor.react(any(), any(), any(), any(), any())).thenReturn(new IllegalStateException("boom"));
+        when(store.recordFailure(eq("ev1"), any())).thenReturn(1);
+        dispatcher().runOnce();
+        verify(store).scheduleRetry(eq("ev1"), any());
+        verify(store, never()).markDispatched(eq("ev1"), any(), eq("LATE"));
+    }
 }

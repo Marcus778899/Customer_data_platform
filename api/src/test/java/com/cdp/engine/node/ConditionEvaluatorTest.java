@@ -96,4 +96,10 @@ class ConditionEvaluatorTest {
                         Map.of("op", "AND", "children", List.of(cond, leaf("tier", "EQ", "G")))))
                 .containsExactly("tier");
     }
+
+    @Test
+    void nonFiniteNumbersNeverThrow() {
+        assertThat(eval(leaf("properties.a", "GT", 1), Map.of("a", Double.NaN))).isFalse();
+        assertThat(eval(leaf("properties.a", "EQ", 1), Map.of("a", Double.POSITIVE_INFINITY))).isFalse();
+    }
 }

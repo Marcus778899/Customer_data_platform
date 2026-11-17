@@ -158,10 +158,14 @@ public final class ConditionEvaluator {
     /** 只在兩邊都是 number 時比較；其他（含字串、布林）= 不成立。 */
     private static boolean numeric(
             Object actual, Object expected, java.util.function.IntPredicate test) {
-        if (!(actual instanceof Number) || !(expected instanceof Number)) {
+        if (!finiteNumber(actual) || !finiteNumber(expected)) {
             return false;
         }
         return test.test(decimal(actual).compareTo(decimal(expected)));
+    }
+
+    private static boolean finiteNumber(Object o) {
+        return o instanceof Number n && Double.isFinite(n.doubleValue());
     }
 
     private static boolean contains(Object actual, Object expected) {
@@ -183,7 +187,7 @@ public final class ConditionEvaluator {
             return a == b;
         }
         if (a instanceof Number && b instanceof Number) {
-            return decimal(a).compareTo(decimal(b)) == 0;
+            return finiteNumber(a) && finiteNumber(b) && decimal(a).compareTo(decimal(b)) == 0;
         }
         if (a instanceof List<?> la && b instanceof List<?> lb) {
             if (la.size() != lb.size()) {

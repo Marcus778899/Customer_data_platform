@@ -98,4 +98,17 @@ class EventReactorTest {
         when(advancer.advance(any(), any())).thenThrow(new IllegalStateException("boom"));
         assertThat(reactor.react("p", "ev", "paid", T0, Map.of())).isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    void eventAtTimeoutWakes_eventAfterTimeoutLeftToTimer() {
+        Instant timeoutAt = T0.plusSeconds(3600);
+        EnrollmentState s =
+                enrollment("e1", "x", EnrollmentStatus.WAITING, new WakeCondition.Event("paid", null, timeoutAt));
+        open(s);
+        definition(Map.of());
+        reactor.react("p", "ev", "paid", timeoutAt.plusSeconds(1), Map.of());
+        verify(advancer, never()).advance(any(), any());
+        reactor.react("p", "ev", "paid", timeoutAt, Map.of());
+        verify(advancer, times(1)).advance(eq(s), any(WakeSignal.EventArrived.class));
+    }
 }

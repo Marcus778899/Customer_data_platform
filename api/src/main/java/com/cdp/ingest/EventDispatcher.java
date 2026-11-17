@@ -128,13 +128,11 @@ public class EventDispatcher {
                 log.error("event row unparsable, giving up event_id={}", row.eventId());
                 return Boolean.TRUE;
             }
-            if (isLate(event)) {
-                events.markDispatched(event.eventId(), now, "LATE");
-                return Boolean.TRUE;
-            }
-            RuntimeException failure = dispatch(event);
+            // 遲到只限制建立新 Enrollment；仍喚醒既有等待者、觸發 goal／global_exit（spec 01 §6）
+            boolean late = isLate(event);
+            RuntimeException failure = dispatch(event, !late);
             if (failure == null) {
-                events.markDispatched(event.eventId(), now, "DISPATCHED");
+                events.markDispatched(event.eventId(), now, late ? "LATE" : "DISPATCHED");
                 return Boolean.TRUE;
             }
             failed.add(event.eventId());
@@ -177,8 +175,9 @@ public class EventDispatcher {
     }
 
     /** 回傳 null 表示全部成功（或無綁定）；否則為第一個失敗。先建立新的 Enrollment，再讓等待中的旅程反應。 */
-    private RuntimeException dispatch(NormalizedEvent event) {
-        List<EventSourceBinding> bindings = journeys.findActiveEventSources(event.name());
+    private RuntimeException dispatch(NormalizedEvent event, boolean createEnrollments) {
+        List<EventSourceBinding> bindings =
+                createEnrollments ? journeys.findActiveEventSources(event.name()) : List.of();
         RuntimeException first = null;
         for (EventSourceBinding binding : bindings) {
             try {

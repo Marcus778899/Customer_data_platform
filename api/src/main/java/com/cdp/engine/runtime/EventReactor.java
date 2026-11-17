@@ -88,6 +88,8 @@ public class EventReactor {
         }
         if (state.wakeCondition() instanceof WakeCondition.Event wait
                 && wait.eventName().equals(eventName)
+                // 事件發生在逾時之後不算等到，留給 AdvanceLoop 送 Timeout（spec 01 §6）
+                && (wait.timeoutAt() == null || !occurredAt.isAfter(wait.timeoutAt()))
                 && ConditionEvaluator.eventMatches(wait.filter(), properties)) {
             advancer.advance(state, new WakeSignal.EventArrived(eventName, properties, occurredAt));
         }
