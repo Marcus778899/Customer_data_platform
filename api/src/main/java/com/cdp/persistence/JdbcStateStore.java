@@ -27,14 +27,14 @@ import com.cdp.engine.model.EnrollmentTrace;
 import com.cdp.engine.model.TriggerSnapshot;
 import com.cdp.engine.model.WakeCondition;
 import com.cdp.engine.node.Effect;
-import com.cdp.engine.runtime.ReentryStore;
+import com.cdp.engine.runtime.EngineJourneyRuntime;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /** enrollment_record + node_trace；save 內呼叫 Timer 與 OutboxStore（同一交易）。 */
 @Repository
-public class JdbcStateStore implements StateStore, ReentryStore {
+public class JdbcStateStore implements StateStore, EngineJourneyRuntime.ReentryStore {
 
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
     private static final TypeReference<List<DeliveryRecord>> HISTORY = new TypeReference<>() {};

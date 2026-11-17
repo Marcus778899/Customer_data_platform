@@ -152,7 +152,7 @@ class ReentryUnitTest {
 
     private final StateStore store = mock(StateStore.class);
     private final EnrollmentAdvancer advancer = mock(EnrollmentAdvancer.class);
-    private final ReentryStore reentry = mock(ReentryStore.class);
+    private final EngineJourneyRuntime.ReentryStore reentry = mock(EngineJourneyRuntime.ReentryStore.class);
     private final JourneyDefinitionStore journeys = mock(JourneyDefinitionStore.class);
     private final TriggerSnapshotFactory snaps = mock(TriggerSnapshotFactory.class);
     private final EngineJourneyRuntime runtime =
