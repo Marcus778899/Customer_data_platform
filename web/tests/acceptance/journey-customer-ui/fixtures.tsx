@@ -111,8 +111,10 @@ export function journeyVersion(version = 3, waitName = '等 3 天', over: Record
 export function enrollmentSummary(over: Record<string, unknown> = {}) {
   return {
     enrollment_id: EID, journey_id: JID, profile_id: PID, current_node_id: 'wait_1', current_node_type: 'WaitDelayNode',
-    journey_version: 3, journey_name: '棄單挽回', current_node_name: '等 3 天', status: 'WAITING',
-    enrolled_at: '2026-10-18T02:00:00Z', updated_at: '2026-10-18T02:00:05Z', terminated_at: null, ...over,
+    journey_version: 3, journey_name: '棄單挽回', current_node_name: '等 3 天',
+    // v0.3.0（journey-engine §4.1、#180）：profile_name 為明文姓名或 null；profile_identifier 為第一個識別碼（已遮罩）或 null
+    profile_name: '陳雅婷', profile_identifier: { type: 'MEMBER_ID', value: 'M-20418', masked: false },
+    status: 'WAITING', enrolled_at: '2026-10-18T02:00:00Z', updated_at: '2026-10-18T02:00:05Z', terminated_at: null, ...over,
   }
 }
 export function traceEntry(seq: number, node_id: string, node_type: string, node_name: string | null, over: Record<string, unknown> = {}) {

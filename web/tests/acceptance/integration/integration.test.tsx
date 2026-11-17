@@ -36,7 +36,8 @@ const empty = () => new Response(null, { status: 204 })
 
 const summary = () => ({
   enrollment_id: EID, journey_id: 'j1', profile_id: PID, current_node_id: 'wait_1', current_node_type: 'WaitDelayNode',
-  journey_version: 2, journey_name: '棄單挽回', current_node_name: '等 3 天', status: 'WAITING',
+  journey_version: 2, journey_name: '棄單挽回', current_node_name: '等 3 天',
+  profile_name: '陳雅婷', profile_identifier: { type: 'MEMBER_ID', value: 'M-20418', masked: false }, status: 'WAITING',
   enrolled_at: '2026-10-18T02:00:00Z', updated_at: '2026-10-18T02:00:05Z', terminated_at: null,
 })
 const delivery = (i: number) => ({
