@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ApiError, getJourney, getJourneyVersion, putDraft } from '../api/client'
+import { ApiError, getJourney, getJourneyVersion, getNodeStats, putDraft } from '../api/client'
 import { useAuth } from '../auth'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
-import { Badge, ErrorBox, Skeleton, Time } from '../components/ui'
-import type { JourneyDetail } from '../api/types'
+import { Badge, RequestId, Skeleton, ErrorBox, Time } from '../components/ui'
+import type { JourneyDetail, NodeStats } from '../api/types'
 import { formatLocal, JOURNEY_STATUS } from '../format'
 import { GraphSection } from '../graph/GraphSection'
 import { navigate, type Loc } from '../router'
@@ -63,6 +63,47 @@ function LifecycleNotice({ detail }: { detail: JourneyDetail }) {
   return null
 }
 
+type StatsFetch = ReturnType<typeof useFetch<NodeStats>>
+
+/** 節點人數的狀態列：載入中、失敗（圖照常）、尚無客戶、資料時間與重新整理 */
+function StatsBar({ stats }: { stats: StatsFetch }) {
+  const shown = stats.data ?? stats.last
+  const items = shown && Array.isArray(shown.items) ? shown.items : []
+  const empty = items.length > 0 && items.every((x) => x.entered === 0)
+  return (
+    <div className="stats-bar" aria-busy={stats.loading && !shown ? 'true' : undefined}>
+      {stats.loading && !shown && (
+        <p className="muted" role="status">
+          載入各節點人數…
+        </p>
+      )}
+      {stats.error && (
+        <div className="msg warn" role="alert">
+          <p>
+            <strong>各節點人數暫時取不到。</strong>旅程圖與節點設定不受影響。 <RequestId error={stats.error} />{' '}
+            <button className="btn secondary sm" type="button" onClick={stats.reload}>
+              重試
+            </button>
+          </p>
+        </div>
+      )}
+      {stats.data && (
+        <p className="muted">
+          資料時間 {formatLocal(stats.data.as_of)}・重新整理才更新{' '}
+          <button className="btn secondary sm" type="button" onClick={stats.reload}>
+            重新整理
+          </button>
+        </p>
+      )}
+      {stats.data && empty && (
+        <p className="msg info" role="status">
+          這個版本還沒有客戶進入。有客戶進入後，這裡會顯示每個節點的人數。
+        </p>
+      )}
+    </div>
+  )
+}
+
 /** 旅程頁（D-062；v0.3.0 起有編輯、審核、停止動作）：標頭、版本下拉、節點圖（不疊軌跡） */
 export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
   const load = useCallback(() => getJourney(id), [id])
@@ -85,6 +126,12 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
     [hasDetail, id, version],
   )
   const def = useFetch(loadDef)
+  // 節點人數與圖各自載入、互不阻擋；沒有版本（尚未發佈）不打
+  const loadStats = useMemo(
+    () => (hasDetail && version !== null && detail && detail.versions.length > 0 ? () => getNodeStats(id, version) : null),
+    [hasDetail, id, version, detail],
+  )
+  const stats = useFetch(loadStats)
 
   const h1 = useRef<HTMLHeadingElement>(null)
   const focused = useRef<string | null>(null)
@@ -167,6 +214,7 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
   }
 
   const st = JOURNEY_STATUS[detail.status] ?? { label: detail.status, tone: 'neutral' as const }
+  const statItems = stats.data && Array.isArray(stats.data.items) ? stats.data.items : undefined
   const old = version !== null && latest !== null && version !== latest
   const selectVersion = (v: number) =>
     navigate(`/journeys/${encodeURIComponent(id)}${v === latest ? '' : `?version=${v}`}`, { replace: true })
@@ -274,7 +322,14 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
           )}
           {def.data && Array.isArray(def.data.nodes) && (
             <>
-              <GraphSection def={def.data} overlay={null} label="旅程圖（可橫向捲動；文字版見下方清單）" />
+              <StatsBar stats={stats} />
+              <GraphSection
+                def={def.data}
+                overlay={null}
+                label="旅程圖（可橫向捲動；文字版見下方清單）"
+                stats={statItems}
+                panel
+              />
             </>
           )}
         </>

@@ -219,3 +219,18 @@ export interface FieldKeys {
   event_properties: string[]
   as_of: string
 }
+
+// docs/contracts/journeys.md §5
+export interface NodeStat {
+  node_id: string
+  entered: number
+  visits: number
+  current: number
+  out_ports: Record<string, number>
+}
+export interface NodeStats {
+  journey_id: string
+  version: number
+  items: NodeStat[]
+  as_of: string
+}

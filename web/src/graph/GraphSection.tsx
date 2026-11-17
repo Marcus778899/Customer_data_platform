@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
-import type { JourneyVersion } from '../api/types'
+import { useMemo, useState } from 'react'
+import type { JourneyVersion, NodeStat } from '../api/types'
 import { FlowGraph } from './FlowGraph'
 import { buildModel, type TraceOverlay } from './model'
+import { NodePanel } from './NodePanel'
 
 const CATEGORIES = [
   ['source', '來源'],
@@ -16,12 +17,20 @@ export function GraphSection({
   def,
   overlay,
   label,
+  stats,
+  panel = false,
 }: {
   def: JourneyVersion
   overlay: TraceOverlay | null
   label: string
+  /** 旅程頁的節點統計；undefined = 沒有（載入中、失敗或軌跡頁） */
+  stats?: readonly NodeStat[]
+  /** 選取節點時在旁邊開明細面板（旅程頁） */
+  panel?: boolean
 }) {
-  const model = useMemo(() => buildModel(def, overlay), [def, overlay])
+  const model = useMemo(() => buildModel(def, overlay, stats), [def, overlay, stats])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = panel && selectedId ? (def.nodes.find((n) => n.id === selectedId) ?? null) : null
   // 疊上軌跡時，文字版另附各狀態的節點數（讀屏不用看圖也知道進度）
   const count = (s: string) => model.nodes.filter((n) => n.data.state === s).length
   const stateNote = overlay
@@ -58,7 +67,12 @@ export function GraphSection({
         )}
         {model.edges.some((e) => e.back) && <li>點狀線＝回到前面節點的迴圈</li>}
       </ul>
-      <FlowGraph model={model} label={label} />
+      <div className={selected ? 'graph-split' : undefined}>
+        <FlowGraph model={model} label={label} selectedId={selectedId} onSelect={setSelectedId} />
+        {selected && (
+          <NodePanel def={def} node={selected} stat={stats?.find((x) => x.node_id === selected.id)} onClose={() => setSelectedId(null)} />
+        )}
+      </div>
       <details>
         <summary>節點清單（文字版，供讀屏與鍵盤瀏覽）</summary>
         <ol>
