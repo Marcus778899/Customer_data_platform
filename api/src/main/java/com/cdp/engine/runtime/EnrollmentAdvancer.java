@@ -11,4 +11,10 @@ public interface EnrollmentAdvancer {
 
     /** wakeSignal 為 null 表示新建立後的首次推進。 */
     EnrollmentState advance(EnrollmentState state, WakeSignal wakeSignal);
+
+    /**
+     * settings.goal／global_exit 命中：轉終態（GOAL_MET／EXITED）、補完軌跡、同交易取消未送出的訊息與計時器。 NESTED，失敗只回滾這一筆。
+     */
+    EnrollmentState terminateBySettings(
+            EnrollmentState state, com.cdp.engine.model.EnrollmentStatus status, String reason);
 }

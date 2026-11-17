@@ -57,4 +57,49 @@ public record NodeResult(
                 evaluated,
                 terminationReason);
     }
+
+    /** ADVANCE 並寫入旅程變數（例：A/B 分組結果）。 */
+    public static NodeResult advanceWithVariables(
+            String outPort,
+            Map<String, Object> variablePatch,
+            String decisionReason,
+            Map<String, Object> evaluated) {
+        return new NodeResult(
+                ResultStatus.ADVANCE,
+                outPort,
+                null,
+                variablePatch,
+                List.of(),
+                decisionReason,
+                evaluated,
+                null);
+    }
+
+    /** ExitNode：Enrollment 轉 EXITED。 */
+    public static NodeResult exit(
+            String terminationReason, String decisionReason, Map<String, Object> evaluated) {
+        return new NodeResult(
+                ResultStatus.EXIT,
+                null,
+                null,
+                null,
+                List.of(),
+                decisionReason,
+                evaluated,
+                terminationReason);
+    }
+
+    /** GoalNode：Enrollment 轉 GOAL_MET。 */
+    public static NodeResult goal(
+            String terminationReason, String decisionReason, Map<String, Object> evaluated) {
+        return new NodeResult(
+                ResultStatus.GOAL,
+                null,
+                null,
+                null,
+                List.of(),
+                decisionReason,
+                evaluated,
+                terminationReason);
+    }
 }

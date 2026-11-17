@@ -13,6 +13,9 @@ import com.cdp.engine.node.JourneyNode;
 @Component
 public class NodeRegistry {
 
+    private static final java.util.Set<String> V1_TYPES =
+            java.util.Set.of("StartNode", "EventSourceNode", "WaitDelayNode", "SendMessageNode", "EndNode");
+
     private final Map<String, JourneyNode> byType;
 
     public NodeRegistry(List<JourneyNode> nodes) {
@@ -28,7 +31,8 @@ public class NodeRegistry {
         return node;
     }
 
+    /** POST /journeys（journey-engine §3.1）只收 v0.1.0 五種；分支節點經草稿流程發佈，不走這條。 */
     public boolean supports(String type) {
-        return type != null && byType.containsKey(type);
+        return type != null && V1_TYPES.contains(type) && byType.containsKey(type);
     }
 }

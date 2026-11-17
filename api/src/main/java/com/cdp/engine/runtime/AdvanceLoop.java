@@ -15,6 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.cdp.delivery.LoopProperties;
 import com.cdp.engine.StateStore;
 import com.cdp.engine.model.EnrollmentState;
+import com.cdp.engine.model.WakeCondition;
 import com.cdp.engine.model.WakeSignal;
 
 /**
@@ -86,7 +87,12 @@ public class AdvanceLoop {
                 continue;
             }
             try {
-                advancer.advance(state, new WakeSignal.TimerFired(now));
+                // 等事件逾時送 Timeout，其餘為計時器到期
+                WakeSignal signal =
+                        state.wakeCondition() instanceof WakeCondition.Event
+                                ? new WakeSignal.Timeout(now)
+                                : new WakeSignal.TimerFired(now);
+                advancer.advance(state, signal);
                 return Boolean.TRUE;
             } catch (RuntimeException e) {
                 failed.add(state.enrollmentId());
