@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -82,7 +83,7 @@ class EventDispatcherTest {
     void entryFilterMismatch_doesNotStart_butReactorStillRuns() {
         arrange(FILTER, Map.of("amount", 100));
         assertThat(dispatcher().runOnce()).isEqualTo(1);
-        verify(runtime, never()).start(anyString(), anyInt(), anyString(), anyString(), any(), anyString());
+        verify(runtime, never()).start(anyString(), anyInt(), anyString(), anyString(), any(), any());
         verify(reactor).react(eq("p1"), eq("ev1"), eq("cart"), eq(NOW), any());
         verify(store).markDispatched("ev1", NOW, "DISPATCHED");
     }
@@ -91,14 +92,14 @@ class EventDispatcherTest {
     void entryFilterMatch_andNoFilter_start() {
         arrange(FILTER, Map.of("amount", 900));
         dispatcher().runOnce();
-        verify(runtime, times(1)).start(eq("j"), eq(1), eq("src_1"), eq("p1"), any(), eq("ev1"));
+        verify(runtime, times(1)).start(eq("j"), eq(1), eq("src_1"), eq("p1"), any(), isNull());
     }
 
     @Test
     void nullFilterAndNullPropertiesMeansNoFilter() {
         arrange(null, null);
         dispatcher().runOnce();
-        verify(runtime).start(eq("j"), eq(1), eq("src_1"), eq("p1"), any(), eq("ev1"));
+        verify(runtime).start(eq("j"), eq(1), eq("src_1"), eq("p1"), any(), isNull());
     }
 
     @Test
@@ -124,7 +125,7 @@ class EventDispatcherTest {
                 .thenReturn(List.of());
         assertThat(dispatcher().runOnce()).isEqualTo(1);
         verify(journeys, never()).findActiveEventSources(anyString());
-        verify(runtime, never()).start(anyString(), anyInt(), anyString(), anyString(), any(), anyString());
+        verify(runtime, never()).start(anyString(), anyInt(), anyString(), anyString(), any(), any());
         verify(reactor).react(eq("p1"), eq("ev1"), eq("cart"), any(), any());
         verify(store).markDispatched("ev1", NOW, "LATE");
     }

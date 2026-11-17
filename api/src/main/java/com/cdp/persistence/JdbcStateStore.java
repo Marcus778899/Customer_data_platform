@@ -27,13 +27,14 @@ import com.cdp.engine.model.EnrollmentTrace;
 import com.cdp.engine.model.TriggerSnapshot;
 import com.cdp.engine.model.WakeCondition;
 import com.cdp.engine.node.Effect;
+import com.cdp.engine.runtime.EngineJourneyRuntime;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /** enrollment_record + node_trace；save 內呼叫 Timer 與 OutboxStore（同一交易）。 */
 @Repository
-public class JdbcStateStore implements StateStore {
+public class JdbcStateStore implements StateStore, EngineJourneyRuntime.ReentryStore {
 
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
     private static final TypeReference<List<DeliveryRecord>> HISTORY = new TypeReference<>() {};
@@ -68,13 +69,13 @@ public class JdbcStateStore implements StateStore {
                 jdbc.sql(
                                 "insert into enrollment_record (enrollment_id, journey_id,"
                                         + " journey_version, profile_id, status, current_node_id,"
-                                        + " trigger_snapshot, dedup_key, variables, delivery_history,"
-                                        + " enrolled_at, updated_at)"
+                                        + " trigger_snapshot, dedup_key, trigger_event_id, variables,"
+                                        + " delivery_history, enrolled_at, updated_at)"
                                         + " values (:id, :journey, :version, :profile, :status,"
-                                        + " :node, cast(:trigger as jsonb), :dedup, cast(:vars as jsonb),"
+                                        + " :node, cast(:trigger as jsonb), :dedup, :triggerEvent,"
+                                        + " cast(:vars as jsonb),"
                                         + " cast(:history as jsonb), :enrolledAt, :updatedAt)"
-                                        + " on conflict (journey_id, profile_id, dedup_key)"
-                                        + " where dedup_key is not null do nothing")
+                                        + " on conflict do nothing")
                         .param("id", s.enrollmentId())
                         .param("journey", s.journeyId())
                         .param("version", s.journeyVersion())
@@ -83,24 +84,70 @@ public class JdbcStateStore implements StateStore {
                         .param("node", s.currentNodeId())
                         .param("trigger", json.writeValueAsString(s.triggerSnapshot()))
                         .param("dedup", s.dedupKey())
+                        .param("triggerEvent", triggerEventId(s))
                         .param("vars", json.writeValueAsString(s.variables()))
                         .param("history", json.writeValueAsString(s.deliveryHistory()))
                         .param("enrolledAt", ts(s.enrolledAt()))
                         .param("updatedAt", ts(s.updatedAt()))
                         .update();
         if (rows == 0) {
+            // 撞 uq_enrollment_trigger（同一事件重送）或 uq_enrollment_dedup（G3）；以資料庫約束為準
             String existing =
                     jdbc.sql(
-                                    "select enrollment_id from enrollment_record where journey_id = :journey and profile_id = :profile"
-                                            + " and dedup_key = :dedup")
+                                    "select enrollment_id from enrollment_record where journey_id = :journey"
+                                            + " and (trigger_event_id = :te"
+                                            + " or (profile_id = :profile and dedup_key = :dedup))"
+                                            + " order by (trigger_event_id = :te) desc nulls last limit 1")
                             .param("journey", s.journeyId())
                             .param("profile", s.profileId())
                             .param("dedup", s.dedupKey())
+                            .param("te", triggerEventId(s))
                             .query(String.class)
-                            .single();
+                            .optional()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "enrollment insert conflict without existing row"));
             throw new DuplicateEnrollmentException(existing);
         }
         return s;
+    }
+
+    private static String triggerEventId(EnrollmentState s) {
+        return s.triggerSnapshot() == null ? null : s.triggerSnapshot().eventId();
+    }
+
+    @Override
+    public void lockProfile(String journeyId, String profileId) {
+        jdbc.sql("select pg_advisory_xact_lock(hashtextextended(:k, 0))")
+                .param("k", journeyId + ":" + profileId)
+                .query((rs, n) -> 1)
+                .single();
+    }
+
+    @Override
+    public Optional<String> findByTriggerEvent(String journeyId, String triggerEventId) {
+        return jdbc.sql(
+                        "select enrollment_id from enrollment_record"
+                                + " where journey_id = :journey and trigger_event_id = :te")
+                .param("journey", journeyId)
+                .param("te", triggerEventId)
+                .query(String.class)
+                .optional();
+    }
+
+    @Override
+    public Optional<String> findCooldownBlocker(String journeyId, String profileId, Instant cutoff) {
+        return jdbc.sql(
+                        "select enrollment_id from enrollment_record"
+                                + " where journey_id = :journey and profile_id = :profile"
+                                + " and (terminated_at is null or terminated_at > :cutoff)"
+                                + " order by enrolled_at desc, enrollment_id desc limit 1")
+                .param("journey", journeyId)
+                .param("profile", profileId)
+                .param("cutoff", ts(cutoff))
+                .query(String.class)
+                .optional();
     }
 
     @Override
