@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cdp.delivery.OutboxStore;
 import com.cdp.engine.StateStore;
 import com.cdp.engine.model.EnrollmentState;
 import com.cdp.engine.model.EnrollmentStatus;
@@ -20,12 +23,16 @@ import com.cdp.engine.model.EnrollmentTrace;
 import com.cdp.engine.model.WakeCondition;
 import com.cdp.engine.model.WakeSignal;
 import com.cdp.engine.node.Effect;
+import com.cdp.engine.node.JourneyNode;
 import com.cdp.engine.node.NodeConfig;
 import com.cdp.engine.node.NodeContext;
 import com.cdp.engine.node.NodeResult;
+import com.cdp.engine.node.condition.ConditionEvaluator;
 import com.cdp.journey.JourneyDefinition;
 import com.cdp.journey.JourneyDefinitionStore;
 import com.cdp.journey.JourneyNodeDefinition;
+import com.cdp.profile.ProfileReadStore;
+import com.cdp.profile.ProfileRecord;
 
 /**
  * 推進迴圈（04 §6）。整個 advance 在同一個交易內（含連續推進的每一步 save）：任何一步失敗整批回滾，狀態、軌跡、outbox
@@ -45,16 +52,22 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
     private final StateStore stateStore;
     private final JourneyDefinitionStore journeys;
     private final NodeRegistry nodes;
+    private final ProfileReadStore profiles;
+    private final OutboxStore outbox;
     private final Clock clock;
 
     public DefaultEnrollmentAdvancer(
             StateStore stateStore,
             JourneyDefinitionStore journeys,
             NodeRegistry nodes,
+            ProfileReadStore profiles,
+            OutboxStore outbox,
             Clock clock) {
         this.stateStore = stateStore;
         this.journeys = journeys;
         this.nodes = nodes;
+        this.profiles = profiles;
+        this.outbox = outbox;
         this.clock = clock;
     }
 
@@ -110,8 +123,32 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
                     now);
         }
 
+        Map<String, Object> attributes = null;
         for (int step = 0; step < MAX_STEPS; step++) {
             JourneyNodeDefinition def = journey.node(current.currentNodeId()).orElse(null);
+            // 步驟 3：global_exit 的 attribute 條件（goal 與 event 條件在事件派發時求值）
+            if (hasAttributeExit(journey.settings())) {
+                if (attributes == null) {
+                    attributes = loadAttributes(current.profileId());
+                }
+                Optional<SettingsEvaluator.Termination> hit =
+                        SettingsEvaluator.evaluateAttributes(
+                                journey.settings(),
+                                ConditionEvaluator.progressResolver(
+                                        attributes,
+                                        current.triggerSnapshot() == null
+                                                ? Map.of()
+                                                : current.triggerSnapshot().properties()));
+                if (hit.isPresent()) {
+                    return endBySettings(
+                            current,
+                            hit.get(),
+                            seq,
+                            def == null ? "Unknown" : def.type(),
+                            enteredAt,
+                            now);
+                }
+            }
             if (def == null) {
                 return terminate(
                         current,
@@ -126,13 +163,28 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
 
             NodeResult result;
             try {
+                JourneyNode impl = nodes.get(def.type());
+                NodeConfig nodeConfig = new NodeConfig(def.config());
+                Set<String> needed = impl.requirements(nodeConfig).profileFields();
+                Map<String, Object> fields = Map.of();
+                if (!needed.isEmpty()) {
+                    if (attributes == null) {
+                        attributes = loadAttributes(current.profileId());
+                    }
+                    fields = new java.util.HashMap<>();
+                    for (String key : needed) {
+                        if (attributes.get(key) != null) {
+                            fields.put(key, attributes.get(key));
+                        }
+                    }
+                }
                 NodeContext context =
                         new NodeContext(
                                 current.enrollmentId(),
                                 current.profileId(),
                                 def.id(),
-                                new NodeConfig(def.config()),
-                                Map.of(),
+                                nodeConfig,
+                                fields,
                                 Map.of(),
                                 Map.of(),
                                 current.deliveryHistory(),
@@ -140,8 +192,9 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
                                 current.variables(),
                                 current.enrolledAt(),
                                 signal,
-                                now);
-                result = nodes.get(def.type()).execute(context);
+                                now,
+                                current.journeyId());
+                result = impl.execute(context);
             } catch (RuntimeException e) {
                 log.error(
                         "node execute failed enrollment_id={} node_id={}",
@@ -281,6 +334,61 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
                 current.currentNodeId(),
                 at == null ? "Unknown" : at.type(),
                 enteredAt,
+                now);
+    }
+
+    private static boolean hasAttributeExit(Map<String, Object> settings) {
+        return settings != null
+                && settings.get("global_exit") instanceof Map<?, ?> g
+                && g.get("conditions") instanceof List<?> l
+                && l.stream().anyMatch(c -> c instanceof Map<?, ?> m && "attribute".equals(m.get("type")));
+    }
+
+    private Map<String, Object> loadAttributes(String profileId) {
+        return profiles.find(profileId).map(ProfileRecord::attributes).orElse(Map.of());
+    }
+
+    /** goal／global_exit 命中：轉終態、補完軌跡、同交易取消未送出的訊息。 */
+    private EnrollmentState endBySettings(
+            EnrollmentState current,
+            SettingsEvaluator.Termination hit,
+            long seq,
+            String nodeType,
+            Instant enteredAt,
+            Instant now) {
+        EnrollmentState ended =
+                terminate(
+                        current,
+                        hit.status(),
+                        hit.reason(),
+                        seq,
+                        current.currentNodeId(),
+                        nodeType,
+                        enteredAt,
+                        now);
+        outbox.cancelPendingByEnrollment(current.enrollmentId());
+        return ended;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NESTED)
+    public EnrollmentState terminateBySettings(
+            EnrollmentState state, EnrollmentStatus status, String reason) {
+        Instant now = clock.instant();
+        EnrollmentTrace open = stateStore.findOpenTrace(state.enrollmentId()).orElse(null);
+        String nodeType =
+                open != null
+                        ? open.nodeType()
+                        : journeys.find(state.journeyId(), state.journeyVersion())
+                                .flatMap(d -> d.node(state.currentNodeId()))
+                                .map(JourneyNodeDefinition::type)
+                                .orElse("Unknown");
+        return endBySettings(
+                state,
+                new SettingsEvaluator.Termination(status, reason),
+                open == null ? APPEND_TRACE : open.seq(),
+                nodeType,
+                open == null ? now : open.enteredAt(),
                 now);
     }
 

@@ -22,4 +22,38 @@ public record NodeContext(
         Map<String, Object> variables,
         Instant enrolledAt,
         WakeSignal wakeSignal,
-        Instant now) {}
+        Instant now,
+        String journeyId) {
+
+    /** 沿用的 13 欄建構式（journeyId 為 null）。 */
+    public NodeContext(
+            String enrollmentId,
+            String profileId,
+            String nodeId,
+            NodeConfig config,
+            Map<String, Object> profileFields,
+            Map<String, Boolean> segmentMemberships,
+            Map<String, Object> behaviorResults,
+            List<DeliveryRecord> deliveryHistory,
+            TriggerSnapshot trigger,
+            Map<String, Object> variables,
+            Instant enrolledAt,
+            WakeSignal wakeSignal,
+            Instant now) {
+        this(
+                enrollmentId,
+                profileId,
+                nodeId,
+                config,
+                profileFields,
+                segmentMemberships,
+                behaviorResults,
+                deliveryHistory,
+                trigger,
+                variables,
+                enrolledAt,
+                wakeSignal,
+                now,
+                null);
+    }
+}

@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -17,8 +18,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.cdp.delivery.LoopProperties;
 import com.cdp.engine.JourneyRuntime;
 import com.cdp.engine.model.TriggerSnapshot;
+import com.cdp.engine.node.condition.ConditionEvaluator;
 import com.cdp.engine.runtime.EngineProperties;
+import com.cdp.engine.runtime.EventReactor;
 import com.cdp.journey.EventSourceBinding;
+import com.cdp.journey.JourneyDefinition;
 import com.cdp.journey.JourneyDefinitionStore;
 
 /**
@@ -44,7 +48,9 @@ public class EventDispatcher {
     private final LoopProperties loop;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final EventReactor reactor;
 
+    /** 沿用的建構式（不含事件反應；單元測試用）。 */
     public EventDispatcher(
             EventStore events,
             JourneyDefinitionStore journeys,
@@ -54,6 +60,20 @@ public class EventDispatcher {
             LoopProperties loop,
             TransactionTemplate tx,
             Clock clock) {
+        this(events, journeys, runtime, properties, dispatchProperties, loop, tx, clock, null);
+    }
+
+    @Autowired
+    public EventDispatcher(
+            EventStore events,
+            JourneyDefinitionStore journeys,
+            JourneyRuntime runtime,
+            EngineProperties properties,
+            DispatchProperties dispatchProperties,
+            LoopProperties loop,
+            TransactionTemplate tx,
+            Clock clock,
+            EventReactor reactor) {
         this.events = events;
         this.journeys = journeys;
         this.runtime = runtime;
@@ -62,6 +82,7 @@ public class EventDispatcher {
         this.loop = loop;
         this.tx = tx;
         this.clock = clock;
+        this.reactor = reactor;
     }
 
     @Scheduled(fixedDelayString = "${cdp.engine.poll-interval}")
@@ -155,13 +176,15 @@ public class EventDispatcher {
                 > 0;
     }
 
-    /** 回傳 null 表示全部綁定成功（或無綁定）；否則為第一個失敗。 */
+    /** 回傳 null 表示全部成功（或無綁定）；否則為第一個失敗。先建立新的 Enrollment，再讓等待中的旅程反應。 */
     private RuntimeException dispatch(NormalizedEvent event) {
-        List<EventSourceBinding> bindings =
-                journeys.findActiveEventSources(event.name());
+        List<EventSourceBinding> bindings = journeys.findActiveEventSources(event.name());
         RuntimeException first = null;
         for (EventSourceBinding binding : bindings) {
             try {
+                if (!passesEntryFilter(binding, event)) {
+                    continue;
+                }
                 runtime.start(
                         binding.journeyId(),
                         binding.version(),
@@ -180,7 +203,35 @@ public class EventDispatcher {
                         e);
             }
         }
+        if (reactor != null) {
+            RuntimeException reaction =
+                    reactor.react(
+                            event.identity().profileId(),
+                            event.eventId(),
+                            event.name(),
+                            event.occurredAt(),
+                            event.properties() == null ? Map.of() : event.properties());
+            if (first == null) {
+                first = reaction;
+            }
+        }
         return first;
+    }
+
+    /** 入口 event_filter（D-085）：不符合就不建旅程進度。沒有篩選時不讀定義。 */
+    private boolean passesEntryFilter(EventSourceBinding binding, NormalizedEvent event) {
+        JourneyDefinition definition =
+                journeys.find(binding.journeyId(), binding.version()).orElse(null);
+        if (definition == null) {
+            return true;
+        }
+        Object filter =
+                definition
+                        .node(binding.sourceNodeId())
+                        .map(n -> n.config() == null ? null : n.config().get("event_filter"))
+                        .orElse(null);
+        return ConditionEvaluator.eventMatches(
+                filter, event.properties() == null ? Map.of() : event.properties());
     }
 
     private static TriggerSnapshot snapshot(NormalizedEvent event) {

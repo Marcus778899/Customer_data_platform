@@ -114,6 +114,28 @@ public class JdbcStateStore implements StateStore {
     }
 
     @Override
+    public Optional<EnrollmentState> lockById(String enrollmentId) {
+        return jdbc.sql(
+                        "select " + ENROLLMENT_COLUMNS + " from enrollment_record"
+                                + " where enrollment_id = :id for update")
+                .param("id", enrollmentId)
+                .query((rs, n) -> map(rs))
+                .optional();
+    }
+
+    @Override
+    public List<EnrollmentState> findOpenByProfile(String profileId) {
+        return jdbc.sql(
+                        "select " + ENROLLMENT_COLUMNS + " from enrollment_record"
+                                + " where profile_id = :profile"
+                                + " and status in ('PENDING', 'ACTIVE', 'WAITING', 'SUSPENDED')"
+                                + " order by enrolled_at, enrollment_id")
+                .param("profile", profileId)
+                .query((rs, n) -> map(rs))
+                .list();
+    }
+
+    @Override
     public List<EnrollmentState> lockDue(Instant now, int limit) {
         return jdbc.sql(LOCK_DUE_SQL)
                 .param("now", ts(now))

@@ -25,4 +25,10 @@ public interface StateStore {
 
     /** effects 的 idempotencyKey 須已由引擎蓋章；不寫 delivery_history 欄位（由 consumer 追加）。 */
     void save(EnrollmentState state, EnrollmentTrace trace, List<Effect> effects);
+
+    /** 鎖一筆（FOR UPDATE），事件派發在處理前先鎖，避免與計時器喚醒互搶。 */
+    Optional<EnrollmentState> lockById(String enrollmentId);
+
+    /** 該客戶尚未結束（非終態）的 Enrollment，依 enrolled_at。 */
+    List<EnrollmentState> findOpenByProfile(String profileId);
 }
