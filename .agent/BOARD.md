@@ -107,6 +107,7 @@
 | 2026-11-07 | D-085 | v0.3.0 | 場景一保留金額 > 500 篩選，v0.3.0 支援 event_filter |
 | 2026-11-08 | D-086 | v0.3.0 | ux-fix-customer-list 作廢，#144 等五項重開 full 單 ux-fix-customer-pages |
 | 2026-11-12 | D-087 | v0.3.0 | 「等事件」節點也能設事件篩選（擴及 WaitForEventNode） |
+| 2026-11-17 | D-088 | v0.3.0 | ux-polish-web 派工單誤判行由甲方手動刪除，續做 |
 
 ## 任務狀態
 
@@ -132,7 +133,7 @@
 | event-filter-canvas-ui | frontend | done | 0 | PR #229 |
 | journey-draft-review-scope-api | backend | done | 0 | PR #231 |
 | trace-branch-ui | frontend | done | 0 | PR #232 |
-| ux-polish-web | frontend | blocked | 0 |  |
+| ux-polish-web | frontend | in-progress | 0 |  |
 | enrollment-reentry-engine | backend | in-progress | 1 |  |
 
 ## 卡住／待甲方決定
@@ -146,12 +147,10 @@
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 - 待辦（下一張 architect 設計單）：spec 07 §12「V9」讀取列「行為同 V8」改成「只略過時間過濾，金鑰紀錄照樣不算」（draft-review-scope review）
 - 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
-- 待甲方決定 D-088：ux-polish-web 派工單最後一行被 ae 誤判成驗收路徑，lock 失敗
 - 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
 - 待辦（下一張 architect 設計單）：spec 02 §3、DESIGN-03 #8「進入任何終態都取消未送出訊息」改成限定中途結束的終態（goal、global_exit、停止）
 - 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
 - 待辦（下一張 architect 設計單）：spec 02 §5 補「快照截斷後仍超過 64KB 時事件的處置」（目前實作丟例外→重試→EXHAUSTED，spec 只寫拒絕建立並告警），定了再補驗收
-- 甲方 2026-11-17 要求全部暫停：enrollment-reentry-engine 待重派 qa B（PR #236 @ 55d6b5c）；ux-polish-web 待甲方刪派工單第 54 行（D-088）
 
 ## 注意事項（踩過的坑）
 
