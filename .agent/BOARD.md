@@ -134,9 +134,10 @@
 | event-filter-canvas-ui | frontend | done | 0 | PR #229 |
 | journey-draft-review-scope-api | backend | done | 0 | PR #231 |
 | trace-branch-ui | frontend | done | 0 | PR #232 |
-| ux-polish-web | frontend | in-progress | 0 |  |
+| ux-polish-web | frontend | done | 0 | PR #237 |
 | enrollment-reentry-engine | backend | done | 1 | PR #236 |
 | deps-picomatch-fix | architect | blocked | 0 |  |
+| osv-ignore-picomatch | architect | done | 0 | PR #242 |
 
 ## 卡住／待甲方決定
 
@@ -155,6 +156,7 @@
 - 待辦（下一張 architect 設計單）：spec 02 §5 補「快照截斷後仍超過 64KB 時事件的處置」（目前實作丟例外→重試→EXHAUSTED，spec 只寫拒絕建立並告警），定了再補驗收
 - 待辦（下一張 architect 設計單）：spec 02 §5 補白名單讀法與 _total_count；冷卻期上限（過長會令 cutoff 溢位而重試到 EXHAUSTED）與 advisory lock 死鎖風險，見 enrollment-reentry-engine.review.md
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
+- 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 
 ## 注意事項（踩過的坑）
 
