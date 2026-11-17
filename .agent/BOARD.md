@@ -108,6 +108,7 @@
 | 2026-11-08 | D-086 | v0.3.0 | ux-fix-customer-list 作廢，#144 等五項重開 full 單 ux-fix-customer-pages |
 | 2026-11-12 | D-087 | v0.3.0 | 「等事件」節點也能設事件篩選（擴及 WaitForEventNode） |
 | 2026-11-17 | D-088 | v0.3.0 | ux-polish-web 派工單誤判行由甲方手動刪除，續做 |
+| 2026-11-17 | D-089 | v0.3.0 | picomatch 漏洞先忽略單條（附到期日）；發版前須升修正版並移除忽略，否則延後發版 |
 
 ## 任務狀態
 
@@ -153,7 +154,6 @@
 - 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
 - 待辦（下一張 architect 設計單）：spec 02 §5 補「快照截斷後仍超過 64KB 時事件的處置」（目前實作丟例外→重試→EXHAUSTED，spec 只寫拒絕建立並告警），定了再補驗收
 - 待辦（下一張 architect 設計單）：spec 02 §5 補白名單讀法與 _total_count；冷卻期上限（過長會令 cutoff 溢位而重試到 EXHAUSTED）與 advisory lock 死鎖風險，見 enrollment-reentry-engine.review.md
-- 待甲方決定 D-089：picomatch High 漏洞無修正版，是否暫時忽略該條（所有 PR Security 全紅；ux-polish-web qa/review 已過，等 CI 綠合併）
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
 
 ## 注意事項（踩過的坑）
