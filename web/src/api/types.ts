@@ -29,6 +29,9 @@ export interface EnrollmentSummary {
   enrolled_at: string
   updated_at: string
   terminated_at: string | null
+  /** journey-engine.md §4.1；舊回應可能沒有 */
+  profile_name?: string | null
+  profile_identifier?: { type: string; value: string; masked: boolean } | null
 }
 
 export interface WakeCondition {

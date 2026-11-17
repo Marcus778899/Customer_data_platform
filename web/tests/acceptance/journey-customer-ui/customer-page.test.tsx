@@ -33,17 +33,20 @@ async function openCustomer(routes: Parameters<typeof backend>[0] = {}) {
   await userEvent.click(screen.getByRole('button', { name: '搜尋' }))
   return api
 }
-const h1 = () => screen.findByRole('heading', { level: 1 })
+const h1 = () => screen.findByRole('heading', { level: 1, name: (n) => n !== '載入中…' })
+/** D-080、設計稿 ux-customer：完整客戶 ID 收進「進階資訊」（原生 details） */
+const idInAdvanced = () =>
+  [...document.querySelectorAll('details')].some((d) => /進階資訊/.test(d.querySelector('summary')?.textContent ?? '') && (d.textContent ?? '').includes(PID))
 const section = async (name: string) => (await screen.findByRole('heading', { name })).closest('section, div.card, div') as HTMLElement
 
 describe('客戶頁：基本資料', () => {
-  it('左：客戶 ID（完整值＋複製鈕）、建立／最近更新／資料時間（本地時區）、識別碼表、客戶屬性；標題為客戶 ID（沒有 name）', async () => {
+  it('左：客戶 ID（完整值＋複製鈕）、建立／最近更新／資料時間（本地時區）、識別碼表、客戶屬性；標題為第一個識別碼（沒有 name，ux-polish-web #187）', async () => {
     await openCustomer()
     const title = await h1()
-    expect(title.textContent).toMatch(/^客戶/)
-    expect(title.textContent).toContain('…') // 長 ID 只顯示頭尾
+    expect(title.textContent).toBe('a***@example.com') // identifiers[0]（後端已遮罩）；不再用「客戶 ＋ 縮短 ID」
     await screen.findByRole('heading', { name: '基本資料' })
     expect(bodyText()).toContain(PID) // 完整值在客戶頁
+    expect(idInAdvanced()).toBe(true) // 收進「進階資訊」
     expect(screen.getByRole('button', { name: '複製客戶 ID' })).toBeTruthy()
     const text = bodyText()
     expect(text).toContain('2026-05-03 11:20') // created_at 2026-05-03T03:20:00Z
@@ -60,7 +63,7 @@ describe('客戶頁：基本資料', () => {
     await waitFor(() => expect(document.activeElement).toBe(title))
   })
 
-  it('標題規則：name 存在且未遮罩 → 用姓名（客戶 ID 移到副標）', async () => {
+  it('標題規則：name 存在且未遮罩 → 用姓名（客戶 ID 不在標題區，收進進階資訊）', async () => {
     await openCustomer({
       [`GET /api/v1/profiles/${PID}`]: () =>
         json(profileDetail({ attributes: { name: '陳大華', tier: 'regular' }, masked_paths: ['identifiers[0].value'] })),
@@ -68,18 +71,19 @@ describe('客戶頁：基本資料', () => {
     const title = await h1()
     await waitFor(() => expect(title.textContent).toContain('陳大華'))
     expect(title.textContent).not.toContain('…')
+    expect(title.closest('.pagehead')?.textContent ?? '').not.toContain(PID.slice(-6))
     expect(bodyText()).toContain(PID)
+    expect(idInAdvanced()).toBe(true)
   })
 
-  it('標題規則：name 在 masked_paths（值為 ***）→ 用客戶 ID，不以 *** 當標題', async () => {
+  it('標題規則：name 在 masked_paths（值為 ***）→ 退回第一個識別碼，不以 *** 當標題', async () => {
     await openCustomer({
       [`GET /api/v1/profiles/${PID}`]: () =>
         json(profileDetail({ attributes: { name: '***', tier: 'regular' }, masked_paths: ['attributes.name'] })),
     })
     const title = await h1()
     await screen.findByRole('heading', { name: '基本資料' })
-    expect(title.textContent).toMatch(/^客戶/)
-    expect(title.textContent).not.toContain('*')
+    expect(title.textContent).toBe('a***@example.com')
   })
 
   it('遮罩只依後端標記：masked_paths／masked 的值顯示「已遮罩」徽章；未標記的 *** 原樣顯示、無徽章；遮罩值無複製鈕', async () => {

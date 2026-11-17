@@ -14,7 +14,6 @@ import { JourneyPage } from './pages/JourneyPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PasswordPage } from './pages/PasswordPage'
-import { SearchPage } from './pages/SearchPage'
 import { TracePage } from './pages/TracePage'
 import { NewDraftPage } from './canvas/NewDraftPage'
 import { JourneyEditorPage } from './pages/JourneyEditorPage'
@@ -118,6 +117,10 @@ export function App() {
   useEffect(() => {
     if (auth.status === 'out' && pathname !== '/login') {
       navigate(`/login?next=${encodeURIComponent(pathname + search)}`, { replace: true })
+    } else if (auth.status === 'in' && pathname === '/' && new URLSearchParams(search).has('q')) {
+      // 舊軌跡查詢頁網址 /?q=… 導向「客戶」搜尋，保留 q
+      const q = new URLSearchParams(search).get('q') ?? ''
+      navigate(`/customers?q=${encodeURIComponent(q)}`, { replace: true })
     } else if (auth.status === 'in' && pathname === '/login') {
       navigate(safeNext(search), { replace: true })
     }
@@ -180,7 +183,8 @@ export function App() {
   const here = pathname + search
   let page
   if (forbiddenAt === here) page = <ForbiddenPage />
-  else if (pathname === '/') page = <SearchPage loc={loc} />
+  else if (pathname === '/' && new URLSearchParams(search).has('q')) page = null
+  else if (pathname === '/') page = <JourneyListPage loc={loc} />
   else if (pathname === '/journeys') page = <JourneyListPage loc={loc} />
   else if (pathname === '/journeys/new') page = <NewDraftPage />
   else if (reviewRoute) page = <ReviewPage id={decodeURIComponent(reviewRoute[1])} />

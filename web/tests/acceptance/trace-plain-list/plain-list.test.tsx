@@ -132,37 +132,18 @@ describe('旅程進度列表（瀏覽頁 /enrollments）', () => {
   })
 })
 
-describe('旅程進度查詢頁（/）', () => {
-  it('頁名「旅程進度」、查詢框標「客戶 ID 或進度編號」、提示與瀏覽連結不出現 Enrollment', async () => {
+describe('旅程進度列表的空結果與篩選（舊查詢頁 / 已改為旅程列表，ux-polish-web）', () => {
+  it('舊查詢頁網址 /?q= 不再有「客戶 ID 或進度編號」查詢框，也不出現 Enrollment 字樣', async () => {
     backend(routes())
-    start('/')
-    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('旅程進度')
-    expect(screen.getByLabelText('客戶 ID 或進度編號')).toBeTruthy()
-    expect(screen.queryByLabelText(/Enrollment/)).toBeNull()
-    expect(bodyText()).toContain('輸入客戶 ID 或進度編號開始查詢')
+    start('/?q=zzz')
+    await screen.findByRole('heading', { level: 1, name: '客戶' })
+    expect(screen.queryByLabelText('客戶 ID 或進度編號')).toBeNull()
     expect(bodyText()).not.toMatch(/enrollment/i)
-  })
-
-  it('查詢結果：欄位照規格、白話狀態與步驟、不顯示 ID 與節點型別；請求仍帶 q', async () => {
-    const api = backend(routes())
-    start('/')
-    await userEvent.type(await screen.findByLabelText('客戶 ID 或進度編號'), `${LONG_PID}{Enter}`)
-    const table = await screen.findByRole('table')
-    expect(api.calls.some((c) => c.path === ENR && new URLSearchParams(c.search).get('q') === LONG_PID)).toBe(true)
-    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim())).toEqual(HEADERS)
-    const r = dataRows(table)
-    expect(r[0].textContent).toContain('等待中')
-    expect(r[0].textContent).toContain('等 3 天')
-    expect(r[1].textContent).toContain('已走完')
-    expect(r[2].textContent).toContain('發送訊息：提醒結帳')
-    const text = bodyText()
-    noTech(text)
-    expect(text).not.toContain(EID)
   })
 
   it('查無資料說明與狀態選項用白話（不附英文代碼），沒有 Enrollment 字樣', async () => {
     backend({ ...routes(), [`GET ${ENR}`]: () => json(page([])) })
-    start('/?q=zzz')
+    start(ROUTES.browse)
     await waitFor(() => expect(bodyText()).toContain('找不到'))
     expect(optionLabels(screen.getByLabelText('狀態')).some((l) => /[A-Z]{4,}/.test(l))).toBe(false)
     expect(bodyText()).not.toMatch(/enrollment/i)

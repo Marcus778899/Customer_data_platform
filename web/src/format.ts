@@ -66,6 +66,18 @@ const IDENTIFIER_LABEL: Record<string, string> = {
 /** 未知的識別碼類型顯示原值（DESIGN-04 §5） */
 export const identifierLabel = (type: string) => IDENTIFIER_LABEL[type] ?? type
 
+export const UNNAMED_CUSTOMER = '未具名客戶'
+
+/** 客戶標示全站同一規則：姓名 → 第一個識別碼（後端已遮罩）→「未具名客戶」；不顯示 ID（D-080） */
+export function customerLabel(
+  name?: string | null,
+  identifier?: { value: string } | null,
+): string {
+  if (name) return name
+  if (identifier?.value) return identifier.value
+  return UNNAMED_CUSTOMER
+}
+
 /** 長 ID 只顯示頭尾，完整值放 title 或客戶頁 */
 export function shortId(id: string): string {
   return id.length > 14 ? `${id.slice(0, 4)}…${id.slice(-6)}` : id

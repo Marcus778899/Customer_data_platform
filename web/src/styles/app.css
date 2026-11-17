@@ -462,3 +462,6 @@ textarea { font: inherit; padding: var(--space-2) var(--space-3); border: 1px so
   .undo { flex-wrap: wrap; }
   .canvas-wrap { height: clamp(300px, 52vh, 480px); }
 }
+
+/* 列表客戶欄第二行（ux-polish-web #180） */
+.cust-sub { display: block; color: var(--color-text-muted); font-size: var(--text-sm); }
