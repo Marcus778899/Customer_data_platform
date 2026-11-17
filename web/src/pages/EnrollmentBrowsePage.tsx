@@ -12,7 +12,7 @@ import { useFetch } from '../useFetch'
 
 const STATUSES = Object.keys(ENROLLMENT_STATUS) as (keyof typeof ENROLLMENT_STATUS)[]
 
-/** 旅程進度瀏覽（D-030）：不收 q，可依狀態、旅程篩選；精確查詢走 `/` */
+/** 旅程進度瀏覽（D-030）：不收 q，可依狀態、旅程篩選；查特定客戶走 `/customers` */
 export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
   const params = new URLSearchParams(loc.search)
   const status = params.get('status') ?? ''
@@ -42,9 +42,9 @@ export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
       <div className="pagehead">
         <div>
           <h1>旅程進度</h1>
-          <p className="muted">最近加入旅程的客戶，新到舊。要查特定客戶，請用精確查詢。</p>
+          <p className="muted">最近加入旅程的客戶，新到舊。要查特定客戶，請到「客戶」搜尋。</p>
         </div>
-        <AppLink to="/">用客戶 ID 查詢</AppLink>
+        <AppLink to="/customers">搜尋客戶</AppLink>
       </div>
       <FilterForm
         key={loc.search}
