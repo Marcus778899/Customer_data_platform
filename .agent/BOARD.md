@@ -133,6 +133,7 @@
 | journey-draft-review-scope-api | backend | done | 0 | PR #231 |
 | trace-branch-ui | frontend | done | 0 | PR #232 |
 | ux-polish-web | frontend | blocked | 0 |  |
+| enrollment-reentry-engine | backend | in-progress | 1 |  |
 
 ## 卡住／待甲方決定
 
@@ -149,6 +150,8 @@
 - 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
 - 待辦（下一張 architect 設計單）：spec 02 §3、DESIGN-03 #8「進入任何終態都取消未送出訊息」改成限定中途結束的終態（goal、global_exit、停止）
 - 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
+- 待辦（下一張 architect 設計單）：spec 02 §5 補「快照截斷後仍超過 64KB 時事件的處置」（目前實作丟例外→重試→EXHAUSTED，spec 只寫拒絕建立並告警），定了再補驗收
+- 甲方 2026-11-17 要求全部暫停：enrollment-reentry-engine 待重派 qa B（PR #236 @ 55d6b5c）；ux-polish-web 待甲方刪派工單第 54 行（D-088）
 
 ## 注意事項（踩過的坑）
 
