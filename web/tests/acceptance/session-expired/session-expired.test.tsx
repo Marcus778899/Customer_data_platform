@@ -91,11 +91,10 @@ const storageDump = () => {
 }
 const text = () => document.body.textContent ?? ''
 
-/** 已登入進站並查詢，之後 session 失效，再按查詢 → 401 導回登入頁 */
+/** 已登入進旅程進度列表（/enrollments；舊的 /?q= 查詢頁已導向客戶搜尋），之後 session 失效，再按查詢 → 401 導回登入頁 */
 async function expireSession(state: State) {
   const user = userEvent.setup()
-  start('/')
-  await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
+  start('/enrollments')
   await screen.findByRole('table')
   state.list = false
   state.me = false
@@ -125,7 +124,7 @@ describe('session 逾時提示', () => {
     expect(text()).not.toContain(BAD_CRED)
   })
 
-  it('登入成功後回原頁並保留 ?q=，且不再顯示逾時提示', async () => {
+  it('登入成功後回原頁（/enrollments），且不再顯示逾時提示', async () => {
     const state = { me: true, list: true, loginOk: true }
     install(state)
     const user = await expireSession(state)
@@ -133,8 +132,7 @@ describe('session 逾時提示', () => {
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
-    expect(window.location.pathname).toBe('/')
-    expect(window.location.search).toContain(`q=${PID}`)
+    expect(window.location.pathname).toBe('/enrollments')
     expect(text()).not.toContain(EXPIRED)
   })
 
@@ -145,8 +143,7 @@ describe('session 逾時提示', () => {
       [`GET /api/v1/enrollments/${EID}`]: () => (detailOk ? json(detail()) : problem(401, 'UNAUTHENTICATED')),
     })
     const user = userEvent.setup()
-    start('/')
-    await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
+    start('/enrollments')
     await screen.findByRole('table')
     detailOk = false
     state.me = false
@@ -235,7 +232,7 @@ describe('逾時提示與登入錯誤訊息互斥', () => {
     expect(text()).not.toContain(EXPIRED)
   })
 
-  it('逾時 → 錯誤密碼 → 再以正確密碼登入，回原頁含 ?q=', async () => {
+  it('逾時 → 錯誤密碼 → 再以正確密碼登入，回原頁（/enrollments）', async () => {
     const state = { me: true, list: true, loginOk: false }
     install(state)
     const user = await expireSession(state)
@@ -247,7 +244,7 @@ describe('逾時提示與登入錯誤訊息互斥', () => {
     await user.type(screen.getByLabelText('密碼'), 'right')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
-    expect(window.location.search).toContain(`q=${PID}`)
+    expect(window.location.pathname).toBe('/enrollments')
     expect(text()).not.toContain(BAD_CRED)
     expect(text()).not.toContain(EXPIRED)
   })
@@ -270,11 +267,11 @@ describe('重新載入後的逾時提示（追加 1）', () => {
   const PW = 'S3cretPw!x'
   const COOKIE = 'SESSIONCOOKIEVALUE98765'
 
-  it('已登入（/me 200）後重新載入，/me 401 → 顯示逾時提示；登入後回原頁含 ?q=', async () => {
+  it('已登入（/me 200）後重新載入，/me 401 → 顯示逾時提示；登入後回原頁（/enrollments）', async () => {
     const state = { me: true, list: true, loginOk: true }
     install(state)
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await screen.findByRole('table')
     state.me = false
     state.list = false
@@ -287,8 +284,7 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     await user.type(screen.getByLabelText('密碼'), PW)
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
-    expect(window.location.pathname).toBe('/')
-    expect(window.location.search).toContain(`q=${PID}`)
+    expect(window.location.pathname).toBe('/enrollments')
     expect(text()).not.toContain(EXPIRED)
   })
 
@@ -383,7 +379,7 @@ describe('重新載入後的逾時提示（追加 1）', () => {
     const state = { me: true, list: true, loginOk: true }
     install(state)
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await screen.findByRole('table')
     state.me = false
     state.list = false

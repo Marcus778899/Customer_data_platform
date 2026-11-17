@@ -40,6 +40,8 @@ describe('最近的旅程進度瀏覽', () => {
       .toEqual(['客戶', '旅程', '狀態', '目前在哪一步', '下一步'])
     const r = within(table).getAllByRole('row').slice(1)
     expect(r).toHaveLength(2)
+    expect(r[0].textContent).toContain('陳雅婷') // 客戶欄＝profile_name（#180，不再是「查看客戶」）
+    expect(r[0].textContent).not.toContain('查看客戶')
     expect(r[0].textContent).toContain('棄單挽回')
     expect(r[0].textContent).toContain('等待中')
     expect(r[0].textContent).toContain('等 3 天')

@@ -102,7 +102,7 @@ describe('不載入 mock，打真實端點', () => {
       [`GET /api/v1/enrollments/${EID}/deliveries`]: () => json({ items: [delivery(2)], next_cursor: null }),
     })
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await user.click(within(await screen.findByRole('table')).getAllByRole('link').find((a) => (a.getAttribute('href') ?? '').endsWith(`/enrollments/${EID}`))!)
     await user.click(await screen.findByRole('button', { name: '載入更早紀錄' }))
     await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)) // 表頭 + 2 筆（白話改版不再顯示模板 ID）
@@ -152,7 +152,7 @@ describe('登入、401、登出、頁首', () => {
     expect(document.body.textContent).toContain('已登入：陳客服')
   })
 
-  it('列表查詢中 session 過期（401）導回 /login，登入後回原頁含 ?q=', async () => {
+  it('旅程進度列表重新查詢時 session 過期（401）導回 /login，登入後回原頁（/enrollments）', async () => {
     let loggedIn = true
     install({
       'GET /api/v1/auth/me': () => (loggedIn ? json(AMY) : problem(401, 'UNAUTHENTICATED')),
@@ -164,8 +164,7 @@ describe('登入、401、登出、頁首', () => {
       },
     })
     const user = userEvent.setup()
-    start('/')
-    await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
+    start('/enrollments')
     await screen.findByRole('table')
     loggedIn = false // 後端重啟或逾時
     await user.click(screen.getByRole('button', { name: '查詢' }))
@@ -174,8 +173,7 @@ describe('登入、401、登出、頁首', () => {
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
     await screen.findByRole('table')
-    expect(window.location.pathname).toBe('/')
-    expect(window.location.search).toContain(`q=${PID}`)
+    expect(window.location.pathname).toBe('/enrollments')
   })
 
   it('詳情頁載入更早紀錄時 401：導回登入，登入後回該詳情頁', async () => {
@@ -228,8 +226,8 @@ describe('登入、401、登出、頁首', () => {
     await user.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
-    await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/)
-    expect(window.location.pathname).toBe('/')
+    await screen.findByRole('heading', { level: 1, name: '旅程' })
+    expect(window.location.pathname).toMatch(/^\/(journeys)?$/)
   })
 })
 
@@ -243,7 +241,7 @@ describe('403 與其他錯誤', () => {
 
   it('列表 403：顯示「沒有權限」，無重試按鈕', async () => {
     install({ 'GET /api/v1/enrollments': () => problem(403, 'FORBIDDEN', 'REQ-403') })
-    start(`/?q=${PID}`)
+    start('/enrollments')
     noRetry(await screen.findByRole('alert'))
   })
 
@@ -267,9 +265,9 @@ describe('403 與其他錯誤', () => {
 
   it('403 不導回登入', async () => {
     install({ 'GET /api/v1/enrollments': () => problem(403, 'FORBIDDEN') })
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await screen.findByRole('alert')
-    expect(window.location.pathname).toBe('/')
+    expect(window.location.pathname).toBe('/enrollments')
   })
 
   it('500 顯示 request_id 與重試；非 403 不顯示「沒有權限」', async () => {
@@ -296,7 +294,7 @@ describe('403 與其他錯誤', () => {
     install({
       'GET /api/v1/enrollments': () => new Response('bad gateway', { status: 502, headers: { 'X-Request-Id': 'REQ-HDR-502' } }),
     })
-    start(`/?q=${PID}`)
+    start('/enrollments')
     expect((await screen.findByRole('alert')).textContent).toContain('REQ-HDR-502')
   })
 

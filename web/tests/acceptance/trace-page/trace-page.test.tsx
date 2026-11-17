@@ -132,12 +132,9 @@ describe('登入頁', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('REQ-LOGIN-500'))
   })
 
-  it('任何 API 回 401（查詢列表時）導回 /login', async () => {
+  it('任何 API 回 401（載入旅程進度列表時）導回 /login', async () => {
     setup({ 'GET /api/v1/enrollments': () => problem(401, 'UNAUTHENTICATED') })
-    const user = userEvent.setup()
-    start('/')
-    await user.type(await screen.findByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), PID)
-    await user.click(screen.getByRole('button', { name: '查詢' }))
+    start('/enrollments')
     await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
   })
@@ -157,17 +154,13 @@ describe('登入頁', () => {
 describe('查詢列表', () => {
   const listRoute = (items: unknown[], next: string | null = null): Handler => () => json({ items, next_cursor: next })
 
-  it('初始顯示提示；Enter 送出帶 q 查詢並同步網址 ?q=，列表含旅程名、狀態文字、連結', async () => {
+  it('進旅程進度列表（/enrollments）：不帶 q 直接載入，列表含旅程名、狀態文字、連結', async () => {
     setup({ 'GET /api/v1/enrollments': listRoute([summary(), summary({ enrollment_id: 'E2', status: 'COMPLETED', terminated_at: '2026-10-19T00:00:00Z' })]) })
-    const user = userEvent.setup()
-    start('/')
-    expect(await screen.findByText(/輸入客戶 ID 或\s?(Enrollment ID|進度編號)\s?開始查詢/)).toBeTruthy()
-    await user.type(screen.getByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/), `${PID}{Enter}`)
+    start('/enrollments')
     const table = await screen.findByRole('table')
     expect(table.querySelector('caption')).toBeTruthy()
     expect(table.querySelectorAll('th[scope="col"]').length).toBeGreaterThan(0)
-    expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('q')).toBe(PID)
-    expect(window.location.search).toContain(`q=${PID}`)
+    expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('q')).toBeNull()
     expect(detailLink(table)).toBeTruthy()
     for (const r of within(table).getAllByRole('row').slice(1)) expect(within(r).getAllByRole('link').some((a) => /\/enrollments\/[^/]+$/.test(a.getAttribute('href') ?? ''))).toBe(true)
     expect(table.textContent).toContain('棄單挽回')
@@ -175,12 +168,11 @@ describe('查詢列表', () => {
     expect(table.textContent).toContain('已走完')
   })
 
-  it('網址帶 ?q= 直接查詢；狀態篩選帶 status 參數', async () => {
+  it('狀態篩選帶 status 參數', async () => {
     setup({ 'GET /api/v1/enrollments': listRoute([summary()]) })
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await screen.findByRole('table')
-    expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('q')).toBe(PID)
     await user.selectOptions(screen.getByLabelText('狀態'), screen.getByRole('option', { name: '等待中' }))
     await user.click(screen.getByRole('button', { name: '查詢' }))
     await waitFor(() => expect(lastCall('GET', '/api/v1/enrollments')!.url.searchParams.get('status')).toBe('WAITING'))
@@ -188,9 +180,8 @@ describe('查詢列表', () => {
 
   it('查無（items: []）顯示說明，不是錯誤', async () => {
     setup({ 'GET /api/v1/enrollments': listRoute([]) })
-    start('/?q=UNKNOWN1')
-    await screen.findByText(/找不到「UNKNOWN1」的任何旅程紀錄/)
-    expect(screen.getByText(/可能原因/)).toBeTruthy()
+    start('/enrollments')
+    await screen.findByText(/找不到符合條件的旅程進度/)
     expect(screen.queryByRole('table')).toBeNull()
   })
 
@@ -198,7 +189,7 @@ describe('查詢列表', () => {
     let n = 0
     setup({ 'GET /api/v1/enrollments': () => (++n === 1 ? problem(503, 'SERVICE_UNAVAILABLE', 'REQ-LIST-1') : json({ items: [summary()], next_cursor: null })) })
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('REQ-LIST-1')
     await user.click(within(alert).getByRole('button', { name: '重試' }))
@@ -208,7 +199,7 @@ describe('查詢列表', () => {
 
   it('400 也顯示錯誤與 request_id', async () => {
     setup({ 'GET /api/v1/enrollments': () => problem(400, 'VALIDATION_FAILED', 'REQ-400') })
-    start('/?q=x')
+    start('/enrollments')
     expect((await screen.findByRole('alert')).textContent).toContain('REQ-400')
   })
 
@@ -220,7 +211,7 @@ describe('查詢列表', () => {
           : json({ items: [summary()], next_cursor: 'C1' }),
     })
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await screen.findByRole('table')
     await user.click(screen.getByRole('button', { name: '載入更多' }))
     await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)) // 表頭 + 2 筆
@@ -239,7 +230,7 @@ describe('詳情', () => {
       [`GET /api/v1/enrollments/${EID}`]: () => json(detail()),
     })
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await user.click(detailLink(await screen.findByRole('table')))
     const heading = await h1()
     expect(window.location.pathname).toBe(`/enrollments/${EID}`)
@@ -404,7 +395,7 @@ describe('唯讀與鍵盤', () => {
   it('列表與詳情沒有任何寫入操作（暫停、重送、編輯、刪除…），且不發出非 GET 請求（auth 除外）', async () => {
     nav()
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     await user.click(detailLink(await screen.findByRole('table')))
     await h1()
     expect(screen.queryByRole('button', { name: /暫停|恢復|重送|重新發送|編輯|修改|刪除|取消發送|終止|pause|resend|edit|delete/i })).toBeNull()
@@ -414,9 +405,9 @@ describe('唯讀與鍵盤', () => {
   it('鍵盤：Tab 可到達查詢按鈕與列表連結，Enter 進詳情；展開區是原生 <details>', async () => {
     nav()
     const user = userEvent.setup()
-    start(`/?q=${PID}`)
+    start('/enrollments')
     const link = detailLink(await screen.findByRole('table'))
-    await user.click(screen.getByLabelText(/客戶 ID 或\s?(Enrollment ID|進度編號)/))
+    await user.click(screen.getByLabelText('旅程'))
     const seen = new Set<Element | null>()
     for (let i = 0; i < 10; i++) { await user.tab(); seen.add(document.activeElement) }
     expect(seen.has(screen.getByRole('button', { name: '查詢' }))).toBe(true)

@@ -235,7 +235,7 @@ describe('403 FORBIDDEN 無權限（整頁、導覽可用）', () => {
 
   it('資料請求 403 → 整頁「你沒有權限使用這個功能」＋角色說明＋「回旅程列表」，role=alert，不導向登入', async () => {
     mockApi({ me: user({ role: 'VIEWER', display_name: '周小華' }), routes: forbidden })
-    start('/?q=abc')
+    start('/enrollments')
     const h1 = await screen.findByRole('heading', { level: 1, name: '你沒有權限使用這個功能' })
     expect(h1.closest('[role="alert"]')).toBeTruthy()
     expect(text()).toContain('目前帳號「周小華」的角色是檢視者，只能檢視資料。')
@@ -246,7 +246,7 @@ describe('403 FORBIDDEN 無權限（整頁、導覽可用）', () => {
 
   it('403 頁上外框與導覽仍可用：能點進「受眾」，403 畫面隨之消失', async () => {
     mockApi({ me: user({ role: 'VIEWER', display_name: '周小華' }), routes: forbidden })
-    start('/?q=abc')
+    start('/enrollments')
     await screen.findByRole('heading', { level: 1, name: '你沒有權限使用這個功能' })
     expect(screen.getAllByRole('navigation', { name: /主要導覽/ }).length).toBeGreaterThan(0)
     expect(text()).toContain('已登入：周小華')
@@ -258,7 +258,7 @@ describe('403 FORBIDDEN 無權限（整頁、導覽可用）', () => {
 
   it('403 頁的 h1 只有一個，且頁面只有一個 <main>', async () => {
     mockApi({ me: user({ role: 'VIEWER', display_name: '周小華' }), routes: forbidden })
-    start('/?q=abc')
+    start('/enrollments')
     await screen.findByRole('heading', { level: 1, name: '你沒有權限使用這個功能' })
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(document.querySelectorAll('main')).toHaveLength(1)

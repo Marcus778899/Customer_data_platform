@@ -58,6 +58,7 @@ describe('#146 登入後首頁與導覽標示', () => {
     start(`/?q=${PID}`)
     await screen.findByRole('heading', { level: 1, name: '客戶' })
     await waitFor(() => expect(window.location.pathname).toBe('/customers'))
+    expect(new URLSearchParams(window.location.search).get('q')).toBe(PID) // 導向時保留 q
     expect(navLink('客戶').getAttribute('aria-current')).toBe('page')
     expect(navLink('旅程').getAttribute('aria-current')).not.toBe('page')
     expect(api.calls.some((c) => c.method === 'GET' && c.path === '/api/v1/enrollments')).toBe(false)

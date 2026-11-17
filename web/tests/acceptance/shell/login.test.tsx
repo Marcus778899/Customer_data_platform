@@ -61,12 +61,12 @@ describe('登入：初始與成功', () => {
   it('送出 POST /auth/login 帶 { email, password } JSON；成功後先呼叫 GET /auth/me 再回原頁（?next）', async () => {
     const api = mockApi({ me: null })
     const u = userEvent.setup()
-    start('/?q=abc')
+    start('/enrollments?status=WAITING')
     await fill(u, 'Amy.Chen@Example.com', 'correct-horse-battery')
     await u.click(loginBtn())
     await waitFor(() => expect(window.location.pathname).not.toBe('/login'))
-    expect(window.location.pathname).toBe('/')
-    expect(window.location.search).toContain('q=abc')
+    expect(window.location.pathname).toBe('/enrollments')
+    expect(window.location.search).toContain('status=WAITING')
     const login = api.count('POST', '/api/v1/auth/login')
     expect(login).toHaveLength(1)
     expect(login[0].body).toEqual({ email: 'Amy.Chen@Example.com', password: 'correct-horse-battery' })
@@ -87,13 +87,13 @@ describe('登入：初始與成功', () => {
     await waitFor(() => expect(api.count('POST', '/api/v1/auth/login')).toHaveLength(1))
   })
 
-  it('登入成功後，網址回到 /（無 next 時），不再顯示登入頁', async () => {
+  it('登入成功後，網址回到首頁 / 或 /journeys（旅程列表，無 next 時），不再顯示登入頁', async () => {
     mockApi({ me: null })
     const u = userEvent.setup()
     start('/login')
     await fill(u, 'amy.chen@example.com', 'correct-horse-battery')
     await u.click(loginBtn())
-    await waitFor(() => expect(window.location.pathname).toBe('/'))
+    await waitFor(() => expect(window.location.pathname).toMatch(/^\/(journeys)?$/))
     expect(screen.queryByLabelText('Email')).toBeNull()
   })
 })
@@ -284,7 +284,7 @@ describe('登入：逾時導回（401 UNAUTHENTICATED）', () => {
 
   it('已登入後資料請求 401：導向 /login，role=status 顯示「登入已逾時，請重新登入。登入後會回到原本的頁面。」，登入後回原頁', async () => {
     const api = mockApi({ me: user(), routes: expiring })
-    start('/?q=abc')
+    start('/enrollments?status=WAITING')
     await screen.findByLabelText('Email')
     expect(window.location.pathname).toBe('/login')
     const status = screen.getAllByRole('status').find((s) => s.textContent?.includes('登入已逾時'))
@@ -296,10 +296,10 @@ describe('登入：逾時導回（401 UNAUTHENTICATED）', () => {
     const u = userEvent.setup()
     await fill(u, 'amy.chen@example.com', 'correct-horse-battery')
     await u.click(loginBtn())
-    await waitFor(() => expect(window.location.pathname).toBe('/'))
-    await waitFor(() => expect(window.location.search).toBe('?q=abc'))
+    await waitFor(() => expect(window.location.pathname).toBe('/enrollments'))
+    await waitFor(() => expect(window.location.search).toBe('?status=WAITING'))
     await screen.findAllByRole('navigation', { name: /主要導覽/ })
-    expect(window.location.pathname + window.location.search).toBe('/?q=abc')
+    expect(window.location.pathname + window.location.search).toBe('/enrollments?status=WAITING')
   })
 
   it('直接開 /login 不顯示逾時提示', async () => {
@@ -312,7 +312,7 @@ describe('登入：逾時導回（401 UNAUTHENTICATED）', () => {
   it('逾時後輸入錯誤密碼：只顯示 401 單一句，逾時提示消失', async () => {
     mockApi({ me: user(), routes: { ...expiring, 'POST /api/v1/auth/login': () => problem(401, 'INVALID_CREDENTIALS') } })
     const u = userEvent.setup()
-    start('/?q=abc')
+    start('/enrollments?status=WAITING')
     await screen.findByLabelText('Email')
     await u.type(screen.getByLabelText('Email'), 'amy.chen@example.com')
     await u.type(screen.getByLabelText('密碼'), 'wrong-password-1')
