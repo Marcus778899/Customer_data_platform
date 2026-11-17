@@ -135,7 +135,7 @@
 | trace-branch-ui | frontend | done | 0 | PR #232 |
 | ux-polish-web | frontend | in-progress | 0 |  |
 | enrollment-reentry-engine | backend | done | 1 | PR #236 |
-| deps-picomatch-fix | architect | todo | 0 |  |
+| deps-picomatch-fix | architect | blocked | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -153,6 +153,7 @@
 - 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
 - 待辦（下一張 architect 設計單）：spec 02 §5 補「快照截斷後仍超過 64KB 時事件的處置」（目前實作丟例外→重試→EXHAUSTED，spec 只寫拒絕建立並告警），定了再補驗收
 - 待辦（下一張 architect 設計單）：spec 02 §5 補白名單讀法與 _total_count；冷卻期上限（過長會令 cutoff 溢位而重試到 EXHAUSTED）與 advisory lock 死鎖風險，見 enrollment-reentry-engine.review.md
+- 待甲方決定 D-089：picomatch High 漏洞無修正版，是否暫時忽略該條（所有 PR Security 全紅；ux-polish-web qa/review 已過，等 CI 綠合併）
 
 ## 注意事項（踩過的坑）
 

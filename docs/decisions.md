@@ -15,6 +15,12 @@
 
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
+### D-089 picomatch High 漏洞沒有修正版，CI 資安掃描要不要暫時忽略這一條
+- 背景：osv-scanner 報 picomatch 4.0.7 的 ReDoS（GHSA-fc5q-39xc-vjpf，High），所有版本都受影響、npm 上沒有修正版（上游修正 PR 未合併），升 vite／vitest 也沒用；所有 PR 的 Security job 因此全紅、無法合併。picomatch 只在開發工具（vite／vitest 找檔案）裡，不進正式版前端、後端也沒用到（見 `.agent/reports/deps-picomatch-fix.json`）
+- 選項：A. 只忽略這一條 GHSA，附理由與到期日（約 30 天），不排除路徑、不關規則；上游出 4.0.8 就開單升級並移除忽略／B. 不忽略，等上游出修正版，期間所有 PR 都不能合併／C. 改用社群 fork 或上游未合併的修正分支（引入未發布的外部程式碼）
+- 建議：A，風險只在開發環境且攻擊者要能控制檔案比對樣式；有到期日會自動失效、逼我們回頭檢查；發版前 security 會逐條追認
+- 提出：architect（deps-picomatch-fix）
+
 ## 已決定
 
 ### D-088 ux-polish-web 派工單有一行被工具誤判成路徑，驗收測試鎖不了，怎麼處理
