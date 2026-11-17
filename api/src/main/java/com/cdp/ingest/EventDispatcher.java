@@ -31,7 +31,7 @@ import com.cdp.journey.JourneyDefinitionStore;
  * 續做到 CDP_LOOP_MAX_DRAIN；失敗的事件本輪略過。
  *
  * <p>start 為 NESTED，單一綁定失敗只回滾它自己；該事件記一次失敗並依指數退避延後，達上限標 EXHAUSTED。已建立的
- * Enrollment 靠 dedup_key（= event_id）去重，重試時只補失敗的綁定。規則見 spec 07 §11。
+ * Enrollment 靠 trigger_event_id 唯一索引去重（由 JourneyRuntime.start 承擔，dedup_key 只放 G3 的值），重試時只補失敗的綁定。規則見 spec 07 §11。
  */
 @Component
 public class EventDispatcher {
@@ -190,7 +190,7 @@ public class EventDispatcher {
                         binding.sourceNodeId(),
                         event.identity().profileId(),
                         snapshot(event),
-                        event.eventId());
+                        null);
             } catch (RuntimeException e) {
                 if (first == null) {
                     first = e;
