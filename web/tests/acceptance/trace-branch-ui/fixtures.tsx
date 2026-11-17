@@ -65,7 +65,7 @@ export function branchVersion(version = 3, over: Record<string, unknown> = {}) {
 export const stat = (node_id: string, entered: number, visits: number, current: number, out_ports: Record<string, number> = {}) =>
   ({ node_id, entered, visits, current, out_ports })
 /** 契約 §5：items 依 nodes 順序、每個節點都列、StartNode 不列 */
-export function nodeStats(version = 3, items?: unknown[]) {
+export function nodeStats(version = 3, items?: ReturnType<typeof stat>[]) {
   return {
     journey_id: JID, version, as_of: '2026-11-17T02:42:00Z',
     items: items ?? [
