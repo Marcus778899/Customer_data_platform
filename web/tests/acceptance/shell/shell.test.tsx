@@ -41,8 +41,8 @@ describe('外框：導覽與帳號區', () => {
     for (const h of document.querySelectorAll('header, aside')) expect(within(h as HTMLElement).queryByRole('combobox')).toBeNull()
   })
 
-  it('回歸（D-015）：`/` 沒有 ?q= 時查詢頁仍有「狀態」篩選下拉（含全部狀態選項）', async () => {
-    await shell(undefined, undefined, '/')
+  it('回歸（D-015）：`/enrollments` 沒有 ?q= 時仍有「狀態」篩選下拉（含全部狀態選項）', async () => {
+    await shell(undefined, undefined, '/enrollments')
     expect(window.location.search).toBe('')
     const sel = await screen.findByLabelText('狀態')
     expect(sel.tagName).toBe('SELECT')
