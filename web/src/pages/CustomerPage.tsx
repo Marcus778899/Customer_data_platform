@@ -5,7 +5,7 @@ import { AppLink } from '../components/AppLink'
 import { KeyValues } from '../components/KeyValues'
 import { Crumbs } from '../components/Shell'
 import { Badge, CopyButton, ErrorBox, MoreControls, Skeleton, Time } from '../components/ui'
-import { formatPlainTime, identifierLabel, shortId } from '../format'
+import { customerLabel, formatPlainTime, identifierLabel } from '../format'
 import { usePagedList } from '../hooks'
 import { useFetch } from '../useFetch'
 import { StatusBadge, stepText } from './EnrollmentBrowsePage'
@@ -61,29 +61,16 @@ export function CustomerPage({ id }: { id: string }) {
   const nameAttr = data?.attributes.name
   const useName =
     data && typeof nameAttr === 'string' && nameAttr !== '' && !data.masked_paths.includes('attributes.name')
-  const crumbLast = !data ? '載入中…' : useName ? nameAttr : `客戶 ${shortId(id)}`
+  const title = !data ? '載入中…' : customerLabel(useName ? (nameAttr as string) : null, data.identifiers[0])
 
   return (
     <>
-      <Crumbs items={[{ label: '客戶', to: '/customers' }, { label: crumbLast }]} />
+      <Crumbs items={[{ label: '客戶', to: '/customers' }, { label: title }]} />
       <div className="pagehead">
         <div>
           <h1 tabIndex={-1} ref={h1}>
-            {!data ? (
-              '載入中…'
-            ) : useName ? (
-              nameAttr
-            ) : (
-              <>
-                客戶 <span className="mono">{shortId(id)}</span>
-              </>
-            )}
+            {title}
           </h1>
-          {data && useName && (
-            <p className="muted">
-              客戶 ID <span className="mono">{shortId(id)}</span>
-            </p>
-          )}
         </div>
       </div>
       {!data && <Skeleton lines={3} />}
@@ -113,10 +100,6 @@ function Basic({ p }: { p: ProfileDetail }) {
     <section className="card">
       <h2 className="sec">基本資料</h2>
       <dl className="kv">
-        <dt>客戶 ID</dt>
-        <dd>
-          <span className="mono">{p.profile_id}</span> <CopyButton text={p.profile_id} label="複製客戶 ID" />
-        </dd>
         <dt>建立時間</dt>
         <dd>
           <Time iso={p.created_at} />
@@ -130,6 +113,15 @@ function Basic({ p }: { p: ProfileDetail }) {
           <Time iso={p.as_of} seconds />
         </dd>
       </dl>
+      <details className="adv">
+        <summary>進階資訊</summary>
+        <dl className="kv">
+          <dt>客戶 ID</dt>
+          <dd>
+            <span className="mono">{p.profile_id}</span> <CopyButton text={p.profile_id} label="複製客戶 ID" />
+          </dd>
+        </dl>
+      </details>
       <div className="scroll">
         <table className="plain stack">
           <caption>識別碼</caption>
@@ -162,7 +154,7 @@ function Basic({ p }: { p: ProfileDetail }) {
       )}
       {anyMask && (
         <p className="mask-note">
-          只有白名單的欄位顯示明文；遮罩值無法解除，也不提供複製。屬性 name 未遮罩時當頁面標題，否則以客戶 ID 為標題。
+          只有白名單的欄位顯示明文；遮罩值無法解除，也不提供複製。屬性 name 未遮罩時當頁面標題，否則以識別碼為標題。
         </p>
       )}
     </section>

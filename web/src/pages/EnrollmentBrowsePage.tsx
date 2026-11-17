@@ -4,7 +4,7 @@ import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox, MoreControls, Skeleton } from '../components/ui'
 import type { EnrollmentStatus, EnrollmentSummary } from '../api/types'
-import { ENROLLMENT_STATUS } from '../format'
+import { ENROLLMENT_STATUS, customerLabel, identifierLabel } from '../format'
 import { enrollmentStatusText, stepTitle } from '../plain'
 import { usePagedList } from '../hooks'
 import { navigate, type Loc } from '../router'
@@ -80,7 +80,7 @@ export function EnrollmentBrowsePage({ loc }: { loc: Loc }) {
                 {items.map((r) => (
                   <tr key={r.enrollment_id}>
                     <td data-label="客戶">
-                      <CustomerLink profileId={r.profile_id} />
+                      <CustomerLink r={r} />
                     </td>
                     <td data-label="旅程">
                       <AppLink className="tap" to={`/enrollments/${encodeURIComponent(r.enrollment_id)}`}>
@@ -129,12 +129,21 @@ export function StatusBadge({ status }: { status: EnrollmentStatus }) {
   return <Badge tone={ENROLLMENT_STATUS[status].tone}>{enrollmentStatusText(status)}</Badge>
 }
 
-/** 客戶欄：摘要只有 profile_id，不顯示 ID，改為連到客戶頁 */
-export function CustomerLink({ profileId }: { profileId: string }) {
+/** 客戶欄兩行（D-080）：第一行客戶標示連到客戶頁；第二行小字補充，不顯示 ID */
+export function CustomerLink({ r }: { r: EnrollmentSummary }) {
+  const idf = r.profile_identifier
+  const label = customerLabel(r.profile_name, idf)
+  let sub: string
+  if (r.profile_name) sub = idf?.value ?? ''
+  else if (idf?.value) sub = `${identifierLabel(idf.type)}${idf.masked ? '，已遮罩' : ''}`
+  else sub = '沒有姓名與識別碼'
   return (
-    <AppLink className="tap" to={`/customers/${encodeURIComponent(profileId)}`}>
-      查看客戶
-    </AppLink>
+    <>
+      <AppLink className="tap" to={`/customers/${encodeURIComponent(r.profile_id)}`}>
+        {label}
+      </AppLink>
+      {sub && <small className="cust-sub">{sub}</small>}
+    </>
   )
 }
 
