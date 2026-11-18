@@ -17,6 +17,12 @@
 
 ## 已決定
 
+### D-090 停止／中途結束而取消的訊息要留下可查的紀錄（核可 stop-cancel-design）
+- 決定：核可 `docs/design/stop-cancel.md`：取消未送出訊息時同時寫 `delivery_task`（`CANCELLED`＋`cancel_reason`：`JOURNEY_STOPPED`／`ENROLLMENT_ENDED`，V10）；不回填舊資料；spec 待辦 6 條一併更正
+- 理由：uat F-29 客服看不出訊息被停止取消；停止與中途結束是 v0.3.0 新功能，正式環境無舊資料
+- 影響：開 stop-cancel-record-api（backend）；trace-cancelled-fix 追加依取消原因顯示
+- 日期：2026-11-18
+
 ### D-089 picomatch High 漏洞沒有修正版，CI 資安掃描要不要暫時忽略這一條
 - 決定：1. 現在先只忽略 GHSA-fc5q-39xc-vjpf 一條，附理由與到期日，不排除路徑、不關規則；2. v0.3.0 發版前必須升到修正版並移除忽略，上游到時仍未修就延後發版（A）
 - 理由：開發不停擺；正式發版不帶已知漏洞
