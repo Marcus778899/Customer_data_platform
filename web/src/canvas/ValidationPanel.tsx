@@ -1,6 +1,7 @@
 // 驗證結果面板：錯誤與提醒各一份清單；每項可定位到節點（或前往旅程設定），field／規則號收進「進階資訊」。
 import { useId } from 'react'
 import type { Issue, ValidationReport } from '../api/types'
+import { PanelActions } from './ValueControls'
 
 function Items({ items, onLocate, onSettings }: { items: Issue[]; onLocate: (id: string, field: string) => void; onSettings: () => void }) {
   return (
@@ -35,6 +36,7 @@ export function ValidationPanel({
   busy,
   onRevalidate,
   onClose,
+  onCollapse,
   onLocate,
   onSettings,
 }: {
@@ -42,6 +44,7 @@ export function ValidationPanel({
   busy: boolean
   onRevalidate: () => void
   onClose: () => void
+  onCollapse?: () => void
   onLocate: (id: string, field: string) => void
   onSettings: () => void
 }) {
@@ -52,9 +55,7 @@ export function ValidationPanel({
     <aside className="side-panel" aria-labelledby={hid}>
       <div className="ph">
         <h2 id={hid}>驗證結果</h2>
-        <button type="button" className="btn secondary sm" onClick={onClose}>
-          關閉
-        </button>
+        <PanelActions onCollapse={onCollapse} onClose={onClose} />
       </div>
       <p className={e ? 'warn-text' : 'muted'}>
         {e ? `${e} 個錯誤要修正才能送審` : '沒有錯誤，可以送審'}

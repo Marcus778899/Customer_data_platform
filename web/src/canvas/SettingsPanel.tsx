@@ -3,6 +3,7 @@ import { useId, useState } from 'react'
 import { OPERATORS, condValueText, parseCondValue, shownText, withSettings, type Def } from './model'
 import { useLocked } from './lock'
 import { TextField } from './NodePanel'
+import { PanelActions } from './ValueControls'
 
 const PREFIX = '$.trigger.properties.'
 const MODES: { mode: string; label: string; hint: string }[] = [
@@ -49,7 +50,7 @@ function ExitValue({ index, cond, onChange }: { index: number; cond: ExitCond; o
   )
 }
 
-export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: (fn: (d: Def) => Def) => void; onClose: () => void }) {
+export function SettingsPanel({ def, onChange, onClose, onCollapse }: { def: Def; onChange: (fn: (d: Def) => Def) => void; onClose: () => void; onCollapse?: () => void }) {
   const hid = useId()
   const locked = useLocked()
   const reentry = (def.settings.reentry ?? { mode: 'UNLIMITED' }) as Reentry
@@ -84,9 +85,7 @@ export function SettingsPanel({ def, onChange, onClose }: { def: Def; onChange: 
           <h2 id={hid}>旅程設定</h2>
           <p className="muted">整個旅程共用的規則</p>
         </div>
-        <button type="button" className="btn secondary sm" onClick={onClose}>
-          完成
-        </button>
+        <PanelActions onCollapse={onCollapse} onClose={onClose} />
       </div>
       <TextField label="旅程名稱" value={def.name} onChange={(v) => onChange((d) => ({ ...d, name: v }))} />
       <TextField label="描述（選填）" multiline value={def.description ?? ''} onChange={(v) => onChange((d) => ({ ...d, description: v === '' ? null : v }))} />

@@ -2,7 +2,9 @@
 import { useId, useState, type ReactNode } from 'react'
 import type { FieldKeys, Issue } from '../api/types'
 import { EventFilterEditor, type Locate } from './EventFilterEditor'
+import { fieldKind, needsKindToggle, numericInput, parseValue, textLooksNumber, valueKindLabel } from './eventFilter'
 import { useLocked } from './lock'
+import { KindToggle, OperatorOptions, PanelActions } from './ValueControls'
 import {
   buildDuration,
   condOf,
@@ -15,8 +17,6 @@ import {
   MAX_COND_DEPTH,
   OPERATORS,
   outputSpecs,
-  parseCondValue,
-  shownText,
   condValueText,
   parseDuration,
   targetOfPort,
@@ -141,6 +141,15 @@ function DurationField({
 // ---------- 條件樹 ----------
 const CUSTOM = '__custom__'
 
+/** 這一列在編輯中的草稿：比較、文字、值當成。沒填完或格式錯的不寫進草稿（anchor 是開始編輯前的樣子，錯的時候退回它） */
+interface RowDraft {
+  op: string
+  text: string
+  num: boolean
+  anchor: CondLeaf
+  written: string
+}
+
 function LeafRow({
   leaf,
   keys,
@@ -154,16 +163,43 @@ function LeafRow({
 }) {
   const known = new Set([...(keys?.profile_attributes ?? []), ...(keys?.event_properties ?? []).map((k) => `trigger.properties.${k}`)])
   const locked = useLocked()
+  const uid = useId()
   const [customPick, setCustom] = useState(false)
-  const [rawText, setText] = useState(condValueText(leaf.value))
-  // 以陣列位置當 key 時，刪列後狀態會落到別列：一律以目前的值校正顯示
+  const [local, setLocal] = useState<RowDraft | null>(null)
+  // 以陣列位置當 key 時，刪列後狀態會落到別列：草稿只在草稿裡的這一列沒被外部換掉時沿用，否則改顯示值本身
+  const live = local && JSON.stringify(leaf) === local.written ? local : null
   const unknownField = !!leaf.field && !known.has(leaf.field)
   const custom = (customPick && unknownField) || (customPick && !leaf.field) || (!!keys && unknownField)
-  const text = shownText(rawText, (t) => parseCondValue(leaf.operator, t), leaf.value)
-  const op = OPERATORS.find((o) => o.value === leaf.operator)
+  const kind = fieldKind(leaf.field)
+  const view = live ?? {
+    op: leaf.operator,
+    text: condValueText(leaf.value),
+    num: kind === 'num' || typeof leaf.value === 'number' || (Array.isArray(leaf.value) && leaf.value.length > 0 && leaf.value.every((x) => typeof x === 'number')),
+  }
+  const op = OPERATORS.find((o) => o.value === view.op)
+  const parsed = parseValue({ operator: view.op, text: view.text, num: view.num })
+  const error = !parsed.ok ? parsed.error : undefined
+  const hint = textLooksNumber({ operator: view.op, text: view.text, num: view.num }, leaf.field)
   const setField = (f: string) => onChange({ ...leaf, field: f })
+  const edit = (patch: Partial<Pick<RowDraft, 'op' | 'text' | 'num'>>) => {
+    const next = { ...view, ...patch }
+    const anchor = live ? live.anchor : leaf
+    const p = parseValue({ operator: next.op, text: next.text, num: next.num })
+    let out: CondLeaf
+    if (p.ok) {
+      const { value: _drop, ...rest } = leaf
+      void _drop
+      out = p.value === undefined ? { ...rest, operator: next.op } : { ...rest, operator: next.op, value: p.value }
+    } else if (!p.error && !next.text.trim() && !numericInput(next.op, next.num)) {
+      // 文字型的比較清空：照舊寫入空值（IN 類是空陣列）
+      out = { ...leaf, operator: next.op, value: next.op === 'IN' || next.op === 'NOT_IN' ? [] : '' }
+    } else out = anchor
+    setLocal({ ...next, anchor, written: JSON.stringify(out) })
+    onChange(out)
+  }
+  const veId = `${uid}-ve`
   return (
-    <li className="cond-row">
+    <li className={`cond-row${error ? ' bad' : ''}`}>
       <div className="cond-line">
         <select
           aria-label="欄位"
@@ -193,37 +229,35 @@ function LeafRow({
           ))}
           <option value={CUSTOM}>手動輸入…</option>
         </select>
-        <select
-          aria-label="比較"
-          value={leaf.operator}
-          disabled={locked}
-          onChange={(e) => {
-            const operator = e.target.value
-            onChange({ ...leaf, operator, value: OPERATORS.find((o) => o.value === operator)?.noValue ? undefined : parseCondValue(operator, text) })
-          }}
-        >
-          {OPERATORS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+        <select aria-label="比較" value={view.op} disabled={locked} onChange={(e) => edit({ op: e.target.value })}>
+          <OperatorOptions field={leaf.field} current={view.op} labelOf={(v) => OPERATORS.find((o) => o.value === v)?.label ?? v} name={leaf.field ? fieldLabel(leaf.field) : ''} />
         </select>
         {!op?.noValue && (
           <input
             aria-label="值"
             type="text"
-            value={text}
+            value={view.text}
             readOnly={locked}
-            onChange={(e) => {
-              setText(e.target.value)
-              onChange({ ...leaf, value: parseCondValue(leaf.operator, e.target.value) })
-            }}
+            inputMode={numericInput(view.op, view.num) ? 'decimal' : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? veId : undefined}
+            onChange={(e) => edit({ text: e.target.value })}
           />
         )}
         <button type="button" className="btn ghost-dark sm" aria-label="移除這個條件" disabled={locked} onClick={onRemove}>
           移除
         </button>
       </div>
+      {leaf.field && kind === 'unknown' && (
+        <p className="hint">系統不知道『{fieldLabel(leaf.field)}』是數字還是文字。要比大小請選「比大小」，500 會當成數字比對。</p>
+      )}
+      {needsKindToggle(leaf.field, view.op) && <KindToggle num={view.num} disabled={locked} onChange={(num) => edit({ num })} />}
+      {error && (
+        <p className="ferr" role="alert" id={veId}>
+          <span>{error}</span>
+        </p>
+      )}
+      {hint && <p className="hint">{hint}</p>}
       {custom && (
         <input
           aria-label="欄位代碼"
@@ -237,7 +271,10 @@ function LeafRow({
       {leaf.field && (
         <details className="adv">
           <summary>進階資訊</summary>
-          <p className="mono">欄位代碼：{leaf.field}</p>
+          <p className="mono">
+            欄位代碼：{leaf.field}
+            {view.op && !op?.noValue && view.text ? `（${valueKindLabel(view.op, view.num).replace(/[（）]/g, '')}）` : ''}
+          </p>
         </details>
       )}
     </li>
@@ -480,6 +517,7 @@ export function NodePanel({
   onConnect,
   onDelete,
   onClose,
+  onCollapse,
   openSettings,
   issues = [],
   locate = null,
@@ -491,6 +529,7 @@ export function NodePanel({
   onConnect: (port: string, target: string) => void
   onDelete: () => void
   onClose: () => void
+  onCollapse?: () => void
   openSettings: () => void
   /** 驗證結果的錯誤；事件篩選依 field 路徑標到對應條件 */
   issues?: readonly Issue[]
@@ -507,9 +546,7 @@ export function NodePanel({
           <h2 id={hid}>{displayName(node)}</h2>
           <p className="muted">{typeLabel(node.type)}</p>
         </div>
-        <button type="button" className="btn secondary sm" onClick={onClose}>
-          關閉面板
-        </button>
+        <PanelActions onCollapse={onCollapse} onClose={onClose} />
       </div>
       <TextField label="名稱" value={node.name ?? ''} onChange={(v) => onChange((n) => ({ ...n, name: v }))} />
       <Body node={node} def={def} keys={keys} set={onChange} openSettings={openSettings} issues={issues} locate={locate} />

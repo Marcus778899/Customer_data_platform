@@ -1,5 +1,5 @@
 // 旅程編輯畫布頁（FE-04）：載入／空／錯誤／權限狀態，頁首、工具列、畫布、狀態列、右側面板。
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox } from '../components/ui'
@@ -67,6 +67,8 @@ function Editor({ id }: { id: string }) {
   const ed = useDraftEditor(id)
   const [selected, setSelected] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // 收合的面板以「哪個面板」記錄：換選別的節點或面板就自動展開
+  const [collapsedKey, setCollapsedKey] = useState<string | null>(null)
   const [locate, setLocate] = useState<{ field: string; seq: number } | null>(null)
   const flowId = useId()
   const { def, layout } = ed
@@ -78,12 +80,27 @@ function Editor({ id }: { id: string }) {
   const errorIds = useMemo(() => new Set((ed.report?.errors ?? []).map((i) => i.node_id).filter((x): x is string => !!x)), [ed.report])
   const loops = useMemo(() => (def ? findLoops(def) : []), [def])
 
+  // Esc：關閉面板並取消選取（對話框開著時由對話框自己處理）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || dialog) return
+      if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"]')) return
+      if (selected) setSelected(null)
+      else if (settingsOpen) setSettingsOpen(false)
+      else if (ed.reportOpen) ed.setReportOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [dialog, selected, settingsOpen, ed])
+
   const select = useCallback((nid: string | null) => {
     setSelected(nid)
+    setCollapsedKey(null)
     if (nid) setSettingsOpen(false)
   }, [])
   const openSettings = useCallback(() => {
     setSelected(null)
+    setCollapsedKey(null)
     setSettingsOpen(true)
   }, [])
 
@@ -163,6 +180,10 @@ function Editor({ id }: { id: string }) {
     : ed.dirty || (!ed.savedAt && def.nodes.length <= 1)
       ? '尚未儲存'
       : `已自動儲存 ${friendlyTime(ed.savedAt ?? ed.meta?.updatedAt)}`
+  const reportShown = ed.reportOpen && !!ed.report
+  const panelKey = sel ? `node:${sel.id}` : settingsOpen ? 'settings' : reportShown ? 'report' : null
+  const panelLabel = sel ? displayName(sel) : settingsOpen ? '旅程設定' : '驗證結果'
+  const collapsed = panelKey !== null && collapsedKey === panelKey
   const errCount = ed.report?.errors.length ?? 0
   const outline = textOutline(def)
 
@@ -283,9 +304,58 @@ function Editor({ id }: { id: string }) {
               layout={layout}
               selectedId={selected}
               errorIds={errorIds}
+              panelOpen={!!panelKey && !collapsed}
               onSelect={select}
               onMove={(nid, pos) => edit((d, l) => [d, { nodes: { ...fillLayout(d, l).nodes, [nid]: pos } }])}
             />
+            <LockProvider value={locked}>
+              {panelKey && collapsed && (
+                <button type="button" className="drtab" aria-label={`展開『${panelLabel}』面板`} onClick={() => setCollapsedKey(null)}>
+                  <span aria-hidden="true">‹</span>
+                  <span className="drtab-text">{panelLabel}</span>
+                </button>
+              )}
+              <div className="edside" hidden={!panelKey || collapsed}>
+          {sel && (
+            <NodePanel
+              key={sel.id}
+              node={sel}
+              def={def}
+              keys={ed.fieldKeys}
+              onChange={(fn) => setDef((d) => updateNode(d, sel.id, fn))}
+              onConnect={(port, target) => setDef((d) => updateNode(d, sel.id, (n) => setOutput(n, port, target)))}
+              onDelete={() => {
+                edit((d, l) => {
+                  const nodes = { ...l.nodes }
+                  delete nodes[sel.id]
+                  return [removeNode(d, sel.id), { nodes }]
+                })
+                setSelected(null)
+              }}
+              onClose={() => setSelected(null)}
+              onCollapse={() => setCollapsedKey(panelKey)}
+              openSettings={openSettings}
+              issues={ed.report?.errors ?? []}
+              locate={locate}
+            />
+          )}
+          {settingsOpen && <SettingsPanel def={def} onChange={setDef} onClose={() => setSettingsOpen(false)} onCollapse={() => setCollapsedKey(panelKey)} />}
+          {ed.reportOpen && ed.report && (
+            <ValidationPanel
+              report={ed.report}
+              busy={ed.validating}
+              onRevalidate={() => void ed.validate()}
+              onClose={() => ed.setReportOpen(false)}
+              onCollapse={() => setCollapsedKey(panelKey)}
+              onLocate={(nid, field) => {
+                select(nid)
+                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
+              }}
+              onSettings={openSettings}
+            />
+          )}
+              </div>
+            </LockProvider>
             {onlyStart && (
               <div className="empty-hint card">
                 <p className="muted">還沒設定進入事件</p>
@@ -326,46 +396,6 @@ function Editor({ id }: { id: string }) {
           </details>
         </div>
 
-        <LockProvider value={locked}>
-        <div className="edside">
-          {sel && (
-            <NodePanel
-              key={sel.id}
-              node={sel}
-              def={def}
-              keys={ed.fieldKeys}
-              onChange={(fn) => setDef((d) => updateNode(d, sel.id, fn))}
-              onConnect={(port, target) => setDef((d) => updateNode(d, sel.id, (n) => setOutput(n, port, target)))}
-              onDelete={() => {
-                edit((d, l) => {
-                  const nodes = { ...l.nodes }
-                  delete nodes[sel.id]
-                  return [removeNode(d, sel.id), { nodes }]
-                })
-                setSelected(null)
-              }}
-              onClose={() => setSelected(null)}
-              openSettings={openSettings}
-              issues={ed.report?.errors ?? []}
-              locate={locate}
-            />
-          )}
-          {settingsOpen && <SettingsPanel def={def} onChange={setDef} onClose={() => setSettingsOpen(false)} />}
-          {ed.reportOpen && ed.report && (
-            <ValidationPanel
-              report={ed.report}
-              busy={ed.validating}
-              onRevalidate={() => void ed.validate()}
-              onClose={() => ed.setReportOpen(false)}
-              onLocate={(nid, field) => {
-                select(nid)
-                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
-              }}
-              onSettings={openSettings}
-            />
-          )}
-        </div>
-        </LockProvider>
       </div>
       {dialog === 'submit' && (
         <SubmitDialog

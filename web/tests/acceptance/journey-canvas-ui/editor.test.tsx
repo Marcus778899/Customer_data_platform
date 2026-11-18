@@ -194,20 +194,20 @@ describe('九種節點、連線、編輯、儲存、還原', () => {
     expect(nodeById(put.definition, 'cond_vip')!.outputs.yes ?? null).toBeNull()
   })
 
-  it('選取節點：aria-pressed 切換、面板標題為節點名稱；「關閉面板」收起', async () => {
+  it('選取節點：aria-pressed 切換、面板標題為節點名稱；「關閉」收起', async () => {
     editorBackend()
     await openEditor()
     await selectNode('等 1 小時')
     expect(screen.getByRole('heading', { name: '等 1 小時' })).toBeTruthy()
-    await userEvent.click(screen.getByRole('button', { name: '關閉面板' }))
+    await userEvent.click(screen.getByRole('button', { name: /^關閉/ }))
     await waitFor(() => expect(nodeButtons().every((b) => b.getAttribute('aria-pressed') !== 'true')).toBe(true))
   })
 
-  it('圖有「文字版節點清單」與縮放控制（放大、縮小、符合視窗大小）；節點 id 不顯示在畫面上', async () => {
+  it('圖有「文字版節點清單」與縮放控制（放大、縮小、看全圖）；節點 id 不顯示在畫面上', async () => {
     editorBackend()
     await openEditor()
     expect(bodyText()).toContain('文字版節點清單')
-    for (const n of ['放大', '縮小', '符合視窗大小']) expect(screen.getAllByRole('button', { name: n }).length).toBeGreaterThan(0)
+    for (const n of ['放大', '縮小', '看全圖']) expect(screen.getAllByRole('button', { name: n }).length).toBeGreaterThan(0)
     expect(nodeButtons().map((b) => b.textContent).join(' ')).not.toContain('cond_vip')
   })
 
