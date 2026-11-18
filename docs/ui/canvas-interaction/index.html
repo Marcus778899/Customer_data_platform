@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設計稿：畫布互動、節點卡與條件比較（canvas-interaction-ui）</title>
+<link rel="icon" href="../../../web/public/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../web/src/styles/tokens.css">
+<link rel="stylesheet" href="../journey-builder/base.css">
+<link rel="stylesheet" href="ci.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 10 5 0 10z" fill="#6e7781"/></marker>
+<symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-wait" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-wev" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+<symbol id="i-cond" viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3"/><path d="m15 9 6-6"/></symbol>
+<symbol id="i-ab" viewBox="0 0 24 24"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></symbol>
+<symbol id="i-merge" viewBox="0 0 24 24"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3a4 4 0 0 1-1.17 2.87L4 22"/><path d="m20 22-5-5"/></symbol>
+<symbol id="i-goal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+<symbol id="i-exit" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+<symbol id="i-end" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+<symbol id="i-start" viewBox="0 0 24 24"><path d="M6 3 20 12 6 21z"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.31"/><path d="M14 9.3V2"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+<header>
+  <h1>畫布互動、節點卡與條件比較</h1>
+  <p class="muted">對應 issue #276、#277。設計稿為靜態示意加少量示範腳本（不是產品程式）：第 1 區可實際拖拉操作。設計規格見 <code>docs/ui/canvas-interaction.md</code>。</p>
+  <ul class="toc2" aria-label="目錄">
+    <li><a href="#ix">1 拖拉新增與連線</a></li>
+    <li><a href="#nc">2 統一節點卡</a></li>
+    <li><a href="#ro-sec">3 旅程頁節點圖</a></li>
+    <li><a href="#cmp">4 比較選單與條件試算</a></li><li><a href="#jh">5 旅程頁標頭</a></li><li><a href="#sv">6 儲存與離開提醒</a></li><li><a href="#dl">7 刪除旅程</a></li>
+  </ul>
+</header>
+
+<!-- ============ 1 ============ -->
+<section class="sec" id="ix">
+  <h2>1 拖拉新增與連線<span class="id">ix-demo</span></h2>
+  <p class="lead">建議做：左邊節點庫拖進畫布（也可以按一下），按住節點右邊的藍色圓點拉線到下一個節點；放在空白處會問你要接什麼新節點。點線出現「移除連線」。右側面板的「下一步」下拉保留，給鍵盤與讀屏。試試看：拖「訊息」進畫布、把「提醒 1」的橘色虛線圓點拉到「結束」。</p>
+  <div class="ed">
+    <aside class="pal" aria-label="節點庫">
+      <h3>節點庫</h3>
+      <p class="tip">拖到畫布，或按一下新增。已選取節點時，新節點會自動接在它後面。</p>
+      <div id="palette" style="display:contents"></div>
+    </aside>
+    <div class="cvw" id="cvw">
+      <div class="cvbar"><span id="cvstat"></span><span id="cnt"></span><button type="button" class="btn secondary sm" id="reset" style="margin-left:auto">重設示範</button></div>
+      <div class="cv" id="cv">
+        <div class="sizer" id="sizer"></div>
+        <div class="world" id="world"><svg class="es" id="es"></svg><div id="elabs"></div></div>
+        <div class="zbar" role="group" aria-label="縮放"><button type="button" id="zout" aria-label="縮小"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button><span id="zp">75%</span><button type="button" id="zin" aria-label="放大"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button><button type="button" class="fit" id="zfit"><svg class="ico" aria-hidden="true"><use href="#i-fit"/></svg>看全圖</button></div>
+        <div class="coach" id="coach"><svg class="ico" aria-hidden="true" style="margin-top:2px"><use href="#i-info"/></svg><span>從節點右邊的圓點按住、拉到下一個節點就連好了。連錯了？點那條線，按「移除連線」。</span><button type="button" id="coachx">知道了</button></div>
+      </div>
+      <aside class="side" id="side" aria-label="節點設定" hidden></aside>
+      <div class="dropmsg">放開就新增在這裡</div>
+      <div class="live" id="live" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+  <p class="muted" id="toast" aria-hidden="true" style="min-height:1.6em;margin:var(--space-2) 0 0"></p>
+  <h3 style="margin-top:var(--space-5);font-size:var(--text-md)">連接點的狀態</h3>
+  <div class="hs" aria-label="連接點狀態圖例">
+    <figure><div class="dot"><span class="hd out"></span></div>平常：藍色實心圓點（選取或游標移上節點才出現，鍵盤聚焦也會出現）</figure>
+    <figure><div class="dot"><span class="hd out free"></span></div>還沒接下一步：橘色虛線圓點，游標移上顯示「拉線接下一步」</figure>
+    <figure><div class="dot"><span class="hd out" style="--handle:22px"></span></div>游標移上：放大，游標變十字</figure>
+    <figure><div class="dot" style="border-right-color:var(--color-success-fg);box-shadow:0 0 0 4px var(--color-success-fg)"></div>拉線中，游標在可接的節點上：綠色外框；自己或「進入條件」變淡、不能接</figure>
+  </div>
+  <dl class="keys">
+    <dt>不用滑鼠（鍵盤與讀屏）</dt>
+    <dd>Tab 到節點庫的項目按 <kbd>Enter</kbd> 新增；Tab 到節點按 <kbd>Enter</kbd> 開面板，用「下一步」下拉選接誰、選「（還沒接）」就是移除連線；節點上的出口圓點也能 Tab 聚焦（<kbd>Enter</kbd> 會把焦點移到面板的下一步下拉）；節點選取後按 <kbd>Delete</kbd> 刪除節點。</dd>
+    <dt>手機（375px）</dt>
+    <dd>節點庫變成上方一排按鈕，點一下新增、不支援拖進畫布；連線仍可用面板的「下一步」下拉（面板在畫布下方）。手機以檢視與小修為主，不為觸控拉線特別設計。</dd>
+  </dl>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="sec" id="nc">
+  <h2>2 統一節點卡：編輯、旅程頁、軌跡同一張卡<span class="id">nc-spec</span></h2>
+  <p class="lead">舊的唯讀卡是 148×72，裡面三到四行字加上下留白超過 72px，被 overflow 裁掉（左）。新的卡寬都是 200px，字級一致，高度只看有沒有「統計／狀態列」：沒有 112px，有 136px。</p>
+  <div class="three">
+    <figure><div class="stack" id="f-old" style="flex-direction:row;flex-wrap:wrap"></div><figcaption><b>舊：148×72，字被裁</b>旅程頁、軌跡圖現況（issue #276 第 2 項）</figcaption></figure>
+    <figure><div class="stack" id="f-edit"></div><figcaption><b>編輯畫布：200×112</b>類別、名稱、摘要三行</figcaption></figure>
+    <figure><div class="stack" id="f-view"></div><figcaption><b>旅程頁：200×136</b>多一行「人數｜目前」</figcaption></figure>
+    <figure><div class="stack" id="f-trace"></div><figcaption><b>軌跡圖：200×136</b>多一行狀態（目前在此、已走過、還沒走到）</figcaption></figure>
+    <figure><div class="stack" id="f-names"></div><figcaption><b>長名稱</b>名稱最多兩行，再長尾端「…」，游標移上顯示全名；摘要一行，值寫在前面不被截掉</figcaption></figure>
+  </div>
+  <div class="scroll"><table class="spec">
+    <thead><tr><th>項目</th><th>規格（邏輯 px，三處相同）</th></tr></thead>
+    <tbody>
+      <tr><td>卡片尺寸</td><td>寬 200；高 112（無統計／狀態列）或 136（有）。同一張圖內不混用（旅程頁與軌跡整張 136）；dagre 排版用同一組常數</td></tr>
+      <tr><td>字級</td><td>名稱 17px／600／行高 1.25；類別、摘要、人數、狀態 16px／行高 1.3；人數數字用等寬字、加粗</td></tr>
+      <tr><td>縮放下限</td><td>75%（舊 70%）：名稱實際 12.75px、其他 12px，達到「實際 ≥ 12px」；編輯、旅程頁、軌跡共用同一下限</td></tr>
+      <tr><td>截斷</td><td>名稱 2 行後「…」＋ <code>title</code>；摘要 1 行「…」；事件篩選摘要寫成「大於 500・購物車金額」（比較與值在前），2 項以上「符合 N 項條件」</td></tr>
+      <tr><td>內距</td><td>上下 10、右 12、左 14（外加 6px 類別色條）；行距 3</td></tr>
+    </tbody></table></div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="sec" id="ro-sec">
+  <h2>3 旅程頁節點圖：1440 寬看得到全部、看得出還有後面<span class="id">ro-view</span></h2>
+  <p class="lead">8 個節點、寬約 1.9k px。預設 75% 從「開始」靠左；右緣有漸層與「還有節點在右邊」提示，可拖曳、捲動或按「看全圖」（縮到能整張放進，低於 70% 時比例變警告色）。和編輯畫布同一組縮放列。到最右邊提示自動消失。</p>
+  <div class="ro" id="ro" tabindex="-1" aria-label="旅程節點圖示意"></div>
+  <div class="legend"><span>卡片：進入條件 → 等待 → 條件 →（是）訊息／（否）等事件 → 合流 → 達標 → 結束</span></div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="sec" id="cmp">
+  <h2>4 比較選單與條件試算<span class="id">cmp-select</span></h2>
+  <p class="lead">選項只寫比較方式，不再帶欄位名，收合時固定寬度完整可讀；欄位另佔一行。條件設好後，面板最下面「試試看」用幾個樣本值立刻看到符合或不符合。</p>
+  <div class="ba">
+    <div class="bad">
+      <h3><span class="badge b-danger">舊</span>選項帶欄位名，被擠成「大於 men…」</h3>
+      <div class="cond"><div class="r2"><span class="collapsed">大於 men…</span><input class="val" value="500" aria-label="值（示意）" disabled style="max-width:90px"></div></div>
+      <div class="menu menu-old" style="position:static;width:auto;max-height:none">
+        <div>比大小（值會存成數字）</div><div>　大於　member_tier &gt; 500</div><div>　至少　member_tier &ge; 500</div><div>　小於　member_tier &lt; 500</div>
+      </div>
+      <ul><li>欄位名越長選單越寬（例：<code>trigger.properties.member_tier</code>）</li><li>收合只剩前半截，看不出是哪個比較</li><li>說明寫「請選『比大小』」，選項卻沒有這個字（F-39）</li></ul>
+    </div>
+    <div>
+      <h3><span class="badge b-success">新</span>固定寬度、只寫比較方式，分組名就是說明用語</h3>
+      <div id="cmp-new"></div>
+      <details class="test" open id="test-d"><summary><svg class="ico" aria-hidden="true"><use href="#i-flask"/></svg>試試看：這個條件怎麼判斷</summary><div class="body" id="cmp-test"></div></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="sec" id="jh">
+  <h2>5 旅程頁標頭：不適用的不顯示，原因只說一次<span class="id">jh-header</span></h2>
+  <p class="lead">舊版把「捨棄草稿」「停止旅程」停用鈕全留著，每顆下面各附一句原因，句子把按鈕撐高、字跑出按鈕群組。新版：因旅程狀態不適用的動作直接不出現（未發佈的旅程本來就不能停止、不能捨棄草稿）；因角色或送審鎖定而暫時不能做的動作保留停用，原因整個標頭只寫一行，放在標題列下方、靠左、不在按鈕裡。次要導覽（節點圖、旅程進度、審核紀錄）改成分頁列，動作區只剩 1～2 顆主要按鈕加「⋯ 更多」。</p>
+  <p class="var">A　草稿（從未發佈）、編輯者，1580 寬；已展開「⋯」</p>
+  <div class="jhx" style="padding-bottom:0;min-height:300px">
+    <p class="crumb"><a href="#jh">旅程</a> / 生日禮提醒（2026 秋季檔期）</p>
+    <div class="top">
+      <div class="ttl"><h1>生日禮提醒（2026 秋季檔期）</h1><div class="meta"><span class="badge b-neutral">草稿</span><span>尚未發佈</span><span>最後更新 今天 10:20・王大明</span></div></div>
+      <div class="acts">
+        <a class="btn" href="#jh"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg>編輯草稿</a>
+        <button class="btn secondary" type="button">送審</button>
+        <button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button>
+        <div class="pm" role="menu"><button class="it danger" role="menuitem" type="button"><span class="l"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</span><small>刪掉整個旅程，無法復原</small></button></div>
+      </div>
+    </div>
+    <div class="tabs" role="navigation" aria-label="旅程頁分頁"><a href="#jh" aria-current="page">節點圖</a><a href="#jh">旅程進度</a><a href="#jh">審核紀錄</a></div>
+  </div>
+  <p class="var">B　草稿送審中（送審者本人）：鎖定原因只說一次</p>
+  <div class="jhx">
+    <p class="crumb"><a href="#jh">旅程</a> / 生日禮提醒（2026 秋季檔期）</p>
+    <div class="top">
+      <div class="ttl"><h1>生日禮提醒（2026 秋季檔期）</h1><div class="meta"><span class="badge b-warning">審核中</span><span>尚未發佈</span><span>你在 2 天前送審</span></div></div>
+      <div class="acts">
+        <button class="btn" type="button">撤回送審</button>
+        <button class="btn secondary" type="button" aria-disabled="true" aria-describedby="why-b" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong);cursor:not-allowed">編輯草稿</button>
+        <button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button>
+      </div>
+    </div>
+    <p class="why warn" id="why-b"><svg class="ico" aria-hidden="true" style="margin-top:2px"><use href="#i-info"/></svg>草稿送審中，內容已鎖定。要修改或刪除，請先撤回送審。</p>
+    <div class="tabs" role="navigation" aria-label="旅程頁分頁"><a href="#jh" aria-current="page">節點圖</a><a href="#jh">旅程進度</a><a href="#jh">審核紀錄</a></div>
+  </div>
+  <p class="var">C　進行中、檢視者：唯一的停用動作，原因一行</p>
+  <div class="jhx">
+    <p class="crumb"><a href="#jh">旅程</a> / 棄單挽回</p>
+    <div class="top">
+      <div class="ttl"><h1>棄單挽回</h1><div class="meta"><span class="badge b-success">進行中</span><span>v3</span><span>最後更新 今天 09:41</span></div></div>
+      <div class="acts"><button class="btn secondary" type="button" aria-disabled="true" aria-describedby="why-c" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong);cursor:not-allowed">編輯</button></div>
+    </div>
+    <p class="why" id="why-c"><svg class="ico" aria-hidden="true" style="margin-top:2px"><use href="#i-info"/></svg>你的角色是檢視者，只能查看。要編輯或停止旅程，請聯絡編輯者或管理員。</p>
+    <div class="tabs" role="navigation" aria-label="旅程頁分頁"><a href="#jh" aria-current="page">節點圖</a><a href="#jh">旅程進度</a><a href="#jh">審核紀錄</a></div>
+  </div>
+  <p class="var">D　375 寬（草稿、編輯者）：主要按鈕與「⋯」同一列，標題換行</p>
+  <div class="w375"><div class="jhx">
+    <p class="crumb"><a href="#jh">旅程</a> / 生日禮提醒…</p>
+    <div class="top">
+      <div class="ttl"><h1>生日禮提醒（2026 秋季檔期）</h1><div class="meta"><span class="badge b-neutral">草稿</span><span>尚未發佈</span><span>今天 10:20 更新</span></div></div>
+      <div class="acts"><a class="btn" href="#jh">編輯草稿</a><button class="btn secondary" type="button">送審</button><button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+    </div>
+    <div class="tabs" role="navigation" aria-label="旅程頁分頁"><a href="#jh" aria-current="page">節點圖</a><a href="#jh">旅程進度</a><a href="#jh">審核紀錄</a></div>
+  </div></div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="sec" id="sv">
+  <h2>6 儲存：手動儲存、儲存狀態、離開提醒<span class="id">sv-save</span></h2>
+  <p class="lead">改成手動儲存（不再靜默自動存）：編輯頁標頭右側固定一顆「儲存草稿」與一個狀態字，快速鍵 Ctrl／Cmd＋S。狀態一律圖示加文字，不只靠顏色。有未儲存的變更時，點返回、麵包屑、側欄連結都先跳「要儲存嗎？」；關閉分頁、重新整理用瀏覽器內建提醒（文字無法自訂）。</p>
+  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>已儲存（10:42）</span><button class="btn secondary" type="button" aria-disabled="true">儲存草稿</button></div>
+  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv dirty"><span class="dot" aria-hidden="true"></span>有未儲存的變更</span><button class="btn" type="button">儲存草稿<kbd style="color:var(--color-text)">Ctrl S</kbd></button></div>
+  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv busy" role="status"><span class="spin" aria-hidden="true"></span>儲存中…</span><button class="btn" type="button" aria-disabled="true" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong)">儲存草稿</button></div>
+  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv err" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>儲存失敗：網路不穩，內容還在這個畫面上</span><button class="btn" type="button">重試儲存</button></div>
+  <p class="muted">四個狀態：已儲存（按鈕停用，顯示最後儲存時間）、有未儲存的變更（按鈕強調）、儲存中（按鈕停用、不可離開）、儲存失敗（保留編輯內容、重試）。版本衝突（DRAFT_CONFLICT）與送審鎖定沿用 <code>ed-banners</code>；送審中儲存鈕停用並附原因。送審前若有未儲存的變更，先自動儲存再送審，失敗就不送。</p>
+  <h3 style="margin-top:var(--space-5);font-size:var(--text-md)">離開提醒（有未儲存變更時）</h3>
+  <div class="dlgs">
+    <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lv-t"><h3 id="lv-t">要把修改存成草稿嗎？</h3><p>你有 3 項修改還沒儲存。現在離開，這些修改會不見。</p><div class="foot"><button class="btn ghost" type="button">繼續編輯</button><button class="btn secondary" type="button">不儲存，直接離開</button><button class="btn" type="button">儲存並離開</button></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lv-t2"><h3 id="lv-t2">儲存失敗，還不能離開</h3><p class="errmsg"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>網路不穩，草稿沒有存成功。</p><div class="foot"><button class="btn secondary" type="button">不儲存，直接離開</button><button class="btn" type="button">重試儲存</button></div></div></div>
+  </div>
+  <p class="muted" style="margin-top:var(--space-2)">焦點進入「繼續編輯」（最安全的選項），Esc 等於繼續編輯；「儲存並離開」成功後才導頁。驗證有錯誤仍可儲存（草稿只驗結構，契約 §3）。</p>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="sec" id="dl">
+  <h2>7 刪除未發佈的旅程<span class="id">dl-delete</span></h2>
+  <p class="lead">入口只有旅程頁標頭「⋯ 更多」裡的「刪除旅程」（紅字），只在從未發佈（草稿狀態）的旅程出現；已發佈的旅程維持「停止」。送審中停用並說明「請先撤回送審」。確認對話框不要求輸入名稱（尚無客戶在旅程中，風險低於停止），但預設焦點在「取消」，紅色按鈕寫明「刪除旅程」。成功後導回旅程列表並顯示「已刪除『…』」提示，不提供復原。API 與角色依 architect 的 journey-delete-design。</p>
+  <div class="dlgs">
+    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t" aria-describedby="dl-d"><h3 id="dl-t">刪除「生日禮提醒（2026 秋季檔期）」？</h3><div id="dl-d"><p>刪除後無法復原。</p><ul class="facts" style="margin:0;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4)"><li>旅程和裡面的 6 個節點會一起刪除</li><li>這個旅程還沒發佈，沒有客戶在旅程中</li><li>送審紀錄的處理依後端規則（待 journey-delete-design）</li></ul></div><div class="foot"><button class="btn secondary" type="button" autofocus>取消</button><button class="btn danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</button></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t2"><h3 id="dl-t2">刪除失敗</h3><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>這個旅程剛被送審，目前不能刪除。請先撤回送審再試一次。<br><span style="font-size:var(--text-xs)">請求編號 req-7f3a91</span></span></p><div class="foot"><button class="btn secondary" type="button">關閉</button><button class="btn" type="button">重新載入旅程</button></div></div></div>
+  </div>
+  <p class="muted" style="margin-top:var(--space-2)">刪除中：紅色鈕換成「刪除中…」＋旋轉圖示並停用，取消也停用。成功：導向「旅程」列表，頂端綠色提示「已刪除『生日禮提醒（2026 秋季檔期）』」，6 秒自動消失，可手動關閉。錯誤文案依錯誤碼：送審中（DRAFT_IN_REVIEW）、已發佈（旅程已有版本）、找不到（已被刪除，直接導回列表）、5xx 重試。</p>
+</section>
+</div>
+<script src="ci.js"></script>
+</body>
+</html>

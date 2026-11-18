@@ -1,6 +1,7 @@
 # UI：旅程建立與審核（journey-builder-ui，v0.3.0）
 - 設計稿：`docs/ui/journey-builder/index.html`（44 個畫面狀態，含 375／800px iframe 預覽；共用元件樣式 `base.css` 複製自 `journey-platform`，擴充在 `builder.css`、`round2.css`（第 2 輪覆寫）、`eventfilter.css`（事件篩選追加）、`zoomfilter.css`（縮放與數字比較追加），token 用 `web/src/styles/tokens.css`，無新 token）
 - 延伸 `journey-platform.md`（UI-03）：登入、客戶搜尋、列表基底等未改動畫面仍以它為準；本稿取代它「畫布編輯、審核、圖形軌跡（分支）、旅程頁」的畫法。設計系統見 `design-system/customer-journey-platform/MASTER.md`（已補「v0.3.0 擴充元件」）
+- 修訂（v0.3.0 驗收回饋 #276）：畫布拖拉與連線、統一節點卡（取代 70% 縮放下限與節點尺寸）、比較選單、旅程頁標頭、手動儲存、刪除旅程，以 `canvas-interaction.md` 為準
 - 契約：`journeys.md` §3（草稿、送審、審核、停止）、§4（節點與條件）、§5（`node-stats`）、journey-engine §4.1（`profile_name`、`profile_identifier`）；`auth.md` §2。決策：D-050、D-056、D-060、D-061、D-079、D-080、D-082
 ## 畫面
 | 畫面（設計稿 id） | 重點 |
