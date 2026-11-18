@@ -139,7 +139,7 @@
 | deps-picomatch-fix | architect | blocked | 0 |  |
 | osv-ignore-picomatch | architect | done | 0 | PR #242 |
 | journey-builder-integration | frontend | done | 0 | PR #244 |
-| canvas-layout-fix | frontend | todo | 0 |  |
+| canvas-layout-fix | frontend | done | 0 | PR #248 |
 
 ## 卡住／待甲方決定
 
