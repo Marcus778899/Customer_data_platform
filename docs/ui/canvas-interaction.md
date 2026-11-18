@@ -1,5 +1,5 @@
 # UI：畫布互動、節點卡、條件比較、標頭與儲存（canvas-interaction-ui，v0.3.0 修訂）
-- 設計稿：`docs/ui/canvas-interaction/index.html`（`ci.css`、`ci.js`；第 1 區可實際拖拉操作，其餘靜態；token 用 `web/src/styles/tokens.css`，無新 token）。來源：issue #276（甲方回饋 1～6）、F-35、F-37～F-39
+- 設計稿：`docs/ui/canvas-interaction/index.html`（`ci.css`；腳本內嵌在 html；第 1 區可實際拖拉操作，其餘靜態；token 用 `web/src/styles/tokens.css`，無新 token）。來源：issue #276（甲方回饋 1～6）、F-35、F-37～F-39
 - 修訂 `journey-builder.md`：與下列各節矛盾處以本檔為準（工具列新增節點、節點尺寸與縮放下限 70%、「停用鈕一律保留附原因」、自動儲存、比較選項帶欄位提示）。其餘沿用
 ## 1 新增節點與連線（結論：做，不維持現狀）
 - 理由：畫布唯一能直覺表達「接下來去哪」的方式就是拉線；現況要到面板下拉選目標，非工程人員不知道節點之間怎麼接。`@xyflow/react` 已內建（`onConnect`、`nodesConnectable`），不新增套件；唯讀圖維持 `nodesConnectable={false}`
