@@ -1,0 +1,92 @@
+/* canvas-zoom-filter-ui：畫布縮放（F-31）與數字比較（F-33）追加樣式；沿用 token，無新 token */
+/* 編輯頁側欄收成圖示軌：多出 176px 給畫布 */
+.shell.rail { grid-template-columns: 56px minmax(0, 1fr); }
+.rail .side { align-items: center; gap: var(--space-2); padding: var(--space-3) 0; }
+.rail .side .rl { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-md); color: var(--color-nav-text); position: relative; }
+.rail .side .rl:hover { background: rgba(255,255,255,.1); }
+.rail .side .rl[aria-current="page"] { background: rgba(255,255,255,.16); box-shadow: inset 3px 0 0 #fff; }
+.rail .side .rl svg { width: 20px; height: 20px; }
+.rail .side .rl.pl { margin-top: auto; }
+.rail .side .mark { width: 36px; height: 36px; border-radius: var(--radius-md); background: rgba(255,255,255,.14); display: grid; place-items: center; margin-bottom: var(--space-2); color: var(--color-nav-text); }
+.rail .side .mark svg { width: 18px; height: 18px; }
+/* 縮放：固定下限，不隨面板開關重算 */
+.zf .cv .inner { zoom: .72; }
+.page.zf.pan .stbar + .cvwrap > .cv .inner { margin-left: -41px; }
+
+.zoom .fit { width: auto; padding: 0 var(--space-3); display: inline-flex; align-items: center; gap: 6px; border-left: 1px solid var(--color-border); font-size: var(--text-sm); }
+.zoom .pct.low { background: var(--color-warning-bg); color: var(--color-warning-fg); font-weight: 700; }
+.zfhint { position: absolute; left: 50%; top: var(--space-3); transform: translateX(-50%); z-index: 3; display: flex; gap: var(--space-3); align-items: center; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--color-text); color: #fff; font-size: var(--text-sm); box-shadow: var(--shadow-popover); max-width: calc(100% - 32px); }
+.zfhint svg { flex: none; width: 16px; height: 16px; }
+.zfhint .btn { background: transparent; color: #fff; border-color: rgba(255,255,255,.6); white-space: nowrap; }
+.zfhint .btn:hover { background: rgba(255,255,255,.14); }
+.zfhint.warn { background: var(--color-warning-bg); color: var(--color-warning-fg); border: 1px solid var(--color-warning-fg); box-shadow: none; }
+.zfhint.warn .btn { color: var(--color-warning-fg); border-color: var(--color-warning-fg); background: var(--color-surface); }
+/* 面板：浮在畫布上，可收合成右緣標籤 */
+.dr > header .col { margin-left: auto; width: 36px; height: 36px; border: 0; background: transparent; border-radius: var(--radius-sm); cursor: pointer; color: var(--color-text-muted); display: grid; place-items: center; }
+.dr > header .col:hover { background: var(--color-bg); color: var(--color-text); }
+.dr > header .col + .x { margin-left: 0; }
+.drtab { position: absolute; right: 0; top: var(--space-4); z-index: 3; min-height: 132px; width: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); border: 1px solid var(--color-border-strong); border-right: 0; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; font-weight: 700; font-size: var(--text-sm); cursor: pointer; box-shadow: -4px 0 12px rgba(31,35,40,.1); }
+.drtab:hover { background: var(--color-bg); }
+.drtab:focus-visible { box-shadow: var(--focus-ring); }
+.drtab span { writing-mode: vertical-rl; letter-spacing: .08em; }
+.drtab svg { width: 16px; height: 16px; color: var(--color-primary); }
+/* 數字比較 */
+.lbx.cmp .gh em { font-style: normal; font-weight: 600; color: var(--color-primary); margin-left: var(--space-2); }
+.lbx.cmp [role="option"] .mono { font-family: inherit; }
+.typeseg { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
+.typeseg .seg button { min-height: 32px; padding: 0 var(--space-3); }
+.numtag { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); font-weight: 700; color: var(--color-info-fg); background: var(--color-info-bg); border-radius: var(--radius-pill); padding: 1px 8px; margin-left: var(--space-2); }
+.fnote { display: flex; gap: var(--space-2); margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--color-text-muted); line-height: 1.5; }
+.fnote svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--color-info-fg); }
+.manrow { margin-bottom: var(--space-2); }
+.manrow label { display: block; font-size: var(--text-xs); font-weight: 700; color: var(--color-text-muted); margin-bottom: 2px; }
+@media (max-width: 1100px) { .drtab { display: none; } }
+@media (max-width: 640px) {
+  .zf .cv .inner, .page.zf.pan .stbar + .cvwrap > .cv .inner { zoom: .85; margin-left: 16px; }
+  .zfhint { position: static; transform: none; max-width: none; border-radius: 0; }
+  .typeseg { flex-wrap: wrap; }
+}
+/* 設計稿：這幾頁只看篩選區塊，收起名稱與下一步，列表才在第一屏 */
+#zf-num-pick .dr .body > .field, #zf-num-errors .dr .body > .field, #zf-num-pick .dr .body > .fs:last-child, #zf-num-errors .dr .body > .fs:last-child { display: none; }
+@media (max-width: 640px) { .dr .sentence.stk.r2 { grid-template-areas: "o v x"; } }
+#zf-num-pick .stbar + .cvwrap > .cv, #zf-num-errors .stbar + .cvwrap > .cv, #zf-num-cond .stbar + .cvwrap > .cv { height: 1120px; }
+@media (max-width: 1100px) { #zf-num-pick .stbar + .cvwrap > .cv, #zf-num-errors .stbar + .cvwrap > .cv, #zf-num-cond .stbar + .cvwrap > .cv { height: 340px; } }
+@media (min-width: 1101px) { #zf-num-errors .stbar + .cvwrap > .cv { height: 1500px; } #zf-num-cond .stbar + .cvwrap > .cv { height: 960px; } }
+@media (max-width: 1024px) { .shell.rail { grid-template-columns: minmax(0, 1fr); } .rail .side { display: none; } }
+
+/* 縮放後實際字級 >= 12px（F-31 驗收）：編輯畫布補償節點副文字、類別字與連線標籤 */
+.zf .nd .cat { font-size: 1.05rem; } .zf .nd .sm { font-size: 1.05rem; }
+.zf .el { font-size: 17px; font-weight: 600; }
+.zf .nd { padding: 10px 12px; }
+/* 小地圖緊貼縮放列右邊；只在圖超出畫面時出現 */
+.zf .mini { left: calc(var(--space-4) + 227px); }
+/* 縮放列上方的警告（取代整條橫幅） */
+.zfnote { position: absolute; left: var(--space-4); bottom: calc(var(--space-4) + 52px); z-index: 3; display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); border-radius: var(--radius-md); background: var(--color-warning-bg); color: var(--color-warning-fg); border: 1px solid var(--color-warning-fg); font-size: var(--text-sm); font-weight: 600; }
+.zfnote svg { flex: none; width: 16px; height: 16px; }
+.zfnote .btn { background: var(--color-surface); }
+/* 提示左上、淡出（設計稿延遲 8 秒，實作 2 秒） */
+.zfhint { left: var(--space-4); top: var(--space-3); transform: none; }
+@media (prefers-reduced-motion: no-preference) { .zfhint { animation: zfade .4s 8s forwards; } }
+@keyframes zfade { to { opacity: 0; visibility: hidden; } }
+/* 句子式條件列：手動欄位代碼只在編輯時多一行 */
+.dr .sentence.stk.ed { grid-template-areas: "f f x" "p p p" "o v v"; }
+.dr .sentence.stk.ed.long, .dr .sentence.stk.long { grid-template-areas: "f f x" "o o o" "v v v"; }
+.dr .sentence.stk.ed.long { grid-template-areas: "f f x" "p p p" "o o o" "v v v"; }
+.dr .sentence.stk > .pfx { grid-area: p; }
+.dr .sentence.stk.long > :nth-child(2) { grid-area: o; }
+.dr .sentence.stk .pfx input, .dr .sentence.stk .pfx > span { min-height: 36px; font-size: var(--text-sm); }
+.dr .sentence.stk.ed > select:nth-of-type(2) { grid-area: o; } .dr .sentence.stk.ed > input[aria-label="值"] { grid-area: v; }
+.dr .sentence.stk.long > select:nth-of-type(2) { grid-area: o; } .dr .sentence.stk.long > input[aria-label="值"] { grid-area: v; }
+/* 圖示軌跟著 section 拉滿 */
+.rail .side { position: static; height: auto; }
+/* 窄螢幕：面板開著時畫布縮短並捲到選取節點；沒有收合鈕與提示 */
+@media (max-width: 1100px) { .dr > header .col, .zfhint { display: none; } #zf-open .stbar + .cvwrap > .cv { height: 300px; } }
+@media (max-width: 1100px) { #zf-open .stbar + .cvwrap > .cv .inner { margin-top: 8px; } }
+@media (max-width: 640px) { #zf-open.state .page.zf.pan .stbar + .cvwrap > .cv .inner { margin-left: -1085px; } }
+.zf .nd .nm { font-size: 1.3rem; } .zf .nd { padding: 10px 8px 10px 10px; } .zf .nd .sm { letter-spacing: -.01em; }
+
+/* 第 2 輪：節點卡內容不超過 96px 高、前綴同一行、錯誤摘要字級 */
+.zf .nd { display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.zf .nd .cat, .zf .nd .sm { line-height: 1.25; } .zf .nd .nm { line-height: 1.2; }
+.dr .pfx { display: flex; flex-wrap: nowrap; } .dr .pfx > span { flex: none; font-size: var(--text-xs); } .dr .pfx > input { flex: 1; min-width: 0; width: auto; }
+.fsum.bad { font-size: var(--text-sm); font-weight: 600; }
