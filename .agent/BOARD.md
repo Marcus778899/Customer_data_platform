@@ -144,8 +144,8 @@
 | canvas-fit-fix | frontend | done | 0 | PR #255 |
 | trace-cancelled-fix | frontend | done | 0 | PR #257 |
 | stop-cancel-design | architect | done | 0 | PR #254 |
-| stop-cancel-record-api | backend | todo | 0 |  |
-| advanced-states-flake-fix | frontend | todo | 0 |  |
+| stop-cancel-record-api | backend | done | 0 | PR #260 |
+| advanced-states-flake-fix | frontend | done | 0 | PR #261 |
 
 ## 卡住／待甲方決定
 
@@ -163,6 +163,8 @@
 - 請甲方：本機 .env 的 CDP_INGEST_API_KEY 與 CDP_ADMIN_API_KEY 相同，後端會拒絕啟動（v0.3.0 新規則）；請各自用 openssl rand -hex 32 產生不同值
 - uat F-12：本機從 loopback 連線時 X-Forwarded-For 被採信、可繞過登入限速；符合 auth.md §3（未設 CDP_TRUSTED_PROXIES = 私有網段＋loopback 皆信任），但部署在私有網段時可被偽造。發版前資安審查要判定預設值是否要收緊
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
+- 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
+- 甲方 2026-11-18 要求暫停（無進行中的單）。恢復點：1) 派 uat 第五輪：重測畫布 F-19／F-20／F-21／F-24／F-25、F-16（375 畫布）、F-29 取消顯示（停止→軌跡頁顯示取消原因）；2) 派 security 發版前審查（含 F-12 X-Forwarded-For 預設信任、osv 忽略 picomatch 一條的追認）；3) picomatch #240 須有修正版才發版（D-089）；4) 甲方驗收
 
 ## 注意事項（踩過的坑）
 
