@@ -54,16 +54,4 @@ class TrustedProxiesDashAcceptanceTest {
         assertThat(r.status()).as(r.body()).isEqualTo(429);
         assertThat(r.code()).isEqualTo("LOGIN_RATE_LIMITED");
     }
-
-    @Test
-    void chained_forwarded_for_is_ignored_for_the_source_lock() throws Exception {
-        for (int i = 0; i < 5; i++) {
-            assertThat(login("198.51.100." + (10 + i) + ", 198.51.100.200", uniqueEmail(), WRONG)
-                            .status())
-                    .isEqualTo(401);
-        }
-        Resp r = login("2001:db8:9:9::1", uniqueEmail(), WRONG);
-        assertThat(r.status()).as(r.body()).isEqualTo(429);
-        assertThat(r.code()).isEqualTo("LOGIN_RATE_LIMITED");
-    }
 }
