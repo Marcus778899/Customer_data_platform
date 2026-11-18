@@ -141,6 +141,7 @@
 | journey-builder-integration | frontend | done | 0 | PR #244 |
 | canvas-layout-fix | frontend | done | 0 | PR #248 |
 | canvas-fit-fix | frontend | todo | 0 |  |
+| trace-cancelled-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
