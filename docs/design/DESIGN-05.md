@@ -7,11 +7,11 @@
 | 2 | 節點統計（`journeys.md` §5）獨立 `J/nodestats/`（Controller、Service、Store 介面）＋`J/persistence/JdbcNodeStatsStore`：一條 SQL 以 `enrollment_record (journey_id, journey_version)` join `node_trace` 分組計數（`ix_enrollment_journey_recent` 起頭），`statement_timeout` 5 秒；不加 migration、不快取 | 與 lifecycle 不共用檔，可平行 |
 | 3 | 遮罩（#184，待決定 1 建議 A）：`MaskingProperties` 綁定值為 `null`（變數不存在）時用常數 `DEFAULT_PLAIN_KEYS = {name}`；`application.yml` 改 `${CDP_TRACE_PLAIN_KEYS:name}`（只在變數不存在時套用；空字串仍全遮；綁到 null 時同樣退回 `DEFAULT_PLAIN_KEYS`）；`.env.example` 該行改註解；`Makefile` 以 `ifneq ($(origin CDP_TRACE_PLAIN_KEYS),undefined)` 包住 `export`（Make 3.81 會把未定義變數匯出成空字串），並從 `NO_DOTENV` 移除。`profile_name`（#180）在 `JdbcEnrollmentQueryStore` 列表 SQL `LEFT JOIN profile` 取 `attributes->>'name'`，`PiiMasker.isPlain("name")` 為假即 `null`；`profile_identifier` 同 SQL 取 `profile_identifier` 依 `(id_type, id_value)` 第一筆（`LATERAL … LIMIT 1`），以 `PiiMasker` 遮罩 | 白名單語意不變；已設定的環境（D-082 `name`）行為不變 |
 | 4 | 金鑰強度（#152）：`AuthPropertiesValidator` 加 `CHANGE_ME`（不分大小寫）與長度 ≥ 32 檢查，常數不可由設定調低；`application-test.yml` 與驗收中的測試金鑰改成 ≥ 32 字的低熵值（例 `test-admin-key-` 補 `0`），避開 gitleaks `generic-api-key` | M-1 修法；不給降低防護的開關 |
-| 5 | 登入限速（#153，待決定 2 建議 A）：`LoginRateLimiter` 鍵改 `(email, clientIp)`＋另一張 `clientIp` 計數；全域 `Semaphore(availableProcessors)` 包住 BCrypt；兩張表用有上限的 `LinkedHashMap`（access-order、`removeEldestEntry`，上限 100,000），過期清理只在插入時做；`clientIp` = `request.getRemoteAddr()`，`server.forward-headers-strategy: native`＋`server.tomcat.remoteip.internal-proxies: ${CDP_TRUSTED_PROXIES:…Tomcat 預設私有網段}` | M-2 修法；不加相依（不用 Caffeine） |
+| 5 | 登入限速（#153，待決定 2 建議 A）：`LoginRateLimiter` 鍵改 `(email, clientIp)`＋另一張 `clientIp` 計數；全域 `Semaphore(availableProcessors)` 包住 BCrypt；兩張表用有上限的 `LinkedHashMap`（access-order、`removeEldestEntry`，上限 100,000），過期清理只在插入時做；`clientIp` 的取得與信任代理改由 `login-proxy.md`（D-091）取代 | M-2 修法；不加相依（不用 Caffeine） |
 | 6 | #190：`docs/uat/artifacts/` 已由 1384f31 移出版控並 ignore；本單另加 `docs/uat/**/*.yml`、`docs/uat/**/*.yaml`（`*.log` 已全域 ignore），截圖 `docs/uat/<版本>/*.png` 照常進版控 | 防 uat 換輸出位置又被提交 |
 | 7 | 不建程式骨架（本單禁區為程式碼）：每張實作單自建；共用檔依下表一次只歸一張，序列化避免重疊 | 派工單限制 |
 ## 業務規則與術語：新增 `docs/domain/glossary.md`（術語 18 條）、`rules.md`（審核 8 條、版本綁定、停止、節點、遮罩、驗收場景）；`README.md` 索引 9 條
-## 設定（寫進 .env.example，這裡不寫值）：`CDP_TRACE_PLAIN_KEYS` 改選填（註解，做法 #3）；新增 `CDP_LOGIN_IP_MAX_FAILURES`、選填 `CDP_TRUSTED_PROXIES`（做法 #5，皆非機密）；`CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`（機密）說明加「≥ 32 字，`openssl rand -hex 32`」
+## 設定（寫進 .env.example，這裡不寫值）：`CDP_TRACE_PLAIN_KEYS` 改選填（註解，做法 #3）；新增 `CDP_LOGIN_IP_MAX_FAILURES`、`CDP_TRUSTED_PROXIES`（D-091 起必填，見 `login-proxy.md`；皆非機密）；`CDP_INGEST_API_KEY`、`CDP_ADMIN_API_KEY`（機密）說明加「≥ 32 字，`openssl rand -hex 32`」
 ## 威脅與對策
 | 資產 | 威脅 | 對策 |
 |---|---|---|
@@ -52,7 +52,7 @@
 | 刪草稿後的審核狀態（journey-contract-fix） | 收斂：「這份草稿的審核」= 草稿建立後送審的 `Review`（`journeys.md` §3），刪除或核准清除草稿後，新草稿不再帶出舊的 `REJECTED`。理由：刪草稿 = 放棄內容，帶出舊退回原因會誤導，且讓旅程誤入 `?review_status=REJECTED` 清單；同定義一併統一 `Draft.latest_review`（現排除 `APPROVED`）與 `review_status`（現取最新一筆）在金鑰紀錄上的差異。實作交 journey-draft-review-scope-api |
 ## 待甲方決定／需要調查
 - 待決定 1～3 已定案，皆採建議案 A：1（#184 明文清單）→ D-083；2（#153 限速維度）→ D-084；3（場景一 `event_filter`）→ D-085。待決定 4（`WaitForEventNode.event_filter`）→ D-087（A，擴及等事件）
-- 需調查 1：已結案，可並用但不採用（結論與理由見 DESIGN-03 需調查 1）；需調查 2：正式環境反向代理的網段與是否覆寫 `X-Forwarded-For`（決定 `CDP_TRUSTED_PROXIES` 的值；代管維運提供）
+- 需調查 1：已結案，可並用但不採用（結論與理由見 DESIGN-03 需調查 1）；需調查 2：已收斂（D-091）：部署要求寫進 `auth.md` §3「來源 IP」，各環境的值由維運依該節填，見 `login-proxy.md`
 ## 風險
 | 風險 | 對策 |
 |---|---|
