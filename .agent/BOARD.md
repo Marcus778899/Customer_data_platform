@@ -150,7 +150,7 @@
 | advanced-states-flake-fix | frontend | done | 0 | PR #261 |
 | canvas-zoom-filter-ui | designer | done | 0 | PR #265 |
 | canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
-| login-proxy-design | architect | todo | 0 |  |
+| login-proxy-design | architect | review | 0 |  |
 | osv-ignore-extend | architect | done | 0 | PR #274 |
 
 ## 卡住／待甲方決定
@@ -171,6 +171,7 @@
 - uat 完成（第七輪）：無 blocker／major，minor #268 #271；驗收條件 1～6、8、9 PASS，7 乾淨環境由 security 讀碼確認、10 待甲方關 #149；甲方驗收清單待勾
 - security v0.3.0 FAIL：H-1 依 D-092 改帶忽略發版（osv-ignore-extend 改到期日）；M-1／M-2 依 D-091 修（login-proxy-design → 後端單）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
 - 注意：osv 忽略 picomatch 到期 2027-03-18（D-092）；到期前查上游，有修正版開單升版，沒有再問甲方
+- 甲方驗收回饋記在 #276（畫布拖拉／拉線互動待 designer 評估、旅程頁節點字裁切、條件面板比較欄窄與怎麼測）；甲方回饋完再分級排單
 
 ## 注意事項（踩過的坑）
 
