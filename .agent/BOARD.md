@@ -146,7 +146,7 @@
 | stop-cancel-design | architect | done | 0 | PR #254 |
 | stop-cancel-record-api | backend | done | 0 | PR #260 |
 | advanced-states-flake-fix | frontend | done | 0 | PR #261 |
-| canvas-zoom-filter-ui | designer | in-progress | 0 |  |
+| canvas-zoom-filter-ui | designer | done | 0 | PR #265 |
 
 ## 卡住／待甲方決定
 
@@ -165,7 +165,7 @@
 - uat F-12：本機從 loopback 連線時 X-Forwarded-For 被採信、可繞過登入限速；符合 auth.md §3（未設 CDP_TRUSTED_PROXIES = 私有網段＋loopback 皆信任），但部署在私有網段時可被偽造。發版前資安審查要判定預設值是否要收緊
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
-- 待甲方核可設計 canvas-zoom-filter-ui（PR #265，F-31 畫布縮放、F-33 數字比較；視覺評審 PASS，3 個小問題併入前端實作單）；之後前端實作、uat 重測、security 審查、picomatch #240（D-089）、甲方驗收
+- v0.3.0 收尾：canvas-zoom-filter-fix（F-31／F-33 實作）進行中；之後 uat 重測、security 審查、picomatch #240（D-089）、甲方驗收
 
 ## 注意事項（踩過的坑）
 
