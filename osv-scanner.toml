@@ -1,11 +1,12 @@
 # osv-scanner config for the root lockfile (package-lock.json).
 # Only individually approved vulnerability IDs go here; never exclude paths or disable scanning.
 
-# D-089 / #240: picomatch <= 4.0.7 ReDoS (CVE-2026-112366), no fixed release exists yet
+# D-092 / #240: picomatch <= 4.0.7 ReDoS (CVE-2026-112366), no fixed release exists yet
 # (upstream fix micromatch/picomatch#194 unmerged). picomatch is dev-only (vite, vitest,
 # tinyglobby, fdir); not shipped in the production bundle nor used by the backend.
-# Must upgrade and remove this entry before v0.3.0 release (#240).
+# Before ignoreUntil: check upstream; if a fixed version exists, upgrade and remove this
+# entry, otherwise ask the client whether to extend (D-092, tracked in #240).
 [[IgnoredVulns]]
 id = "GHSA-fc5q-39xc-vjpf"
-ignoreUntil = 2026-12-18
-reason = "D-089, #240: picomatch ReDoS, no fixed version yet; dev-only dependency (vite/vitest toolchain), not in production bundle. Upgrade and remove before v0.3.0 release."
+ignoreUntil = 2027-03-18
+reason = "D-092, #240: picomatch ReDoS, no fixed version yet; dev-only dependency (vite/vitest toolchain), not in production bundle. Check upstream before expiry: upgrade and remove if fixed, else ask client to extend."

@@ -13,9 +13,21 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-093 picomatch advisory 已被 GitHub 撤回，忽略條目要不要拿掉、#240 要不要結案
+- 背景：GitHub Advisory DB 2026-11-18 把 GHSA-fc5q-39xc-vjpf 標成 withdrawn（依據 micromatch/picomatch#235），OSV 查 picomatch 4.0.7 已無結果，CI 印 "unused ignores"；上游仍無新版（4.0.7）。見 `.agent/reports/osv-ignore-extend.review.md`
+- 選項：A. 開 chore 刪掉 `osv-scanner.toml` 這一條，security 依撤回理由追認，關 #240，D-089／D-092 視同結案 ／ B. 維持 D-092 的忽略到 2027-03-18，#240 照常追蹤
+- 建議：A，advisory 撤回後忽略已無作用；萬一 advisory 重新發佈，沒有忽略才會立刻被 CI 抓到，比留著更安全
+- 提出：architect（osv-ignore-extend review）
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-092 picomatch 漏洞不再卡 v0.3.0 發版，留 #240 追蹤（修改 D-089 第 2 點）
+- 決定：A. v0.3.0 可帶著 GHSA-fc5q-39xc-vjpf 的單條忽略發版；忽略到期日延到 2027-03-18，理由改引用 D-092；到期前 manager 查上游，有修正版就開單升版並移除忽略，沒有就再問甲方是否延期
+- 理由：上游（micromatch/picomatch#194）何時發修正版不可控；picomatch 只在開發工具鏈、不進正式版，實際風險低；避免整版進度被延後
+- 影響：開 chore osv-ignore-extend（architect，改 `osv-scanner.toml`）；security 重審時依 D-092 判定 H-1；#240 改為 backlog 追蹤
+- 日期：2026-11-18
 
 ### D-091 登入限速的來源 IP 可被偽造（資安 M-1／M-2），v0.3.0 修（修改 D-084 的代理預設值）
 - 決定：A. v0.3.0 修：`CDP_TRUSTED_PROXIES` 改必填（直連部署填 `-` 表示不信任任何代理，有代理只填代理確切位址；未設拒絕啟動），IPv6 以 /64 計數，部署說明寫明代理要覆寫 X-Forwarded-For；不做依 email 的全域上限
