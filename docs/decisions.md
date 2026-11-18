@@ -13,6 +13,12 @@
 - 提出：architect（DESIGN-01）
 -->
 
+### D-093 picomatch advisory 已被 GitHub 撤回，忽略條目要不要拿掉、#240 要不要結案
+- 背景：GitHub Advisory DB 2026-11-18 把 GHSA-fc5q-39xc-vjpf 標成 withdrawn（依據 micromatch/picomatch#235），OSV 查 picomatch 4.0.7 已無結果，CI 印 "unused ignores"；上游仍無新版（4.0.7）。見 `.agent/reports/osv-ignore-extend.review.md`
+- 選項：A. 開 chore 刪掉 `osv-scanner.toml` 這一條，security 依撤回理由追認，關 #240，D-089／D-092 視同結案 ／ B. 維持 D-092 的忽略到 2027-03-18，#240 照常追蹤
+- 建議：A，advisory 撤回後忽略已無作用；萬一 advisory 重新發佈，沒有忽略才會立刻被 CI 抓到，比留著更安全
+- 提出：architect（osv-ignore-extend review）
+
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
