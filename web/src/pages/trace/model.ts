@@ -120,12 +120,12 @@ function doneDesc(t: TraceEntry, d: EnrollmentDetail, def: JourneyVersion | null
     }
     case 'SendMessageNode': {
       const ds = deliveriesOf(d, t.seq)
-      if (ds.length === 0) return '這一步已處理完成。'
+      if (ds.length === 0) return '這一步查不到訊息的發送紀錄，無法確認訊息有沒有送出。'
       const s = ds[0].status
       if (s === 'SENT') return '訊息已送出。'
       if (s === 'PENDING') return '訊息已排入發送，還沒有送達。'
       if (s === 'FAILED') return '訊息發送失敗。'
-      if (s === 'CANCELLED') return '訊息已取消，沒有送出。'
+      if (s === 'CANCELLED') return '旅程被停止，訊息已取消、沒有送出。'
       return `訊息沒有送出：${ds[0].skip_reason ? skipReasonText(ds[0].skip_reason) : '被略過'}。`
     }
     case 'EndNode':
@@ -154,7 +154,12 @@ export function buildSteps(d: EnrollmentDetail, def: JourneyVersion | null, now:
       out.push({ ...base, kind: 'err', label: '發生問題', desc: '這一步發生錯誤，旅程停在這裡，不會自動繼續。', time: entered })
     } else if (t === stopAt) {
       const end = d.terminated_at ? ` → ${plainAt(d.terminated_at, now)}` : ''
-      const desc = t.node_type === 'WaitDelayNode' ? '在等待中被中止。' : '在這一步被中止。'
+      const cancelledHere = t.node_type === 'SendMessageNode' && deliveriesOf(d, t.seq).some((x) => x.status === 'CANCELLED')
+      const desc = cancelledHere
+        ? '在這一步被中止：旅程被停止，訊息已取消、沒有送出。'
+        : t.node_type === 'WaitDelayNode'
+          ? '在等待中被中止。'
+          : '在這一步被中止。'
       out.push({ ...base, kind: 'stopped', label: '已中止', desc, time: `${entered}${end}` })
     } else if (!terminal && t === open) {
       const wake = d.wake_condition?.wake_at
@@ -214,12 +219,16 @@ export function customerLabel(d: EnrollmentDetail, profile?: ProfileDetail): { t
   return { text: '未具名客戶', masked: false }
 }
 
+/** 軌跡裡是否走過發送訊息步驟 */
+export const walkedSend = (d: EnrollmentDetail) => d.trace.some((t) => t.node_type === 'SendMessageNode')
+
 function messageRow(d: EnrollmentDetail, now: Date): SummaryRow {
   const q = '訊息有送出嗎？'
   const del = d.delivery_history
   const pending = del.filter((x) => x.status === 'PENDING')
   const sent = del.filter((x) => x.status === 'SENT')
   const failed = del.filter((x) => x.status === 'FAILED')
+  const cancelled = del.filter((x) => x.status === 'CANCELLED')
   const nameOf = (x: Delivery) => x.node_name ?? '發送訊息'
   if (pending.length > 0) {
     const waiting = d.status === 'WAITING' || d.status === 'ACTIVE' || d.status === 'PENDING'
@@ -232,12 +241,19 @@ function messageRow(d: EnrollmentDetail, now: Date): SummaryRow {
   if (sent.length > 0) {
     const extra = sent.length > 1 ? `共 ${sent.length} 則已送出。` : ''
     const after = d.status === 'ABORTED' ? '之後不會再有新的訊息。' : ''
-    return { q, strong: '有。', rest: `「${nameOf(sent[0])}」已於 ${plainAt(sent[0].attempted_at, now)} 送出。${extra}${after}` }
+    const cut = cancelled.length > 0 ? `另有 ${cancelled.length} 則因旅程被停止而取消、沒有送出。` : ''
+    return { q, strong: '有。', rest: `「${nameOf(sent[0])}」已於 ${plainAt(sent[0].attempted_at, now)} 送出。${extra}${cut}${after}` }
   }
   if (failed.length > 0) return { q, strong: '沒有。', rest: '發送失敗，結果記在下方的訊息發送紀錄。' }
+  if (cancelled.length === del.length && del.length > 0) {
+    return { q, strong: '沒有送出。', rest: `因為旅程被停止，${cancelled.length} 則訊息已取消、沒有送出。` }
+  }
   if (del.length > 0) return { q, strong: '沒有。', rest: `有 ${del.length} 則訊息未發送，原因見下方的訊息發送紀錄。` }
   if (d.status === 'ABORTED') return { q, strong: '沒有，之後也不會送出。' }
   if (d.status === 'FAILED') return { q, strong: '沒有。', rest: '發生錯誤前沒有送出任何訊息。' }
+  if (TERMINAL.has(d.status) && walkedSend(d)) {
+    return { q, strong: '查不到發送結果。', rest: '這位客戶走過「發送訊息」步驟，但目前查不到訊息的發送紀錄，請聯絡技術人員確認。' }
+  }
   if (TERMINAL.has(d.status)) return { q, strong: '沒有。', rest: '這個旅程沒有發送過訊息。' }
   return { q, strong: '還沒有。', rest: '這位客戶還沒走到「發送訊息」的步驟，所以目前沒有收到任何訊息。' }
 }
