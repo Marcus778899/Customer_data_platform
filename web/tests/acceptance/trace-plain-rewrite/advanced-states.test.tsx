@@ -235,10 +235,12 @@ describe('從客戶頁進入仍可用（整合）', () => {
     })
     const user = userEvent.setup()
     start(`/enrollments/${EID}`)
-    await user.type(await screen.findByLabelText('Email'), 'amy.chen@example.com')
+    // 覆蓋率模式下登入後的多段請求與渲染偶爾超過 5 秒：這段兩次等待放寬到 15 秒（斷言不變）
+    const slow = { timeout: 15000 }
+    await user.type(await screen.findByLabelText('Email', {}, slow), 'amy.chen@example.com')
     await user.type(screen.getByLabelText('密碼'), 'pw')
     await user.click(screen.getByRole('button', { name: '登入' }))
-    await heading()
+    await screen.findByRole('heading', { level: 1, name: /旅程的進度/ }, slow)
     expect(window.location.pathname).toBe(`/enrollments/${EID}`)
-  })
+  }, 40000)
 })
