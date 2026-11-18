@@ -26,6 +26,7 @@ import com.cdp.common.fault.FaultInjector;
 import com.cdp.delivery.channel.ChannelAdapter;
 import com.cdp.engine.EffectExecutor;
 
+@SuppressWarnings("unchecked")
 class DeliveryConsumerTest {
 
     private static final Duration DELAY = Duration.ofMillis(300);
@@ -107,5 +108,49 @@ class DeliveryConsumerTest {
         consumer().onMessage("k");
 
         assertThat(captured.getValue().channelType()).isEqualTo("SMS");
+    }
+
+    private void runCancelCase(OutboxStatus outboxStatus, boolean stopped) {
+        Instant t = Instant.parse("2026-01-01T00:00:00Z");
+        when(outbox.find("k"))
+                .thenReturn(
+                        Optional.of(
+                                new OutboxEntry(
+                                        "k", "e", "j", 1, "n", 1, 0, "SendMessage",
+                                        Map.of("template_id", "tpl", "channel_id", "ch", "variables", Map.of()),
+                                        outboxStatus, t, 0, t, null)));
+        when(tasks.insertIfAbsentAndLock(any()))
+                .thenReturn(
+                        new DeliveryTask(
+                                "k", "e", "j", 1, "n", 1, "tpl", "ch", "MOCK", null,
+                                DeliveryTaskStatus.PENDING, null, null, t, t, t));
+        KillSwitch ks = mock(KillSwitch.class);
+        when(ks.isStopped("j", 1)).thenReturn(stopped);
+        org.mockito.Mockito.doAnswer(
+                        inv -> {
+                            ((Consumer<Object>) inv.getArgument(0)).accept(null);
+                            return null;
+                        })
+                .when(tx)
+                .executeWithoutResult(any());
+        new DeliveryConsumer(
+                        outbox, tasks, ks, mock(EffectExecutor.class), tx, mock(FaultInjector.class),
+                        Clock.fixed(t, ZoneOffset.UTC), channel,
+                        new DeliveryProperties(DELAY, Duration.ofSeconds(5)))
+                .onMessage("k");
+    }
+
+    @Test
+    void killSwitch_marksCancelledWithJourneyStopped() {
+        runCancelCase(OutboxStatus.PUBLISHED, true);
+        org.mockito.Mockito.verify(tasks)
+                .markCancelled("k", CancelReason.JOURNEY_STOPPED, Instant.parse("2026-01-01T00:00:00Z"));
+    }
+
+    @Test
+    void cancelledOutboxWithoutTask_marksCancelledWithNullReason() {
+        runCancelCase(OutboxStatus.CANCELLED, false);
+        org.mockito.Mockito.verify(tasks)
+                .markCancelled("k", null, Instant.parse("2026-01-01T00:00:00Z"));
     }
 }

@@ -12,6 +12,9 @@ public interface DeliveryTaskStore {
 
     void update(DeliveryTask task);
 
+    /** 標 CANCELLED 與原因（可 null＝V10 前取消的舊資料）；updated_at＝at。 */
+    void markCancelled(String idempotencyKey, CancelReason reason, java.time.Instant at);
+
     Optional<DeliveryTask> find(String idempotencyKey);
 
     /** 單一 UPDATE 追加並只保留最近 50 筆（02 §7），不與引擎的 save 互相覆蓋。 */

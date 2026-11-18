@@ -10,6 +10,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.DeliveryTask;
 import com.cdp.delivery.DeliveryTaskStatus;
 import com.cdp.delivery.DeliveryTaskStore;
@@ -86,6 +87,18 @@ public class JdbcDeliveryTaskStore implements DeliveryTaskStore {
                 .param("deliveryId", t.deliveryId(), java.sql.Types.VARCHAR)
                 .param("attemptedAt", ts(t.attemptedAt()))
                 .param("updatedAt", ts(t.updatedAt()))
+                .update();
+    }
+
+    @Override
+    public void markCancelled(String idempotencyKey, CancelReason reason, Instant at) {
+        jdbc.sql(
+                        "update delivery_task set status = 'CANCELLED', cancel_reason = :reason,"
+                                + " skip_reason = null, delivery_id = null, updated_at = :at"
+                                + " where idempotency_key = :key")
+                .param("key", idempotencyKey)
+                .param("reason", reason == null ? null : reason.name(), java.sql.Types.VARCHAR)
+                .param("at", ts(at))
                 .update();
     }
 

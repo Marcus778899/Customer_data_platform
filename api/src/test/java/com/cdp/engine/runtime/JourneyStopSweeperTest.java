@@ -93,7 +93,7 @@ class JourneyStopSweeperTest {
         assertThat(saved.getValue().wakeCondition()).isNull();
         assertThat(trace.getValue().seq()).isEqualTo(DefaultEnrollmentAdvancer.APPEND_TRACE);
         assertThat(trace.getValue().nodeType()).isEqualTo("WaitDelayNode");
-        verify(outbox).cancelPendingByEnrollment("e1");
+        verify(outbox).cancelPendingByEnrollment("e1", com.cdp.delivery.CancelReason.JOURNEY_STOPPED, NOW);
     }
 
     @Test
@@ -116,7 +116,7 @@ class JourneyStopSweeperTest {
         verify(stateStore).save(saved.capture(), trace.capture(), any());
         assertThat(saved.getValue().terminationReason()).hasSize(200);
         assertThat(trace.getValue().nodeType()).isEqualTo("Unknown");
-        verify(outbox, never()).cancelPendingByEnrollment("done");
+        verify(outbox, never()).cancelPendingByEnrollment(eq("done"), any(), any());
     }
 
     @Test

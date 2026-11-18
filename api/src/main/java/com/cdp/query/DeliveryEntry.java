@@ -2,6 +2,7 @@ package com.cdp.query;
 
 import java.time.Instant;
 
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.DeliveryTaskStatus;
 import com.cdp.engine.model.MessageType;
 import com.cdp.engine.model.SkipReason;
@@ -18,5 +19,6 @@ public record DeliveryEntry(
         MessageType messageType,
         DeliveryTaskStatus status,
         SkipReason skipReason,
+        CancelReason cancelReason,
         Instant attemptedAt,
         String deliveryId) {}

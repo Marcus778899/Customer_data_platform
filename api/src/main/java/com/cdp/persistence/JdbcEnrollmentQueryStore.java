@@ -14,6 +14,7 @@ import java.util.Set;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.DeliveryTaskStatus;
 import com.cdp.engine.model.EnrollmentStatus;
 import com.cdp.engine.model.MessageType;
@@ -164,7 +165,7 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
                 new StringBuilder(
                         "select d.idempotency_key, d.node_id, d.visit_seq, d.template_id, d.channel_id,"
                                 + " d.channel_type, d.message_type, d.status, d.skip_reason, d.attempted_at,"
-                                + " d.delivery_id, nm.name as node_name"
+                                + " d.delivery_id, d.cancel_reason, nm.name as node_name"
                                 + " from delivery_task d"
                                 + " left join enrollment_record e on e.enrollment_id = d.enrollment_id"
                                 + " left join journey_definition jd on jd.journey_id = e.journey_id"
@@ -249,6 +250,7 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
     private static DeliveryEntry delivery(ResultSet rs) throws SQLException {
         String messageType = rs.getString("message_type");
         String skipReason = rs.getString("skip_reason");
+        String cancelReason = rs.getString("cancel_reason");
         return new DeliveryEntry(
                 rs.getString("idempotency_key"),
                 rs.getString("node_id"),
@@ -260,6 +262,7 @@ public class JdbcEnrollmentQueryStore implements EnrollmentQueryStore {
                 messageType == null ? null : MessageType.valueOf(messageType),
                 DeliveryTaskStatus.valueOf(rs.getString("status")),
                 skipReason == null ? null : SkipReason.valueOf(skipReason),
+                cancelReason == null ? null : CancelReason.valueOf(cancelReason),
                 instant(rs, "attempted_at"),
                 rs.getString("delivery_id"));
     }
