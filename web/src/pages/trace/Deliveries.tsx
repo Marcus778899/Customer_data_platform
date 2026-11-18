@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { ApiError, listDeliveries } from '../../api/client'
 import type { Delivery, EnrollmentDetail } from '../../api/types'
 import { Badge, ErrorBox } from '../../components/ui'
-import { DELIVERY_STATUS } from '../../format'
+import { DELIVERY_STATUS, TERMINAL } from '../../format'
 import { deliveryStatusText, skipReasonText, stepTitle } from '../../plain'
-import { channelLabel, plainAt } from './model'
+import { channelLabel, plainAt, walkedSend } from './model'
 
 export function Deliveries({ d, now }: { d: EnrollmentDetail; now: Date }) {
   const [extra, setExtra] = useState<{ base: EnrollmentDetail; items: Delivery[]; next: string | null } | null>(null)
@@ -32,7 +32,14 @@ export function Deliveries({ d, now }: { d: EnrollmentDetail; now: Date }) {
   return (
     <>
       <h2 className="sec">訊息發送紀錄</h2>
-      {rows.length === 0 ? (
+      {rows.length === 0 && TERMINAL.has(d.status) && walkedSend(d) ? (
+        <div className="card msg muted">
+          <p>
+            <strong>查不到訊息的發送紀錄。</strong>
+          </p>
+          <p>客戶走過「發送訊息」步驟，但目前沒有任何發送結果可顯示，請聯絡技術人員確認。</p>
+        </div>
+      ) : rows.length === 0 ? (
         <div className="card msg muted">
           <p>
             <strong>還沒有發出任何訊息。</strong>
