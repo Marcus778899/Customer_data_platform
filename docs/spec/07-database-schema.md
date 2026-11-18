@@ -358,6 +358,7 @@ PRIMARY KEY (event_id)
 | V7_2 | `V7_2__due_queue_tiebreak_index.sql` | §12「V7_2」：`ix_enrollment_wake`、`ix_effect_outbox_due` 同名重建並補第二排序欄（D-077；不佔 V8） |
 | V8 | `V8__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
 | V9 | `V9__journey_draft_created_at.sql` | §12「V9」：`journey.draft_created_at`（「這份草稿的審核」的起點，`journeys.md` §3；v0.3.0，journey-draft-review-scope-api） |
+| V10 | `V10__delivery_task_cancel_reason.sql` | §12「V10」：`delivery_task.cancel_reason`（取消紀錄的原因；v0.3.0，stop-cancel-record-api） |
 
 ### 鐵則
 
@@ -440,7 +441,7 @@ DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作：FIX-
 
 ---
 
-## 12. v0.2.0 起新增（V5～V9；設計見 `docs/design/DESIGN-03.md`、`DESIGN-05.md`）
+## 12. v0.2.0 起新增（V5～V10；設計見 `docs/design/DESIGN-03.md`、`DESIGN-05.md`）
 
 DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `Clock`。
 
@@ -495,8 +496,17 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 |---|---|
 | 欄位 | `journey.draft_created_at` TIMESTAMPTZ，可 null；expand，只加欄不回填、不加索引（依 `journey_id` 單列讀） |
 | 寫入 | 建立草稿時設為現在（`POST /journeys/drafts`、`PUT` 在 `draft` 為 null 時以最新版本為底建立）；之後存草稿不變；`DELETE` 草稿、核准清除草稿時與 `draft` 一起設 null；§3.1 同步不動它 |
-| 讀取 | 「這份草稿的審核」= 該旅程 `journey_review` 中 `submitted_at >= draft_created_at` 且 `submitted_by IS NOT NULL` 的列；`draft_created_at` 為 null 而 `draft` 不為 null（V9 前建立的草稿）時不以時間過濾，行為同 V8 |
+| 讀取 | 「這份草稿的審核」= 該旅程 `journey_review` 中 `submitted_at >= draft_created_at` 且 `submitted_by IS NOT NULL` 的列；`draft_created_at` 為 null 而 `draft` 不為 null（V9 前建立的草稿）時只略過時間過濾，金鑰紀錄（`submitted_by` 為 null）照樣不算 |
 | down | `ALTER TABLE journey DROP COLUMN draft_created_at;`（寫在 migration 檔頭；舊版程式不讀此欄，可並存） |
+
+### V10：取消紀錄的原因（`journey-engine.md` §4.1 `Delivery.cancel_reason`；設計 `docs/design/stop-cancel.md`）
+
+| 項目 | 規則 |
+|---|---|
+| 欄位 | `delivery_task.cancel_reason` TEXT，可 null；expand，只加欄不回填、不加索引 |
+| 約束 | `ck_delivery_task_cancel_reason`：`cancel_reason IS NULL OR (status = 'CANCELLED' AND cancel_reason IN ('JOURNEY_STOPPED', 'ENROLLMENT_ENDED'))` |
+| 寫入 | 取消 outbox 時同一敘述插入（下「relay」取消列）：`attempted_at` = `created_at` = `updated_at` = 取消時間，`message_type`／`skip_reason`／`delivery_id` 為 null，`ON CONFLICT (idempotency_key) DO NOTHING`；consumer 因 KillSwitch 擋下時寫 `JOURNEY_STOPPED`；V10 前已取消、沒有 `delivery_task` 的列由 consumer 補寫 `CANCELLED`、原因 null |
+| down | `ALTER TABLE delivery_task DROP CONSTRAINT ck_delivery_task_cancel_reason; ALTER TABLE delivery_task DROP COLUMN cancel_reason;`（寫在 migration 檔頭；舊版程式不讀此欄，可並存） |
 
 ### relay（`effect_outbox`，不需 migration）
 
@@ -505,7 +515,7 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 | 搶列（短交易） | `PENDING` 且 `available_at <= now`，`ORDER BY available_at, idempotency_key`，`LIMIT n FOR UPDATE SKIP LOCKED`，同一敘述把 `available_at` 設為 `lease_until = now + OUTBOX_RELAY_LEASE` 並回傳列；提交後不持鎖 |
 | 發送（交易外） | 整批 publish、一起等 confirm（上限 `OUTBOX_RELAY_CONFIRM_TIMEOUT`） |
 | 回寫（條件式） | 成功：`status='PUBLISHED'`、`published_at`、`publish_count+1`，**`WHERE status='PENDING' AND available_at = lease_until`**；失敗：同條件下 `available_at = now + OUTBOX_RELAY_RETRY_DELAY`。影響 0 列 = lease 已過期被別人重搶或已被取消，丟棄這次結果 |
-| 取消 | 進入終態、旅程停止：`PENDING` → `CANCELLED`（不論是否被搶走）；之後的回寫因 `status` 條件失效；已在 MQ 的訊息由 consumer 讀到 `CANCELLED` 列即寫 `delivery_task.CANCELLED` 後 ack |
+| 取消 | 中途結束（goal／global_exit，`02` §3）、旅程停止：`PENDING` → `CANCELLED`（不論是否被搶走），同一敘述為每列 `SendMessage` 寫 `delivery_task`（`CANCELLED`＋`cancel_reason`，見「V10」）；之後的回寫因 `status` 條件失效；已在 MQ 的訊息由 consumer 讀到既有 `delivery_task` 非 `PENDING` 即 ack |
 
 - `OUTBOX_RELAY_LEASE` 必須大於 `OUTBOX_RELAY_CONFIRM_TIMEOUT`（啟動時驗證，不符即拒絕啟動）；lease 過期重發的重複由 consumer 冪等吸收（`delivery_task`）
 

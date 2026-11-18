@@ -46,6 +46,7 @@
 |---|---|
 | `EnrollmentStatus` | `PENDING` `ACTIVE` `WAITING` `SUSPENDED` `COMPLETED` `GOAL_MET` `EXITED` `FAILED` `ABORTED`（語意見 spec 02 §3；v0.1.0 實際會出現 `ACTIVE` `WAITING` `COMPLETED` `FAILED`） |
 | `DeliveryStatus` | `PENDING`（已排入、尚未送） `SENT` `SKIPPED` `FAILED` `CANCELLED` |
+| `CancelReason` | `JOURNEY_STOPPED`（旅程停止，`journeys.md` §3.5） `ENROLLMENT_ENDED`（`goal`／`global_exit` 使旅程進度中途結束，spec 02 §3）；v0.3.0 起 |
 | `SkipReason` | `CONSENT` `FREQUENCY_CAP` `QUIET_HOURS` `PRIORITY_LOST` `BUDGET_EXCEEDED` `KILL_SWITCH`（v0.1.0 無守門，不會出現） |
 | `MessageType` | `TRANSACTIONAL` `MARKETING`；v0.1.0 無模板表，一律 `null` |
 | 節點 `type` | v0.1.0 只接受 `StartNode` `EventSourceNode` `WaitDelayNode` `SendMessageNode` `EndNode`；第二版增加的型別見 `journeys.md` §4 |
@@ -120,7 +121,8 @@
 | | `message_type` | `MessageType` \| null | v0.1.0 為 `null` |
 | | `status` | `DeliveryStatus` | |
 | | `skip_reason` | `SkipReason` \| null | `SKIPPED` 時必有 |
-| | `attempted_at` | time | |
+| | `cancel_reason` | `CancelReason` \| null | v0.3.0 起：`CANCELLED` 時表示取消原因；其他狀態為 `null`；v0.3.0 前已取消的舊紀錄可為 `null`（原因未記錄） |
+| | `attempted_at` | time | `CANCELLED`：取消的時間（未送出的訊息在取消當下即留一筆，見 `journeys.md` §3.5、spec 05 §5） |
 | | `delivery_id` | string \| null | 服務商訊息 id，`SENT` 時有值 |
 
 ### §4.2 名稱來源（Q2）
@@ -135,7 +137,7 @@
 
 後端在回應前遮罩，所有角色相同（不提供解除遮罩）。只有 `EnrollmentDetail` 含個資；`EnrollmentSummary`、`Delivery` 只有 ID、名稱、狀態與時間（`profile_name` 已依本節判斷），不遮罩。
 
-**明文清單**（v0.3.0 起，#184；規則見 `docs/domain/rules.md`「遮罩」）：程式內建預設 = `name`；`.env` 的 `CDP_TRACE_PLAIN_KEYS` 怎麼調整依待決定 1（DESIGN-05；建議案：**未設定** = 內建預設，**有設定** = 以其取代內建清單）。下表的「明文清單」皆指這份。
+**明文清單**（v0.3.0 起，#184；規則見 `docs/domain/rules.md`「遮罩」）：程式內建預設 = `name`；`.env` 的 `CDP_TRACE_PLAIN_KEYS` **未設定** = 內建預設，**有設定** = 以其取代內建清單（D-083）。下表的「明文清單」皆指這份。
 
 | 範圍 | 明文的鍵 |
 |---|---|
