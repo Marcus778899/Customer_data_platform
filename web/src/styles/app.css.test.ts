@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 const css = readFileSync(new URL('./app.css', import.meta.url), 'utf8')
 
 describe('app.css 規則（#144、#148、#178）', () => {
-  it('程式聚焦（tabindex=-1）在非 focus-visible 時不顯示外框，鍵盤的 :focus-visible 規則仍在', () => {
-    expect(css).toMatch(/\[tabindex="-1"\]:focus:not\(:focus-visible\)\s*\{[^}]*outline:\s*none[^}]*box-shadow:\s*none/)
+  it('程式聚焦（tabindex=-1）一律不顯示外框，鍵盤的 :focus-visible 規則仍在', () => {
+    expect(css).toMatch(/\[tabindex="-1"\]:focus\s*\{[^}]*outline:\s*none[^}]*box-shadow:\s*none/)
     expect(css).toMatch(/^:focus-visible\s*\{[^}]*box-shadow:\s*var\(--focus-ring\)/m)
   })
   it('麵包屑分隔符替代文字為空，讀屏不會唸出', () => {

@@ -15,7 +15,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import {
   CARD_H,
   CARD_W,
@@ -25,6 +25,7 @@ import {
   outputSpecs,
   summaryOf,
   targetsOf,
+  topologyKey,
   type Def,
   type Layout,
 } from './model'
@@ -98,8 +99,30 @@ function LinkView(props: EdgeProps<Edge<LinkData>>) {
   )
 }
 
+const MINI_FILL = () => 'var(--color-border-strong)'
+const MINI_STROKE = () => 'var(--color-text-muted)'
 const nodeTypes = { card: CardView }
 const edgeTypes = { link: LinkView }
+
+const FIT = { padding: 0.1, minZoom: 0.1, maxZoom: 0.8 } as const
+
+function fit(rf: ReturnType<typeof useReactFlow>) {
+  try {
+    void Promise.resolve(rf.fitView(FIT)).catch(() => undefined)
+  } catch {
+    // 容器尚無尺寸時忽略
+  }
+}
+
+/** 加節點或接線後自動讓整張圖進入畫面（F-3：新節點不可跑到畫面外）；拖曳不觸發 */
+function FitOnChange({ signature }: { signature: string }) {
+  const rf = useReactFlow()
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => fit(rf))
+    return () => window.cancelAnimationFrame(id)
+  }, [signature, rf])
+  return null
+}
 
 function Zoom() {
   const rf = useReactFlow()
@@ -119,13 +142,7 @@ function Zoom() {
         type="button"
         className="btn secondary sm"
         aria-label="符合視窗大小"
-        onClick={() => {
-          try {
-            void rf.fitView({ padding: 0.1, maxZoom: 1 })
-          } catch {
-            // 容器尚無尺寸時忽略
-          }
-        }}
+        onClick={() => fit(rf)}
       >
         ⤢
       </button>
@@ -150,6 +167,7 @@ export function Canvas({
 }) {
   const [drag, setDrag] = useState<Record<string, { x: number; y: number }>>({})
   const full = useMemo(() => fillLayout(def, layout), [def, layout])
+  const signature = useMemo(() => topologyKey(def), [def])
 
   const nodes = useMemo<CardNode[]>(
     () =>
@@ -217,8 +235,8 @@ export function Canvas({
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
-          fitViewOptions={{ padding: 0.1, maxZoom: 0.8 }}
-          minZoom={0.3}
+          fitViewOptions={FIT}
+          minZoom={0.1}
           maxZoom={1.5}
           nodesConnectable={false}
           nodesFocusable={false}
@@ -233,9 +251,10 @@ export function Canvas({
             setDrag({})
           }}
         >
-          <MiniMap aria-hidden="true" pannable zoomable nodeStrokeWidth={2} />
+          <MiniMap aria-hidden="true" pannable zoomable nodeStrokeWidth={2} nodeColor={MINI_FILL} nodeStrokeColor={MINI_STROKE} />
         </ReactFlow>
         <Zoom />
+        <FitOnChange signature={signature} />
       </div>
     </ReactFlowProvider>
   )

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, getDraft, getFieldKeys, getJourney, putDraft, submitDraft, validateDraft, withdrawReview } from '../api/client'
 import type { Draft, FieldKeys, Issue, JourneyDetail, Review, UserRef, ValidationReport } from '../api/types'
-import { entryEventName, fillLayout, type Def, type Layout } from './model'
+import { entryEventName, fillLayout, isAutoLayout, layoutAll, topologyKey, type Def, type Layout } from './model'
 
 export const SAVE_DELAY = 1000
 
@@ -169,7 +169,11 @@ export function useDraftEditor(journeyId: string) {
   const edit = useCallback(
     (fn: (d: Def, l: Layout) => [Def, Layout]) => {
       if (!defRef.current || lockedRef.current) return
-      const [d, l] = fn(defRef.current, fillLayout(defRef.current, layoutRef.current))
+      const prevDef = defRef.current
+      const prevLayout = fillLayout(prevDef, layoutRef.current)
+      const [d, edited] = fn(prevDef, prevLayout)
+      // 新增節點或接線改變後重新分層排版；使用者拖曳過的版面（與自動排版不同）原樣保留
+      const l = topologyKey(d) !== topologyKey(prevDef) && isAutoLayout(prevDef, prevLayout) ? layoutAll(d) : edited
       defRef.current = d
       layoutRef.current = l
       dirtyRef.current = true
