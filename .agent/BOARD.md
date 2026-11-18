@@ -173,11 +173,11 @@
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
-- uat 完成（第七輪）：無 blocker／major，minor #268 #271；驗收條件 1～6、8、9 PASS，7 乾淨環境由 security 讀碼確認、10 待甲方關 #149；甲方驗收清單待勾
 - 甲方驗收回饋記在 #276（畫布拖拉／拉線互動待 designer 評估、旅程頁節點字裁切、條件面板比較欄窄與怎麼測）；甲方回饋完再分級排單
 - security v0.3.0 FAIL 待重審：H-1 advisory 已撤回（D-093，osv-ignore-remove）；M-1／M-2 依 D-091 修（login-proxy-design 已核可 → login-proxy-api）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
 - 注意（journey-delete-design）：journey 改軟刪除（deleted_at），之後任何讀 journey 表的新查詢都要加 deleted_at IS NULL
 - 請甲方手動關 #240（picomatch advisory 撤回，PR #279 已移除忽略，D-093）
+- 甲方 2026-11-19 要求暫停、不再派新工作。恢復點：1) canvas-interaction-ui（PR #282）第二輪 qa 結果 → ae pr record → visual-reviewer；2) journey-delete-design（PR #284）qa PASS，與 #282 一起交甲方核可；3) login-proxy-api 後端修 spotless 並重跑測試（仲裁 TEST_WRONG 已重鎖 dd9004f）→ ae pr open → qa B → review（看兩處偏離設計）；4) 核可後開 journey-delete-api 與前端四張單（node-card-unify、canvas-connect-drag、condition-compare-ux、journey-header-save-delete）；5) 全部合併後 security 重審、uat 重測、甲方驗收（uat 第七輪 PASS，minor #268 #271）
 
 ## 注意事項（踩過的坑）
 
