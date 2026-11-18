@@ -111,6 +111,7 @@
 | 2026-11-17 | D-089 | v0.3.0 | picomatch 漏洞先忽略單條（附到期日）；發版前須升修正版並移除忽略，否則延後發版 |
 | 2026-11-18 | D-090 | v0.3.0 | 核可 stop-cancel-design：取消訊息留 CANCELLED 紀錄＋取消原因（V10），不回填 |
 | 2026-11-18 | D-091 | v0.3.0 | CDP_TRUSTED_PROXIES 改必填（直連填 -）、IPv6 以 /64 計數，v0.3.0 修（修改 D-084） |
+| 2026-11-18 | D-092 | v0.3.0 | picomatch 不卡 v0.3.0 發版，忽略延到 2027-03-18，#240 追蹤（修改 D-089） |
 
 ## 任務狀態
 
@@ -149,6 +150,7 @@
 | advanced-states-flake-fix | frontend | done | 0 | PR #261 |
 | canvas-zoom-filter-ui | designer | done | 0 | PR #265 |
 | canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
+| login-proxy-design | architect | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -160,15 +162,14 @@
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 - 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 - 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
-- 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
-- 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 - uat 注意：make demo-seed 尚未對真後端實跑，uat 要實跑；場景一篩選用 properties.amount，seed 示範事件帶 cart_total（目前不影響）
 - uat F-12：本機從 loopback 連線時 X-Forwarded-For 被採信、可繞過登入限速；符合 auth.md §3（未設 CDP_TRUSTED_PROXIES = 私有網段＋loopback 皆信任），但部署在私有網段時可被偽造。發版前資安審查要判定預設值是否要收緊
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
 - uat 完成（第七輪）：無 blocker／major，minor #268 #271；驗收條件 1～6、8、9 PASS，7 乾淨環境由 security 讀碼確認、10 待甲方關 #149；甲方驗收清單待勾
-- security v0.3.0 FAIL：H-1 picomatch 無修正版（D-089 等上游）；M-1／M-2 依 D-091 修（login-proxy-design → 後端單），修完重審；L-1 #269、L-2 #270 backlog
+- security v0.3.0 FAIL：H-1 依 D-092 改帶忽略發版（osv-ignore-extend 改到期日）；M-1／M-2 依 D-091 修（login-proxy-design → 後端單）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
+- 注意：osv 忽略 picomatch 到期 2027-03-18（D-092）；到期前查上游，有修正版開單升版，沒有再問甲方
 
 ## 注意事項（踩過的坑）
 
