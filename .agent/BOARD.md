@@ -147,6 +147,7 @@
 | stop-cancel-record-api | backend | done | 0 | PR #260 |
 | advanced-states-flake-fix | frontend | done | 0 | PR #261 |
 | canvas-zoom-filter-ui | designer | done | 0 | PR #265 |
+| canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
 
 ## 卡住／待甲方決定
 
@@ -165,7 +166,8 @@
 - uat F-12：本機從 loopback 連線時 X-Forwarded-For 被採信、可繞過登入限速；符合 auth.md §3（未設 CDP_TRUSTED_PROXIES = 私有網段＋loopback 皆信任），但部署在私有網段時可被偽造。發版前資安審查要判定預設值是否要收緊
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
-- v0.3.0 收尾：canvas-zoom-filter-fix（F-31／F-33 實作）進行中；之後 uat 重測、security 審查、picomatch #240（D-089）、甲方驗收
+- 甲方 2026-11-18 要求暫停（無進行中的單）。恢復點：1) 派 uat 重測 F-31／F-33（PR #267；目視小地圖位置、375 面板 × 靠右、巢狀欄位下拉寬度、圖示軌、視窗 1101～1200px 選取節點行為）；2) security 發版前審查（含 F-12、osv 忽略 picomatch 追認）；3) picomatch #240 須有修正版才發版（D-089）；4) 甲方驗收
+- 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
 
 ## 注意事項（踩過的坑）
 
