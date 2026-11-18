@@ -13,15 +13,15 @@
 - 提出：architect（DESIGN-01）
 -->
 
-### D-091 登入限速的來源 IP 可被偽造（資安 M-1／M-2），v0.3.0 要不要修（修改 D-084 的代理預設值）
-- 背景：`docs/security/v0.3.0.md`。M-1：未設 `CDP_TRUSTED_PROXIES` 時預設信任私有網段＋loopback（D-084），代理原樣轉送 X-Forwarded-For、入口 SNAT 或使用者在內網時，攻擊者每次換一個假 IP 就能無限猜密碼，也能冒用受害者公司 IP 鎖住整個來源，跟本輪驗收條件「未登入者無法以大量登入請求鎖住他人帳號」衝突。M-2：IPv6 以完整位址計數，一台主機有 2^64 個位址可輪換。發版本來就被 picomatch（H-1，D-089）卡住
-- 選項：A. v0.3.0 修：`CDP_TRUSTED_PROXIES` 改必填（直連部署填 `-` 表示不信任任何代理，有代理只填代理確切位址；未設拒絕啟動），IPv6 以 /64 計數，部署說明寫明代理要覆寫 XFF；甲方本機 `.env` 要多填一個變數 ／ B. 照 D-084 維持預設，M-1、M-2 進 backlog，部署時再靠維運設定
-- 建議：A，收緊不放寬，正好利用等 picomatch 的時間；不做「依 email 的全域上限」（會改 D-084 行為，另議）
-- 提出：security（v0.3.0 發版前審查）
-
 <!-- D-041 拆版、D-042 每租戶金鑰、D-043 租戶角色、D-044 帳號開通：因 D-051 改為單一租戶而撤回，DESIGN-03 改版後以新編號重提 -->
 
 ## 已決定
+
+### D-091 登入限速的來源 IP 可被偽造（資安 M-1／M-2），v0.3.0 修（修改 D-084 的代理預設值）
+- 決定：A. v0.3.0 修：`CDP_TRUSTED_PROXIES` 改必填（直連部署填 `-` 表示不信任任何代理，有代理只填代理確切位址；未設拒絕啟動），IPv6 以 /64 計數，部署說明寫明代理要覆寫 X-Forwarded-For；不做依 email 的全域上限
+- 理由：收緊防護、與驗收條件「未登入者無法以大量登入請求鎖住他人帳號」一致；發版本來就在等 picomatch（D-089）
+- 影響：開 login-proxy-design（architect 改 auth.md §3、DESIGN-05）→ 後端修正單；甲方本機 `.env` 要加 `CDP_TRUSTED_PROXIES`；修完 security 重審
+- 日期：2026-11-18
 
 ### D-090 停止／中途結束而取消的訊息要留下可查的紀錄（核可 stop-cancel-design）
 - 決定：核可 `docs/design/stop-cancel.md`：取消未送出訊息時同時寫 `delivery_task`（`CANCELLED`＋`cancel_reason`：`JOURNEY_STOPPED`／`ENROLLMENT_ENDED`，V10）；不回填舊資料；spec 待辦 6 條一併更正
