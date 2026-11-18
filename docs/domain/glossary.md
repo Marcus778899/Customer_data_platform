@@ -10,6 +10,7 @@
 | 送審／核准／退回／撤回 | `submit`／`approve`／`reject`／`withdraw` | 送審／核准／退回／撤回 | 草稿發佈的審核動作，見 rules.md「審核」 | D-056、D-060 |
 | 審核紀錄 | `Review`（`journey_review`） | 審核紀錄 | 每次送審一筆，終態後不可改、不可刪 | `journeys.md` §3.2 |
 | 停止 | `stop`、`ABORTED` | 停止 | 旅程終止，不可恢復；不經審核 | D-060、rules.md「停止」 |
+| 取消原因 | `cancel_reason`（`JOURNEY_STOPPED`／`ENROLLMENT_ENDED`） | （由 designer 定） | 訊息未送出就被取消的原因：旅程停止，或客戶中途結束 | `journey-engine.md` §2、rules.md「停止」「中途結束」 |
 | 旅程進度 | `Enrollment` | 旅程進度 | 一位客戶在一個旅程版本中的一次參與 | D-079 |
 | 軌跡 | `trace`（`node_trace`） | 經過的步驟 | 旅程進度依序經過的節點與原因 | journey-engine §4 |
 | 節點 | `node` | 步驟 | 旅程圖上的一格；型別見 rules.md「節點」 | spec 03 §4、spec 04 |

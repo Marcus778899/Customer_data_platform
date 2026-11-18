@@ -133,7 +133,7 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 ### §3.5 停止 `POST /api/v1/journeys/{journey_id}/stop`
 
 - Request：`{ "reason" }`（1–200 字）；成功 `200` `JourneyDetail`（`status` = `ABORTED`、`stopped_by` = 呼叫者）；已停止再停 → `200`（不改原因）；`DRAFT` → `409` `JOURNEY_NOT_PUBLISHED`；是否需審核見 §3.3 第 2 列
-- 效果（spec 05 §5 旅程層）：立即不再接受新進入；未推送的發送與已推送未送出的發送都取消（`DeliveryStatus` = `CANCELLED`）；進行中的 Enrollment 由背景轉 `ABORTED`（`termination_reason` 含停止原因），完成時間取決於數量，不同步等待；不可恢復
+- 效果（spec 05 §5 旅程層）：立即不再接受新進入；未推送的發送與已推送未送出的發送都取消（`DeliveryStatus` = `CANCELLED`、`cancel_reason` = `JOURNEY_STOPPED`），每則在該 Enrollment 的發送紀錄（`journey-engine.md` §4 `delivery_history`、`/deliveries`）留一筆，含停止前已走完、訊息仍待送的 Enrollment；進行中的 Enrollment 由背景轉 `ABORTED`（`termination_reason` 含停止原因），完成時間取決於數量，不同步等待；不可恢復
 
 ## §4 第二版支援的節點與條件
 
