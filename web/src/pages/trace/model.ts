@@ -107,6 +107,15 @@ export function upcomingSteps(d: EnrollmentDetail, def: JourneyVersion | null): 
     .filter((u): u is Upcoming => u.title !== null)
 }
 
+/** 取消原因白話；null／未知回空字串（用中性說法） */
+const cancelWhy = (r: string | null | undefined) => (r === 'JOURNEY_STOPPED' ? '旅程被停止' : r === 'ENROLLMENT_ENDED' ? '客戶中途結束' : '')
+
+/** 一組被取消的發送：「因旅程被停止而」「因客戶中途結束而」或中性 */
+function cancelNote(list: Delivery[]): string {
+  const reasons = [...new Set(list.map((x) => cancelWhy(x.cancel_reason)).filter(Boolean))]
+  return reasons.length === 1 && list.every((x) => cancelWhy(x.cancel_reason)) ? reasons[0] : ''
+}
+
 const deliveriesOf = (d: EnrollmentDetail, seq: number): Delivery[] => d.delivery_history.filter((x) => x.trace_seq === seq)
 
 function doneDesc(t: TraceEntry, d: EnrollmentDetail, def: JourneyVersion | null): string | null {
@@ -125,7 +134,10 @@ function doneDesc(t: TraceEntry, d: EnrollmentDetail, def: JourneyVersion | null
       if (s === 'SENT') return '訊息已送出。'
       if (s === 'PENDING') return '訊息已排入發送，還沒有送達。'
       if (s === 'FAILED') return '訊息發送失敗。'
-      if (s === 'CANCELLED') return '旅程被停止，訊息已取消、沒有送出。'
+      if (s === 'CANCELLED') {
+        const why = cancelWhy(ds[0].cancel_reason)
+        return why ? `${why}，訊息已取消、沒有送出。` : '訊息已取消，沒有送出。'
+      }
       return `訊息沒有送出：${ds[0].skip_reason ? skipReasonText(ds[0].skip_reason) : '被略過'}。`
     }
     case 'EndNode':
@@ -154,9 +166,10 @@ export function buildSteps(d: EnrollmentDetail, def: JourneyVersion | null, now:
       out.push({ ...base, kind: 'err', label: '發生問題', desc: '這一步發生錯誤，旅程停在這裡，不會自動繼續。', time: entered })
     } else if (t === stopAt) {
       const end = d.terminated_at ? ` → ${plainAt(d.terminated_at, now)}` : ''
-      const cancelledHere = t.node_type === 'SendMessageNode' && deliveriesOf(d, t.seq).some((x) => x.status === 'CANCELLED')
+      const cancelledHere = t.node_type === 'SendMessageNode' ? deliveriesOf(d, t.seq).find((x) => x.status === 'CANCELLED') : undefined
+      const why = cancelledHere ? cancelWhy(cancelledHere.cancel_reason) : ''
       const desc = cancelledHere
-        ? '在這一步被中止：旅程被停止，訊息已取消、沒有送出。'
+        ? `在這一步被中止：${why ? `${why}，` : ''}訊息已取消、沒有送出。`
         : t.node_type === 'WaitDelayNode'
           ? '在等待中被中止。'
           : '在這一步被中止。'
@@ -241,12 +254,20 @@ function messageRow(d: EnrollmentDetail, now: Date): SummaryRow {
   if (sent.length > 0) {
     const extra = sent.length > 1 ? `共 ${sent.length} 則已送出。` : ''
     const after = d.status === 'ABORTED' ? '之後不會再有新的訊息。' : ''
-    const cut = cancelled.length > 0 ? `另有 ${cancelled.length} 則因旅程被停止而取消、沒有送出。` : ''
+    const cut = cancelled.length > 0 ? `另有 ${cancelled.length} 則${cancelNote(cancelled) ? `因${cancelNote(cancelled)}而` : ''}取消、沒有送出。` : ''
     return { q, strong: '有。', rest: `「${nameOf(sent[0])}」已於 ${plainAt(sent[0].attempted_at, now)} 送出。${extra}${cut}${after}` }
   }
   if (failed.length > 0) return { q, strong: '沒有。', rest: '發送失敗，結果記在下方的訊息發送紀錄。' }
   if (cancelled.length === del.length && del.length > 0) {
-    return { q, strong: '沒有送出。', rest: `因為旅程被停止，${cancelled.length} 則訊息已取消、沒有送出。` }
+    const one = cancelNote(cancelled)
+    const by = (r: string) => cancelled.filter((x) => x.cancel_reason === r).length
+    const split = !one && by('JOURNEY_STOPPED') > 0 && by('ENROLLMENT_ENDED') > 0
+    const rest = one
+      ? `因為${one}，${cancelled.length} 則訊息已取消、沒有送出。`
+      : split
+        ? `${cancelled.length} 則訊息已取消、沒有送出（旅程被停止 ${by('JOURNEY_STOPPED')} 則、客戶中途結束 ${by('ENROLLMENT_ENDED')} 則）。`
+        : `${cancelled.length} 則訊息已取消、沒有送出。`
+    return { q, strong: '沒有送出。', rest }
   }
   if (del.length > 0) return { q, strong: '沒有。', rest: `有 ${del.length} 則訊息未發送，原因見下方的訊息發送紀錄。` }
   if (d.status === 'ABORTED') return { q, strong: '沒有，之後也不會送出。' }

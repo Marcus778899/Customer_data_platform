@@ -65,6 +65,8 @@ export interface Delivery {
   message_type: 'TRANSACTIONAL' | 'MARKETING' | null
   status: DeliveryStatus
   skip_reason: string | null
+  /** CANCELLED 時的取消原因；舊紀錄或舊後端為 null／缺欄位 */
+  cancel_reason?: 'JOURNEY_STOPPED' | 'ENROLLMENT_ENDED' | null
   attempted_at: string
   delivery_id: string | null
 }
