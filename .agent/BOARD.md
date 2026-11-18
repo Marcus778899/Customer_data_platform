@@ -162,12 +162,12 @@
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
 - 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 - uat 注意：make demo-seed 尚未對真後端實跑，uat 要實跑；場景一篩選用 properties.amount，seed 示範事件帶 cart_total（目前不影響）
-- 請甲方：本機 .env 的 CDP_INGEST_API_KEY 與 CDP_ADMIN_API_KEY 相同，後端會拒絕啟動（v0.3.0 新規則）；請各自用 openssl rand -hex 32 產生不同值
 - uat F-12：本機從 loopback 連線時 X-Forwarded-For 被採信、可繞過登入限速；符合 auth.md §3（未設 CDP_TRUSTED_PROXIES = 私有網段＋loopback 皆信任），但部署在私有網段時可被偽造。發版前資安審查要判定預設值是否要收緊
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
-- 甲方 2026-11-18 要求暫停（無進行中的單）。恢復點：1) 派 uat 重測 F-31／F-33（PR #267；目視小地圖位置、375 面板 × 靠右、巢狀欄位下拉寬度、圖示軌、視窗 1101～1200px 選取節點行為）；2) security 發版前審查（含 F-12、osv 忽略 picomatch 追認）；3) picomatch #240 須有修正版才發版（D-089）；4) 甲方驗收
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
+- uat 第六輪 F-31／F-33 PASS（minor #268）；uat 第七輪補測驗收條件進行中
+- security v0.3.0 FAIL：H-1 picomatch 無修正版（D-089 等上游，2026-11-18 npm 最新仍 4.0.7）；待甲方決定 D-091（M-1／M-2 來源 IP 偽造本版修不修）；L-1 #269、L-2 #270 backlog；v0.2.0 L-1～L-3 仍未修
 
 ## 注意事項（踩過的坑）
 
