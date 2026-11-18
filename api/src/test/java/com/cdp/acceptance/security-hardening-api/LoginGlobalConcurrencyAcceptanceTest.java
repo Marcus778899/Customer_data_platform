@@ -36,7 +36,8 @@ import com.cdp.acceptance.security.SecurityTestSupport;
             "spring.rabbitmq.listener.simple.auto-startup=false",
             "cdp.login.max-failures=50",
             "cdp.login.lockout=PT15M",
-            "cdp.login.ip-max-failures=1000"
+            "cdp.login.ip-max-failures=1000",
+            "cdp.security.trusted-proxies=127.0.0.1,::1"
         })
 @ActiveProfiles("test")
 @Import(SecurityTestSupport.class)

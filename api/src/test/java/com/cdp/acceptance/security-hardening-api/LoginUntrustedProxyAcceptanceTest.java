@@ -21,7 +21,7 @@ import com.cdp.acceptance.security.SecurityTestSupport;
 /**
  * security-hardening-api 驗收（auth.md §3 v0.3.0「來源 IP」）：直接連線者（不在信任代理範圍）帶的
  * {@code X-Forwarded-For} 不採信，不能靠偽造標頭繞過鎖定或換來源。以把信任範圍設成一個不含本機的位址模擬
- * （CDP_TRUSTED_PROXIES 最終落在 {@code server.tomcat.remoteip.internal-proxies}）。
+ * （設定 {@code cdp.security.trusted-proxies}，即 CDP_TRUSTED_PROXIES，D-091）。
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
