@@ -342,20 +342,44 @@ export function fillLayout(def: Def, layout: Layout | null): Layout {
   const nodes: Layout['nodes'] = {}
   const missing = def.nodes.filter((n) => !have[n.id])
   if (missing.length > 0) {
-    const g = new Graph()
-    g.setGraph({ rankdir: 'LR', nodesep: GAP_Y, ranksep: GAP_X, marginx: 0, marginy: 0, acyclicer: 'greedy' })
-    g.setDefaultEdgeLabel(() => ({}))
-    const ids = new Set(def.nodes.map((n) => n.id))
-    for (const n of def.nodes) g.setNode(n.id, { width: CARD_W, height: CARD_H })
-    for (const n of def.nodes) for (const t of targetsOf(n)) if (ids.has(t.target)) g.setEdge(n.id, t.target)
-    dagreLayout(g)
-    for (const n of missing) {
-      const p = g.node(n.id)
-      nodes[n.id] = { x: Math.round(p.x - CARD_W / 2), y: Math.round(p.y - CARD_H / 2) }
-    }
+    const all = layoutAll(def)
+    for (const n of missing) nodes[n.id] = all.nodes[n.id]
   }
   for (const n of def.nodes) if (have[n.id]) nodes[n.id] = have[n.id]
   return { nodes }
+}
+
+/** 全部節點重新分層排版（dagre 由左到右；F-3、F-11） */
+export function layoutAll(def: Def): Layout {
+  const g = new Graph()
+  g.setGraph({ rankdir: 'LR', nodesep: GAP_Y, ranksep: GAP_X, marginx: 0, marginy: 0, acyclicer: 'greedy' })
+  g.setDefaultEdgeLabel(() => ({}))
+  const ids = new Set(def.nodes.map((n) => n.id))
+  for (const n of def.nodes) g.setNode(n.id, { width: CARD_W, height: CARD_H })
+  for (const n of def.nodes) for (const t of targetsOf(n)) if (ids.has(t.target)) g.setEdge(n.id, t.target)
+  dagreLayout(g)
+  const nodes: Layout['nodes'] = {}
+  for (const n of def.nodes) {
+    const p = g.node(n.id)
+    nodes[n.id] = { x: Math.round(p.x - CARD_W / 2), y: Math.round(p.y - CARD_H / 2) }
+  }
+  return { nodes }
+}
+
+/** 目前座標與自動排版一致 = 使用者沒手動拖過，改接線時可以整張重排 */
+export function isAutoLayout(def: Def, layout: Layout): boolean {
+  const auto = layoutAll(def).nodes
+  return def.nodes.every((n) => {
+    const p = layout.nodes[n.id]
+    return !!p && p.x === auto[n.id].x && p.y === auto[n.id].y
+  })
+}
+
+/** 節點與連線的組成；變了才需要重新排版（改名、改設定不算） */
+export function topologyKey(def: Def): string {
+  return def.nodes
+    .map((n) => `${n.id}>${targetsOf(n).map((t) => `${t.port}:${t.target}`).join(',')}`)
+    .join('|')
 }
 
 /** 新節點放在錨點右側，被占用就往下推 */

@@ -11,7 +11,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { NODE_H, NODE_W, type FlowNodeData, type GraphModel } from './model'
 
 const STATE_TEXT = { visited: '已經過', current: '目前位置', unvisited: '未經過', plain: '' } as const
@@ -33,7 +33,7 @@ const StepNodeView = memo(function StepNodeView({ data }: NodeProps<StepNode>) {
   const label = [
     data.name,
     `${data.categoryLabel}節點`,
-    data.type,
+    data.typeText ?? data.type,
     STATE_TEXT[data.state],
     visit,
     data.stat ? `人數 ${fmtCount(data.stat.entered)}，目前 ${fmtCount(data.stat.current)}` : null,
@@ -61,7 +61,7 @@ const StepNodeView = memo(function StepNodeView({ data }: NodeProps<StepNode>) {
           <b>{fmtCount(data.stat.entered)}</b> 人數 <b>{fmtCount(data.stat.current)}</b> 目前
         </span>
       ) : (
-        <span className="n-type">{visit ?? data.type}</span>
+        <span className="n-type">{visit ?? (data.typeText === data.name ? '' : (data.typeText ?? data.type))}</span>
       )}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </button>
@@ -118,6 +118,32 @@ function FlowEdgeView(props: EdgeProps<Edge<FlowEdgeData>>) {
 }
 
 const noop = () => undefined
+
+/** 量不到容器寬度時（測試環境、尚未排版）的可用寬度：1440 寬扣掉側欄與邊距 */
+const FALLBACK_WIDTH = 1160
+/** 縮到這個比例還放不下就改左右捲動，字再小就看不清了 */
+const MIN_SCALE = 0.6
+
+/** 圖比容器寬時等比縮小（F-7：整張圖進一屏），不低於 MIN_SCALE */
+export function fitScale(graphWidth: number, available: number): number {
+  if (!(graphWidth > 0) || !(available > 0)) return 1
+  return Math.min(1, Math.max(MIN_SCALE, available / graphWidth))
+}
+
+function useAvailableWidth(ref: React.RefObject<HTMLElement | null>): number {
+  const [w, setW] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const read = () => setW(el.clientWidth)
+    read()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(read)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ref])
+  return w || FALLBACK_WIDTH
+}
 const nodeTypes = { step: StepNodeView }
 const edgeTypes = { flow: FlowEdgeView }
 
@@ -165,9 +191,15 @@ export function FlowGraph({
       })),
     [model],
   )
+  const wrap = useRef<HTMLDivElement>(null)
+  const scale = fitScale(model.width, useAvailableWidth(wrap) - 2)
   return (
-    <div className="graph" role="group" aria-label={label} tabIndex={0}>
-      <div className="inner" style={{ width: model.width, height: model.height }}>
+    <div className="graph" role="group" aria-label={label} tabIndex={0} ref={wrap}>
+      <div style={{ width: model.width * scale, height: model.height * scale }}>
+      <div
+        className="inner"
+        style={{ width: model.width, height: model.height, transform: scale < 1 ? `scale(${scale})` : undefined, transformOrigin: '0 0' }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -191,6 +223,7 @@ export function FlowGraph({
           onNodeClick={noop}
           disableKeyboardA11y
         />
+      </div>
       </div>
     </div>
   )

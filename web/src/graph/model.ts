@@ -1,6 +1,7 @@
 import { Graph, layout } from '@dagrejs/dagre'
 import type { EnrollmentStatus, JourneyVersion, NodeStat, TraceEntry } from '../api/types'
 import { TERMINAL } from '../format'
+import { nodeTypeText } from '../plain'
 
 /** 尺寸對應 tokens.css 的 --node-width／--node-height、--node-pitch（圖上相鄰欄中心距） */
 export const NODE_W = 148
@@ -33,6 +34,8 @@ export type NodeState = 'visited' | 'current' | 'unvisited' | 'plain'
 export interface FlowNodeData extends Record<string, unknown> {
   name: string
   type: string
+  /** 類型白話名（顯示用；type 保留程式名供比對） */
+  typeText?: string
   category: Category
   categoryLabel: string
   state: NodeState
@@ -168,7 +171,7 @@ export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null, st
     const [category, categoryLabel] = categoryOf(n.type)
     let state: NodeState = 'plain'
     if (overlay) state = overlay.current === n.id ? 'current' : overlay.visited.has(n.id) ? 'visited' : 'unvisited'
-    const data: FlowNodeData = { name: n.name ?? n.type, type: n.type, category, categoryLabel, state }
+    const data: FlowNodeData = { name: n.name ?? nodeTypeText(n.type), type: n.type, typeText: nodeTypeText(n.type), category, categoryLabel, state }
     const passes = overlay?.passes?.get(n.id) ?? 0
     if (passes >= 2) data.passes = passes
     if (state === 'current' && (overlay?.currentVisit ?? 1) >= 2) data.visit = overlay!.currentVisit

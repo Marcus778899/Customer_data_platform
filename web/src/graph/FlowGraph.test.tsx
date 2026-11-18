@@ -17,7 +17,7 @@ const model = (state: NodeState): GraphModel => ({
       id: 'n1',
       x: 16,
       y: 16,
-      data: { name: '一個相當長的節點名稱用來測試截斷', type: 'SendMessageNode', category: 'send', categoryLabel: '發送', state },
+      data: { name: '一個相當長的節點名稱用來測試截斷', type: 'SendMessageNode', typeText: '發送訊息', category: 'send', categoryLabel: '發送', state },
     },
   ],
   edges: [],
@@ -36,7 +36,7 @@ describe.each([
     const node = container.querySelector('.node')!
     expect(node.querySelector('.n-cat')!.textContent).toBe('發送')
     expect(node.querySelector('.n-name')!.textContent).toContain('節點名稱')
-    expect(node.querySelector('.n-type')!.textContent).toBe('SendMessageNode')
+    expect(node.querySelector('.n-type')!.textContent).toBe('發送訊息')
     expect(node.textContent).toContain(text)
     // 直向只剩三列：標頭（分類＋狀態）、名稱、類型
     expect(node.children).toHaveLength(5) // 2 個 Handle + 3 列

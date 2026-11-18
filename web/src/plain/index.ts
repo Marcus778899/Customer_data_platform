@@ -42,6 +42,7 @@ export const outPortText = lookup({
 })
 
 export const nodeTypeText = lookup({
+  StartNode: '開始',
   EventSourceNode: '進入旅程',
   WaitDelayNode: '等待',
   SendMessageNode: '發送訊息',

@@ -78,7 +78,7 @@ export function JourneyListPage({ loc }: { loc: Loc }) {
               新增旅程
             </AppLink>
           )}
-          <AppLink to="/enrollments">最近的 Enrollment</AppLink>
+          <AppLink to="/enrollments">最近的旅程進度</AppLink>
         </div>
       </div>
       <div className="toolbar">
