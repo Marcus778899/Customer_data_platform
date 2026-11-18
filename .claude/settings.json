@@ -30,6 +30,7 @@
       "Bash(ae import write:*)",
       "Bash(ae wt:*)",
       "Bash(ae import eol)",
+      "Bash(ae release designs:*)",
       "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py:*)"
     ],
     "ask": [
