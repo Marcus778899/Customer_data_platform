@@ -1,6 +1,6 @@
 # 契約：登入、使用者與角色（v2，v0.2.0；單一租戶 D-051）
 
-<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md、DESIGN-05.md（v0.3.0 #152、#153）、login-proxy.md（§3 來源 IP，D-091）；取代 journey-engine.md §1.1、§1.2（BE-06 合併起生效） -->
+<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md、DESIGN-05.md（v0.3.0 #152、#153）、login-proxy.md（§3 來源 IP，D-091）、journey-delete.md（§2 刪除旅程）；取代 journey-engine.md §1.1、§1.2（BE-06 合併起生效） -->
 
 - Base URL、JSON 慣例、時間、`X-Request-Id`、錯誤格式：同 `journey-engine.md` §1、§5
 - 跨域：不開 CORS（同源經 proxy）
@@ -34,13 +34,13 @@
 | `PUT /api/v1/profiles/{id}`（profiles §2） | ✓ | | | ✓（僅管理金鑰；session 不可） |
 | `GET /api/v1/enrollments*`（journey-engine §4）、`GET /api/v1/profiles*`（profiles §3）、`GET /api/v1/journeys*`（journeys §2；第二版含草稿與審核紀錄） | | ✓ | ✓ | ✓ |
 | `POST /api/v1/journeys`（journey-engine §3.1） | | | | ✓（僅管理金鑰；session 不可，D-056 發佈須經審核；可依 D-061 關閉，見 journeys §3.3 第 3 列） |
-| journeys §3 草稿寫入（`POST /journeys/drafts`、`PUT`／`DELETE …/draft`）、`draft/validate`、`draft/submit`（送審）；§3.5 停止（依 D-060 不經審核） | | | ✓ | ✓（草稿寫入、`validate`、送審僅 session；停止另收管理金鑰） |
+| journeys §3 草稿寫入（`POST /journeys/drafts`、`PUT`／`DELETE …/draft`）、`draft/validate`、`draft/submit`（送審）；§3.6 刪除未發佈的旅程（`DELETE /journeys/{journey_id}`，不經審核）；§3.5 停止（依 D-060 不經審核） | | | ✓ | ✓（草稿寫入、`validate`、送審、刪除僅 session；停止另收管理金鑰） |
 | journeys §3.2 `withdraw`（撤回送審） | | | ✓（僅自己送審的） | ✓ |
 | journeys §3.2 `approve`（核准）、`reject`（退回） | | | | ✓（不可核准自己送審的，依 D-060） |
 | §4 `/api/v1/users*` | | | | ✓ |
 | §3 `/api/v1/auth/*` | | session（不分角色） | | |
 
-- journeys §3 草稿寫入、`draft/validate` 與 §3.2 的送審、撤回、核准、退回只收 session（草稿與審核紀錄要對得到人，含 `ADMIN`）；以 Bearer（含管理金鑰）呼叫 → `403` `FORBIDDEN`。管理金鑰在旅程上只能經 journey-engine §3.1 建立版本與 §3.5 停止（`stopped_by` 為 `null`）
+- journeys §3 草稿寫入、`draft/validate`、§3.6 刪除與 §3.2 的送審、撤回、核准、退回只收 session（草稿、刪除與審核紀錄要對得到人，含 `ADMIN`）；以 Bearer（含管理金鑰）呼叫 → `403` `FORBIDDEN`。管理金鑰在旅程上只能經 journey-engine §3.1 建立版本與 §3.5 停止（`stopped_by` 為 `null`）
 - 不需認證：`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`；其他 `/api/**` 未列者：未認證 `401`；`INGEST`、`VIEWER`、`EDITOR` `403` `FORBIDDEN`；`ADMIN`（含管理金鑰）不擋，交給路由（不存在 `404`、方法不符 `405`）
 
 ## §3 登入

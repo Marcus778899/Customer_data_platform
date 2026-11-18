@@ -187,7 +187,7 @@
 | `403` | `CSRF_INVALID` | v0.2.0：session 寫入請求的 `X-XSRF-TOKEN` 缺或不符（`auth.md` §1.1） | 重取 `/auth/me` 後重試一次 |
 | `404` | `PROFILE_NOT_FOUND`／`USER_NOT_FOUND`／`DRAFT_NOT_FOUND` | v0.2.0 起：`profiles.md`、`auth.md` §4、`journeys.md` §3 | 這筆資料不存在 |
 | `409` | `IDENTIFIER_CONFLICT`／`EMAIL_TAKEN`／`LAST_ADMIN` | v0.2.0：`profiles.md` §2、`auth.md` §4 | 顯示衝突，不重試 |
-| `409` | `DRAFT_CONFLICT`／`DRAFT_REQUIRED`／`JOURNEY_ABORTED`／`JOURNEY_NOT_PUBLISHED` | 第二版：`journeys.md` §3 | `DRAFT_CONFLICT`：重新載入草稿 |
+| `409` | `DRAFT_CONFLICT`／`DRAFT_REQUIRED`／`JOURNEY_ABORTED`／`JOURNEY_NOT_PUBLISHED`／`JOURNEY_PUBLISHED` | 第二版：`journeys.md` §3（`JOURNEY_PUBLISHED`：刪除已發佈過的旅程，§3.6） | `DRAFT_CONFLICT`：重新載入草稿 |
 | `409` | `DRAFT_IN_REVIEW`／`REVIEW_PENDING`／`REVIEW_NOT_PENDING` | 第二版：`journeys.md` §3.2 審核 | `REVIEW_NOT_PENDING`：重新載入審核紀錄 |
 | `403` | `SELF_APPROVAL_FORBIDDEN` | 第二版：核准自己送審的（`journeys.md` §3.3，D-060） | 請另一位管理員核准 |
 | `403` | `ADMIN_KEY_JOURNEY_CREATE_DISABLED` | 第二版：`CDP_ADMIN_KEY_JOURNEY_CREATE` = `false` 時以管理金鑰呼叫 §3.1（`journeys.md` §3.3 第 3 列，D-061） | 改經草稿送審 |
