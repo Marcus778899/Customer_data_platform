@@ -359,6 +359,7 @@ PRIMARY KEY (event_id)
 | V8 | `V8__journey_lifecycle.sql` | §12：`journey` 與回填、`journey_review`、`journey_definition.layout`、`enrollment_record.trigger_event_id` 與回填（v0.3.0，D-055） |
 | V9 | `V9__journey_draft_created_at.sql` | §12「V9」：`journey.draft_created_at`（「這份草稿的審核」的起點，`journeys.md` §3；v0.3.0，journey-draft-review-scope-api） |
 | V10 | `V10__delivery_task_cancel_reason.sql` | §12「V10」：`delivery_task.cancel_reason`（取消紀錄的原因；v0.3.0，stop-cancel-record-api） |
+| V11 | `V11__journey_soft_delete.sql` | §12「V11」：`journey.deleted_at`、`deleted_by`（刪除未發佈的旅程；v0.3.0，journey-delete-api） |
 
 ### 鐵則
 
@@ -441,7 +442,7 @@ DDL 正本為 `api/src/main/resources/db/migration/` 的 V3、V4；實作：FIX-
 
 ---
 
-## 12. v0.2.0 起新增（V5～V10；設計見 `docs/design/DESIGN-03.md`、`DESIGN-05.md`）
+## 12. v0.2.0 起新增（V5～V11；設計見 `docs/design/DESIGN-03.md`、`DESIGN-05.md`）
 
 DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `Clock`。
 
@@ -450,7 +451,7 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 | `app_user` | `user_id`、`email`（存小寫）、`display_name`、`password_hash`（BCrypt）、`role`（`VIEWER`／`EDITOR`／`ADMIN`）、`status`（`ACTIVE`／`DISABLED`）、`created_at`、`updated_at`、`session_epoch`（INT，預設 0；管理員重設密碼 +1，session 比對，D-071，V7_1） | PK `user_id`；`uq_app_user_email (email)`（回到多租戶時另加成員表，D-051） |
 | `profile` | `profile_id`、`attributes` JSONB（預設 `{}`）、`created_at`、`updated_at` | PK `profile_id`；`ck_profile_attributes_size`：`octet_length(attributes::text) <= 32768` |
 | `profile_identifier` | `id_type`、`id_value`（已正規化，`profiles.md` §1.1）、`profile_id`、`created_at` | PK `(id_type, id_value)`（一個識別碼只屬於一位客戶）；`ix_profile_identifier_profile (profile_id)`；`ck_profile_identifier_type`（五種 `IdentifierType`）；`ck_profile_identifier_norm`：`EMAIL` = `lower(btrim(id_value))` 且含 `@`、`PHONE` 符合 `^\+[1-9][0-9]{6,14}$`、其他 = `btrim(id_value)` 且 1–200 字 |
-| `journey` | `journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`draft_updated_at`、`draft_created_at`（可 null，V9，見下「V9」）、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (updated_at DESC, journey_id DESC)`；V8 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
+| `journey` | `journey_id`、`status`（`DRAFT`／`ACTIVE`／`ABORTED`）、`latest_version`（INT，可 null）、`draft` JSONB（可 null）、`draft_layout` JSONB、`draft_revision` INT、`draft_updated_by`、`draft_updated_at`、`draft_created_at`（可 null，V9，見下「V9」）、`deleted_at`、`deleted_by`（可 null，V11，見下「V11」）、`created_at`、`updated_at`、`stopped_at`、`stop_reason`、`stopped_by` | PK `journey_id`；`ix_journey_list (updated_at DESC, journey_id DESC)`；V8 以 `journey_definition` 每個 `journey_id` 回填（`ACTIVE`、`latest_version` = max） |
 | `journey_review` | `review_id`、`journey_id`、`action`（`PUBLISH`；停止不審核，依 D-060）、`status`（`PENDING`／`APPROVED`／`REJECTED`／`WITHDRAWN`）、`revision` INT（可 null，管理金鑰建立的紀錄，D-061）、`base_version` INT（可 null）、`note`、`submitted_by`（可 null）、`submitted_at`、`decided_by`（可 null）、`decided_at`、`reason`、`version` INT（可 null） | PK `review_id`；`uq_journey_review_pending (journey_id) WHERE status = 'PENDING'`；`ix_journey_review_journey (journey_id, submitted_at DESC, review_id DESC)`；`ck_journey_review_reject_reason`：`status <> 'REJECTED' OR reason IS NOT NULL`；只 `INSERT` 與 `PENDING` → 終態的條件式 `UPDATE`，不刪除；V8 回填不建紀錄 |
 | `journey_definition.layout` | JSONB，可 null | 版本不可變，`layout` 隨版本一起寫入 |
 | `enrollment_record.trigger_event_id` | TEXT，可 null | `uq_enrollment_trigger (journey_id, trigger_event_id) WHERE trigger_event_id IS NOT NULL`；V8 以 `trigger_snapshot->>'event_id'` 回填（`02` §6「落地」） |
@@ -507,6 +508,16 @@ DDL 正本為各支 migration；這裡只記語意。全部時間取注入的 `C
 | 約束 | `ck_delivery_task_cancel_reason`：`cancel_reason IS NULL OR (status = 'CANCELLED' AND cancel_reason IN ('JOURNEY_STOPPED', 'ENROLLMENT_ENDED'))` |
 | 寫入 | 取消 outbox 時同一敘述插入（下「relay」取消列）：`attempted_at` = `created_at` = `updated_at` = 取消時間，`message_type`／`skip_reason`／`delivery_id` 為 null，`ON CONFLICT (idempotency_key) DO NOTHING`；consumer 因 KillSwitch 擋下時寫 `JOURNEY_STOPPED`；V10 前已取消、沒有 `delivery_task` 的列由 consumer 補寫 `CANCELLED`、原因 null |
 | down | `ALTER TABLE delivery_task DROP CONSTRAINT ck_delivery_task_cancel_reason; ALTER TABLE delivery_task DROP COLUMN cancel_reason;`（寫在 migration 檔頭；舊版程式不讀此欄，可並存） |
+
+### V11：刪除未發佈的旅程（`journeys.md` §3.6；設計 `docs/design/journey-delete.md`）
+
+| 項目 | 規則 |
+|---|---|
+| 欄位 | `journey.deleted_at` TIMESTAMPTZ、`journey.deleted_by` TEXT（`app_user.user_id`），皆可 null；expand，只加欄不回填、不加索引 |
+| 約束 | `ck_journey_deleted`：`(deleted_at IS NULL AND deleted_by IS NULL) OR (deleted_at IS NOT NULL AND deleted_by IS NOT NULL AND status = 'DRAFT')`（只有未發佈的旅程能標記刪除） |
+| 寫入 | 刪除時（呼叫端已 `FOR UPDATE`）：`UPDATE journey SET deleted_at = :now, deleted_by = :user, updated_at = :now WHERE journey_id = :id AND status = 'DRAFT' AND deleted_at IS NULL`；草稿欄位、`journey_review` 不動 |
+| 讀取 | `journey` 的每個讀取都加 `deleted_at IS NULL`（`find`、`lock`、列表與明細查詢）；`journey_review` 不必加：讀審核前都先查 `journey` |
+| down | `ALTER TABLE journey DROP CONSTRAINT ck_journey_deleted; ALTER TABLE journey DROP COLUMN deleted_by; ALTER TABLE journey DROP COLUMN deleted_at;`（寫在 migration 檔頭；舊版程式不讀此欄，可並存；退版後已刪除的旅程會重新出現，資料不失） |
 
 ### relay（`effect_outbox`，不需 migration）
 
