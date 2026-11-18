@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.LoopProperties;
 import com.cdp.delivery.OutboxStore;
 import com.cdp.engine.StateStore;
@@ -135,7 +136,8 @@ public class JourneyStopSweeper {
                         reason,
                         Map.of()),
                 List.of());
-        outbox.cancelPendingByEnrollment(state.enrollmentId());
+        outbox.cancelPendingByEnrollment(
+                state.enrollmentId(), CancelReason.JOURNEY_STOPPED, now);
     }
 
     private static String reason(String stopReason) {

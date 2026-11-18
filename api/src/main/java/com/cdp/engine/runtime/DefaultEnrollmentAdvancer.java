@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.OutboxStore;
 import com.cdp.engine.StateStore;
 import com.cdp.engine.model.EnrollmentState;
@@ -366,7 +367,8 @@ public class DefaultEnrollmentAdvancer implements EnrollmentAdvancer {
                         nodeType,
                         enteredAt,
                         now);
-        outbox.cancelPendingByEnrollment(current.enrollmentId());
+        outbox.cancelPendingByEnrollment(
+                current.enrollmentId(), CancelReason.ENROLLMENT_ENDED, now);
         return ended;
     }
 

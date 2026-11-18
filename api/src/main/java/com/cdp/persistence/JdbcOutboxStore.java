@@ -15,9 +15,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.OutboxEntry;
 import com.cdp.delivery.OutboxStatus;
 import com.cdp.delivery.OutboxStore;
+import com.cdp.delivery.channel.ChannelAdapter;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -51,11 +53,14 @@ public class JdbcOutboxStore implements OutboxStore {
     private final JdbcClient jdbc;
     private final JdbcTemplate jdbcTemplate;
     private final JsonMapper json;
+    private final ChannelAdapter channel;
 
-    public JdbcOutboxStore(JdbcClient jdbc, JdbcTemplate jdbcTemplate, JsonMapper json) {
+    public JdbcOutboxStore(
+            JdbcClient jdbc, JdbcTemplate jdbcTemplate, JsonMapper json, ChannelAdapter channel) {
         this.jdbc = jdbc;
         this.jdbcTemplate = jdbcTemplate;
         this.json = json;
+        this.channel = channel;
     }
 
     @Override
@@ -142,21 +147,39 @@ public class JdbcOutboxStore implements OutboxStore {
     }
 
     @Override
-    public int cancelPendingByEnrollment(String enrollmentId) {
-        return jdbc.sql(
-                        "update effect_outbox set status = 'CANCELLED'"
-                                + " where enrollment_id = :id and status = 'PENDING'")
-                .param("id", enrollmentId)
-                .update();
+    public int cancelPendingByEnrollment(String enrollmentId, CancelReason reason, Instant at) {
+        return cancel("enrollment_id", enrollmentId, reason, at);
     }
 
     @Override
-    public int cancelPendingByJourney(String journeyId) {
+    public int cancelPendingByJourney(String journeyId, CancelReason reason, Instant at) {
+        return cancel("journey_id", journeyId, reason, at);
+    }
+
+    /** 同一敘述：取消 outbox 並為每列 SendMessage 寫 delivery_task（已有列則不動）。column 只來自上面兩個常數。 */
+    private int cancel(String column, String id, CancelReason reason, Instant at) {
         return jdbc.sql(
-                        "update effect_outbox set status = 'CANCELLED'"
-                                + " where journey_id = :id and status = 'PENDING'")
-                .param("id", journeyId)
-                .update();
+                        "with c as (update effect_outbox set status = 'CANCELLED' where "
+                                + column
+                                + " = :id and status = 'PENDING' returning idempotency_key,"
+                                + " enrollment_id, journey_id, journey_version, node_id, visit_seq,"
+                                + " effect_type, payload),"
+                                + " ins as (insert into delivery_task (idempotency_key, enrollment_id,"
+                                + " journey_id, journey_version, node_id, visit_seq, template_id,"
+                                + " channel_id, channel_type, status, cancel_reason, attempted_at,"
+                                + " created_at, updated_at)"
+                                + " select idempotency_key, enrollment_id, journey_id, journey_version,"
+                                + " node_id, visit_seq, payload ->> 'template_id',"
+                                + " payload ->> 'channel_id', :channelType, 'CANCELLED', :reason, :at,"
+                                + " :at, :at from c where effect_type = 'SendMessage'"
+                                + " on conflict (idempotency_key) do nothing returning 1)"
+                                + " select count(*) from c")
+                .param("id", id)
+                .param("channelType", channel.channelType())
+                .param("reason", reason.name())
+                .param("at", ts(at))
+                .query(Integer.class)
+                .single();
     }
 
     @Override
