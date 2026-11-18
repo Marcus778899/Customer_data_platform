@@ -139,6 +139,7 @@
 | deps-picomatch-fix | architect | blocked | 0 |  |
 | osv-ignore-picomatch | architect | done | 0 | PR #242 |
 | journey-builder-integration | frontend | done | 0 | PR #244 |
+| canvas-layout-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -159,6 +160,7 @@
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
 - 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 - uat 注意：make demo-seed 尚未對真後端實跑，uat 要實跑；場景一篩選用 properties.amount，seed 示範事件帶 cart_total（目前不影響）
+- 請甲方：本機 .env 的 CDP_INGEST_API_KEY 與 CDP_ADMIN_API_KEY 相同，後端會拒絕啟動（v0.3.0 新規則）；請各自用 openssl rand -hex 32 產生不同值
 
 ## 注意事項（踩過的坑）
 
