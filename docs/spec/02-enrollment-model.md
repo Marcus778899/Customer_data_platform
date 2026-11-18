@@ -103,7 +103,8 @@ COMPLETED GOAL_MET    EXITED      FAILED    ABORTED
   兩者的來源分別是 `settings.goal` 與 `settings.global_exit`（見 `03-journey-definition.md` §3），
   由引擎在推進迴圈的**每一次**檢查——**不是走到某個節點才判定**
 - `SUSPENDED` 只能由旅程層操作觸發，節點不能主動進入
-- 進入任何終態時，**必須**取消該 Enrollment 所有未觸發的計時器與未送出的訊息（見 `05-delivery-pipeline.md` 取消點）
+- 進入任何終態時，**必須**取消該 Enrollment 所有未觸發的計時器
+- **中途結束**（`goal`／`global_exit` 命中轉 `GOAL_MET`／`EXITED`、旅程停止轉 `ABORTED`）時，**必須**同交易取消未送出的訊息（見 `05-delivery-pipeline.md` 取消點），每則在 `delivery_task` 留一筆 `CANCELLED`（原因 `ENROLLMENT_ENDED`／`JOURNEY_STOPPED`，`07` §12「V10」）；走到終點節點（`EndNode`／`ExitNode`／`GoalNode`）正常結束、或 `FAILED` 時不取消，已排入的訊息照常送出（v0.3.0 起，`docs/design/stop-cancel.md`）
 
 ---
 
@@ -179,6 +180,15 @@ record TriggerSnapshot(
   3. 仍超過 → 拒絕建立 Enrollment 並告警
 - `profileSnapshot` 只存**旅程定義有引用到的欄位**，不是整份 Profile
 
+**落地（v0.3.0，enrollment-reentry-engine）**
+
+| 項目 | 規則 |
+|---|---|
+| 大小 | 以存進 jsonb 後 `::text` 的 UTF-8 位元組數計，算整份快照（含 `profileSnapshot`） |
+| 步驟 1 | 遞迴處理 `properties` 內所有陣列（含巢狀），各保留前 20 筆；有任一陣列被截時在 `properties` **頂層**加 `_truncated: true` 與 `_total_count`（被截斷的陣列中最大的原始筆數；多個陣列時只記這一個值） |
+| 步驟 2 白名單 | 「被模板引用的欄位」在 v0.3.0 讀作：旅程定義引用的 `trigger.properties.<鍵>` 的第一層鍵——`ConditionNode` 條件、`settings.global_exit` 的 attribute 條件、`settings.reentry.dedup_key_path`（`$.trigger.properties.…`）。v0.3.0 訊息節點只有 `message_id`、沒有模板欄位，之後有模板變數時一併列入；步驟 1 的 `_truncated`／`_total_count` 保留 |
+| 步驟 3 | 不建立 Enrollment；視為該綁定派發失敗：只回滾該綁定（同事件其他旅程照常），事件依 `07` §11 退避重試，達 `ENGINE_DISPATCH_MAX_ATTEMPTS` 標 `EXHAUSTED` 並記 ERROR log（D-024）。「告警」= 每次失敗寫進事件的失敗原因（`SnapshotTooLargeException`）與最終的 ERROR log；不另設告警通道 |
+
 ---
 
 ## 6. G3 — 重入策略與去重鍵
@@ -239,6 +249,8 @@ CREATE UNIQUE INDEX uq_enrollment_dedup
 | 冷卻期檢查 | `COOLDOWN`、`DEDUP_KEY_WITH_COOLDOWN` 在建立的交易內先取 `pg_advisory_xact_lock`（鍵 = `journey_id`＋`profile_id`），再查「最近一次 `terminated_at` ＋ 冷卻期 > 現在」或「有未結束的 Enrollment」→ 不建立；同一客戶併發觸發因此不會各自通過檢查 |
 | `DEDUP_KEY_WITH_COOLDOWN` | 同一個去重鍵永遠只進一次（唯一約束）；冷卻期擋的是「不同去重鍵」在冷卻期內再進入 |
 | 被擋下 | 不是錯誤；事件照常標 `DISPATCHED`，記 INFO 日誌（不寫軌跡，因為沒有 Enrollment） |
+| 冷卻期上限 | 驗證不設上限（`cooldown` 只要求正的 Duration）；cutoff = 現在 − 冷卻期，算出早於 `1970-01-01T00:00:00Z` 或溢位時夾到該值（等同「曾結束的都擋」），避免超出 timestamptz 範圍使每次觸發都失敗（v0.3.0，stop-cancel-record-api） |
+| advisory lock 順序 | 鎖持有到事件派發的交易結束；同一交易依 `findActiveEventSources` 的 `ORDER BY journey_id` 逐一取鎖，所有事件取鎖順序一致故不互鎖。之後新增取 advisory lock 的程式須照 `journey_id` 遞增順序；若仍死結，PostgreSQL 中止其一，該事件走派發重試 |
 
 ---
 
