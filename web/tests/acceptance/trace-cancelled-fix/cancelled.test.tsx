@@ -9,6 +9,8 @@
  *     （讓客服看得出是旅程被停止而取消）；摘要寫出被取消的則數（「N 則」）。
  *   - 走過發送步驟、但 delivery_history 一則都沒有（終態）：資料不足以判斷，畫面不可寫「沒有發送過訊息」
  *     「還沒有發出任何訊息…走到發送訊息步驟時會出現」「這一步已處理完成」這類與事實矛盾的說法。
+ *   - D-090：Delivery.cancel_reason（JOURNEY_STOPPED／ENROLLMENT_ENDED／null）。上面「停止」的斷言都以 JOURNEY_STOPPED 為前提；
+ *     ENROLLMENT_ENDED 要寫出「中途結束」且不寫「旅程被停止」；null（舊資料、原因未記錄）維持通用取消說法。
  *   - 沒走過發送步驟的情境（既有驗收）不受影響，這裡不重測。
  */
 import { cleanup, screen } from '@testing-library/react'
@@ -22,7 +24,7 @@ beforeEach(resetEnv)
 afterEach(() => { cleanup(); teardown(); unfreeze() })
 
 const cancelled = (i: number, over: Record<string, unknown> = {}) =>
-  delivery(i, { status: 'CANCELLED', delivery_id: null, ...over })
+  delivery(i, { status: 'CANCELLED', delivery_id: null, cancel_reason: 'JOURNEY_STOPPED', ...over })
 
 /** 走完且訊息被取消：旅程在訊息送出前被停止 */
 const completedCancelled = (n = 1) =>
@@ -131,5 +133,109 @@ describe('F-29：走過發送步驟卻查不到任何發送紀錄（資料不足
     expect(text).not.toContain('走到「發送訊息」步驟時')
     const s = await sendStep()
     expect(s).not.toContain('處理完成')
+  })
+})
+
+describe('D-090：依 cancel_reason 顯示取消原因', () => {
+  it('JOURNEY_STOPPED：摘要與發送步驟寫旅程被停止，不寫中途結束', async () => {
+    freezeNow(NOW_LATE)
+    openTrace({}, completedCancelled())
+    await heading()
+    const t = cardText()
+    expect(t).toContain('旅程被停止')
+    expect(t).not.toContain('中途結束')
+    const s = await sendStep()
+    expect(s).toContain('旅程被停止')
+    expect(s).not.toContain('中途結束')
+  })
+
+  it('ENROLLMENT_ENDED：摘要寫客戶中途結束、取消、沒有送出，不寫旅程被停止', async () => {
+    freezeNow(NOW_LATE)
+    openTrace({}, completed({ delivery_history: [cancelled(1, { cancel_reason: 'ENROLLMENT_ENDED' })] }))
+    await heading()
+    const t = cardText()
+    expect(t).toContain('取消')
+    expect(t).toContain('中途結束')
+    expect(t).toContain('1 則')
+    expect(t).toContain('沒有')
+    expect(t).not.toContain('旅程被停止')
+    for (const w of FORBIDDEN) expect(t).not.toContain(w)
+  })
+
+  it('ENROLLMENT_ENDED：發送步驟說明寫中途結束而取消、沒有送出，不寫旅程被停止、不寫已處理完成', async () => {
+    freezeNow(NOW_LATE)
+    openTrace({}, completed({ delivery_history: [cancelled(1, { cancel_reason: 'ENROLLMENT_ENDED' })] }))
+    await heading()
+    const s = await sendStep()
+    expect(s).toContain('取消')
+    expect(s).toContain('中途結束')
+    expect(s).toMatch(/沒有送出|未送出|沒有發出/)
+    expect(s).not.toContain('旅程被停止')
+    expect(s).not.toContain('這一步已處理完成')
+  })
+
+  it('ENROLLMENT_ENDED：發送紀錄表仍有一列「已取消」，沒有空狀態', async () => {
+    freezeNow(NOW_LATE)
+    openTrace({}, completed({ delivery_history: [cancelled(1, { cancel_reason: 'ENROLLMENT_ENDED' })] }))
+    await heading()
+    const cells = [...screen.getByRole('table').querySelectorAll('tbody td')].map((td) => norm(td))
+    expect(cells).toHaveLength(4)
+    expect(cells[3]).toContain('已取消')
+    expect(mainText()).not.toContain('還沒有發出任何訊息')
+  })
+
+  it('已中止停在發送步驟＋ENROLLMENT_ENDED：說中途結束，不說旅程被停止', async () => {
+    freezeNow(NOW_LATE)
+    const a = abortedAtSend()
+    openTrace({}, { ...a, delivery_history: [cancelled(1, { cancel_reason: 'ENROLLMENT_ENDED' })] })
+    await heading()
+    const t = cardText()
+    expect(t).toContain('取消')
+    expect(t).toContain('中途結束')
+    expect(t).not.toContain('旅程被停止')
+    const s = await sendStep()
+    expect(s).toContain('中途結束')
+    expect(s).not.toContain('旅程被停止')
+  })
+
+  it('兩種原因各 1 則：兩種原因與各自則數都交代', async () => {
+    freezeNow(NOW_LATE)
+    openTrace({}, completed({ delivery_history: [
+      cancelled(1, { cancel_reason: 'JOURNEY_STOPPED' }),
+      cancelled(2, { cancel_reason: 'ENROLLMENT_ENDED', attempted_at: '2026-10-20T02:00:06Z' }),
+    ] }))
+    await heading()
+    const t = cardText()
+    expect(t).toContain('旅程被停止')
+    expect(t).toContain('中途結束')
+    expect(t).toContain('2 則')
+  })
+
+  it('cancel_reason 為 null（舊資料）：維持通用取消說法，仍說取消、沒有送出，不寫中途結束、不出現矛盾文案', async () => {
+    freezeNow(NOW_LATE)
+    openTrace({}, completed({ delivery_history: [cancelled(1, { cancel_reason: null })] }))
+    await heading()
+    const t = cardText()
+    expect(t).toContain('取消')
+    expect(t).toContain('1 則')
+    expect(t).toContain('沒有')
+    expect(t).not.toContain('中途結束')
+    for (const w of FORBIDDEN) expect(t).not.toContain(w)
+    const s = await sendStep()
+    expect(s).toContain('取消')
+    expect(s).not.toContain('中途結束')
+    expect(s).not.toContain('這一步已處理完成')
+  })
+
+  it('沒有 cancel_reason 欄位（舊後端）：同 null，不出錯', async () => {
+    freezeNow(NOW_LATE)
+    const d = cancelled(1)
+    delete (d as Record<string, unknown>).cancel_reason
+    openTrace({}, completed({ delivery_history: [d] }))
+    await heading()
+    const t = cardText()
+    expect(t).toContain('取消')
+    expect(t).not.toContain('中途結束')
+    expect(screen.getByRole('table')).toBeTruthy()
   })
 })
