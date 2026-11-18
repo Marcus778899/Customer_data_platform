@@ -122,7 +122,7 @@ const noop = () => undefined
 /** 量不到容器寬度時（測試環境、尚未排版）的可用寬度：1440 寬扣掉側欄與邊距 */
 const FALLBACK_WIDTH = 1160
 /** 縮到這個比例還放不下就改左右捲動，字再小就看不清了 */
-const MIN_SCALE = 0.6
+const MIN_SCALE = 0.8
 
 /** 圖比容器寬時等比縮小（F-7：整張圖進一屏），不低於 MIN_SCALE */
 export function fitScale(graphWidth: number, available: number): number {
