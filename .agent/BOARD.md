@@ -166,8 +166,8 @@
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
-- uat 第六輪 F-31／F-33 PASS（minor #268）；uat 第七輪補測驗收條件進行中
 - security v0.3.0 FAIL：H-1 picomatch 無修正版（D-089 等上游，2026-11-18 npm 最新仍 4.0.7）；待甲方決定 D-091（M-1／M-2 來源 IP 偽造本版修不修）；L-1 #269、L-2 #270 backlog；v0.2.0 L-1～L-3 仍未修
+- uat 完成（第七輪）：無 blocker／major，minor #268 #271；驗收條件 1～6、8、9 PASS，7 乾淨環境由 security 讀碼確認、10 待甲方關 #149；甲方驗收清單待勾
 
 ## 注意事項（踩過的坑）
 
