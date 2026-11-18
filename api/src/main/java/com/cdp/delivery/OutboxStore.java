@@ -34,10 +34,13 @@ public interface OutboxStore {
     /** {@link #reschedule} 的批次版，回傳與輸入同序的各列影響筆數。 */
     int[] rescheduleAll(List<Lease> leases, Instant availableAt);
 
-    /** PENDING → CANCELLED（不論是否被 relay 搶走）；回傳取消筆數。 */
-    int cancelPendingByEnrollment(String enrollmentId);
+    /**
+     * PENDING → CANCELLED（不論是否被 relay 搶走），同一敘述為每列 SendMessage 寫 delivery_task（CANCELLED＋reason，
+     * attempted_at＝at）；回傳取消筆數。
+     */
+    int cancelPendingByEnrollment(String enrollmentId, CancelReason reason, Instant at);
 
-    int cancelPendingByJourney(String journeyId);
+    int cancelPendingByJourney(String journeyId, CancelReason reason, Instant at);
 
     Optional<OutboxEntry> find(String idempotencyKey);
 }

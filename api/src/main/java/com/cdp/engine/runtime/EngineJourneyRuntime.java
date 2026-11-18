@@ -126,8 +126,11 @@ public class EngineJourneyRuntime implements JourneyRuntime {
             Instant cutoff;
             try {
                 cutoff = now.minus(cd);
+                if (cutoff.isBefore(Instant.EPOCH)) {
+                    cutoff = Instant.EPOCH;
+                }
             } catch (ArithmeticException | DateTimeException e) {
-                cutoff = Instant.MIN;
+                cutoff = Instant.EPOCH;
             }
             Optional<String> blocker = reentry.findCooldownBlocker(journeyId, profileId, cutoff);
             if (blocker.isPresent()) {

@@ -53,7 +53,7 @@ class JourneyStopServiceTest {
 
         assertThat(d.status()).isEqualTo(JourneyStatus.ABORTED);
         verify(journeys).markAborted("j1", "取消", "u2", NOW);
-        verify(outbox).cancelPendingByJourney("j1");
+        verify(outbox).cancelPendingByJourney("j1", com.cdp.delivery.CancelReason.JOURNEY_STOPPED, NOW);
         verify(reviews).decide("r1", ReviewStatus.WITHDRAWN, "u2", NOW, "旅程已停止", null);
     }
 
@@ -63,7 +63,7 @@ class JourneyStopServiceTest {
         when(queries.detail("j1")).thenReturn(Optional.of(detail()));
         service.stop("j1", new ReasonRequest("第二次"), new Caller(null, true));
         verify(journeys, never()).markAborted(any(), any(), any(), any());
-        verify(outbox, never()).cancelPendingByJourney(any());
+        verify(outbox, never()).cancelPendingByJourney(any(), any(), any());
     }
 
     @Test

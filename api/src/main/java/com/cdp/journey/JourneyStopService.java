@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cdp.common.web.ApiException;
 import com.cdp.common.web.ErrorCode;
+import com.cdp.delivery.CancelReason;
 import com.cdp.delivery.OutboxStore;
 import com.cdp.journey.JourneyStore.JourneyRow;
 
@@ -56,7 +57,7 @@ public class JourneyStopService {
         if (row.status() != JourneyStatus.ABORTED) {
             Instant now = clock.instant();
             journeys.markAborted(journeyId, reason, caller.userId(), now);
-            outbox.cancelPendingByJourney(journeyId);
+            outbox.cancelPendingByJourney(journeyId, CancelReason.JOURNEY_STOPPED, now);
             reviews.findPending(journeyId)
                     .ifPresent(
                             r ->

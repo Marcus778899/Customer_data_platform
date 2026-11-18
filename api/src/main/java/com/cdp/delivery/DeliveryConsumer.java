@@ -125,26 +125,12 @@ public class DeliveryConsumer {
         if (task.status() != DeliveryTaskStatus.PENDING) {
             return; // 重複投遞：已處理過
         }
-        if (entry.status() == OutboxStatus.CANCELLED
-                || killSwitch.isStopped(entry.journeyId(), entry.journeyVersion())) {
-            tasks.update(
-                    new DeliveryTask(
-                            task.idempotencyKey(),
-                            task.enrollmentId(),
-                            task.journeyId(),
-                            task.journeyVersion(),
-                            task.nodeId(),
-                            task.visitSeq(),
-                            task.templateId(),
-                            task.channelId(),
-                            task.channelType(),
-                            task.messageType(),
-                            DeliveryTaskStatus.CANCELLED,
-                            null,
-                            null,
-                            task.attemptedAt(),
-                            task.createdAt(),
-                            now));
+        if (entry.status() == OutboxStatus.CANCELLED) {
+            tasks.markCancelled(key, null, now); // V10 前取消、沒有 delivery_task 列的舊資料
+            return;
+        }
+        if (killSwitch.isStopped(entry.journeyId(), entry.journeyVersion())) {
+            tasks.markCancelled(key, CancelReason.JOURNEY_STOPPED, now);
             return;
         }
         executor.execute(entry.enrollmentId(), effect);

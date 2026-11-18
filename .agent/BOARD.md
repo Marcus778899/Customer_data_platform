@@ -142,9 +142,10 @@
 | journey-builder-integration | frontend | done | 0 | PR #244 |
 | canvas-layout-fix | frontend | done | 0 | PR #248 |
 | canvas-fit-fix | frontend | done | 0 | PR #255 |
-| trace-cancelled-fix | frontend | todo | 0 |  |
+| trace-cancelled-fix | frontend | done | 0 | PR #257 |
 | stop-cancel-design | architect | done | 0 | PR #254 |
 | stop-cancel-record-api | backend | todo | 0 |  |
+| advanced-states-flake-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
