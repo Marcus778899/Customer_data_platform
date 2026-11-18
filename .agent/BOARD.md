@@ -145,6 +145,7 @@
 | trace-cancelled-fix | frontend | todo | 0 |  |
 | stop-cancel-design | architect | done | 0 | PR #254 |
 | stop-cancel-record-api | backend | todo | 0 |  |
+| advanced-states-flake-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
