@@ -141,7 +141,7 @@
 | osv-ignore-picomatch | architect | done | 0 | PR #242 |
 | journey-builder-integration | frontend | done | 0 | PR #244 |
 | canvas-layout-fix | frontend | done | 0 | PR #248 |
-| canvas-fit-fix | frontend | todo | 0 |  |
+| canvas-fit-fix | frontend | done | 0 | PR #255 |
 | trace-cancelled-fix | frontend | todo | 0 |  |
 | stop-cancel-design | architect | done | 0 | PR #254 |
 | stop-cancel-record-api | backend | todo | 0 |  |
@@ -156,7 +156,6 @@
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 - 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 - 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
-- 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
 - 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 - uat 注意：make demo-seed 尚未對真後端實跑，uat 要實跑；場景一篩選用 properties.amount，seed 示範事件帶 cart_total（目前不影響）
