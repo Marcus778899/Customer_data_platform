@@ -151,9 +151,10 @@
 | advanced-states-flake-fix | frontend | done | 0 | PR #261 |
 | canvas-zoom-filter-ui | designer | done | 0 | PR #265 |
 | canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
-| login-proxy-design | architect | review | 0 |  |
+| login-proxy-design | architect | done | 0 | PR #275 |
 | osv-ignore-extend | architect | done | 0 | PR #274 |
 | canvas-interaction-ui | designer | todo | 0 |  |
+| osv-ignore-remove | architect | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
