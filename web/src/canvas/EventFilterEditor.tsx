@@ -12,14 +12,19 @@ import {
   emptyGroup,
   emptyLeaf,
   filterIssues,
+  fieldKind,
   isNumericField,
   keyLabel,
+  needsKindToggle,
+  numericInput,
+  opLabel,
+  textLooksNumber,
+  valueKindLabel,
   leafField,
   leafInlineErrors,
   issuesAt,
   mapTree,
   opNoValue,
-  opsFor,
   toWire,
   treeFromWire,
   wireKey,
@@ -29,6 +34,7 @@ import {
   type FUnsup,
 } from './eventFilter'
 import { useLocked } from './lock'
+import { KindToggle, OperatorOptions } from './ValueControls'
 
 // ---------- 欄位建議（field-keys） ----------
 type KeysState = { status: 'idle' | 'loading' | 'ready' | 'failed'; keys: string[] }
@@ -114,6 +120,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
   const bad = fieldErrs.length + valueErrs.length + rowErrs.length > 0
   const set = (patch: Partial<FLeaf>) => ctx.update(leaf.id, (n) => ({ ...(n as FLeaf), ...patch, raw: undefined }))
   const noValue = opNoValue(leaf.operator)
+  const textHint = textLooksNumber(leaf, field)
   const loadingEmpty = keys.status === 'loading' && !field && !custom
   const feId = `${uid}-fe`
   const veId = `${uid}-ve`
@@ -193,11 +200,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
           onChange={(e) => set({ operator: e.target.value })}
         >
           <option value="">（選擇比較）</option>
-          {opsFor(field, leaf.operator).map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          <OperatorOptions field={field} current={leaf.operator} labelOf={opLabel} name={field ? keyLabel(field.slice(FIELD_PREFIX.length)) : ''} />
         </select>
         <input
           type="text"
@@ -205,6 +208,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
           value={noValue ? '' : leaf.text}
           readOnly={locked}
           disabled={noValue || loadingEmpty}
+          inputMode={numericInput(leaf.operator, leaf.num) ? 'decimal' : undefined}
           placeholder={leaf.operator === 'IN' || leaf.operator === 'NOT_IN' ? '用逗號分隔，例：line, email' : undefined}
           aria-invalid={valueErrs.length ? true : undefined}
           aria-describedby={describe([veId], valueErrs.length > 0)}
@@ -214,8 +218,15 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
           <Icon d={X_PATH} />
         </button>
       </div>
+      {needsKindToggle(field, leaf.operator) && <KindToggle num={leaf.num} disabled={locked} onChange={(num) => set({ num })} />}
+      {field && !leaf.operator && fieldKind(field) === 'unknown' && (
+        <p className="hint">
+          系統不知道『{keyLabel(field.slice(FIELD_PREFIX.length))}』是數字還是文字。要比大小請選「比大小」，500 會當成數字比對。
+        </p>
+      )}
       <Err id={feId} messages={fieldErrs} />
       <Err id={veId} messages={valueErrs} />
+      {textHint && <p className="hint">{textHint}</p>}
       <Err id={reId} messages={rowErrs} />
       {field && (
         <details className="adv">
@@ -223,7 +234,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
           <p className="mono">
             event_filter：{field}
             {leaf.operator ? ` ・ ${leaf.operator}` : ''}
-            {!noValue && leaf.text ? ` ・ ${leaf.text}` : ''}
+            {!noValue && leaf.text ? ` ・ ${leaf.text}${valueKindLabel(leaf.operator, leaf.num)}` : ''}
           </p>
         </details>
       )}

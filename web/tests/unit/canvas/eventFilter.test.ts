@@ -65,7 +65,8 @@ describe('欄位與比較', () => {
     expect(num).not.toContain('IN')
     expect(opsFor('', '').length).toBe(11)
     expect(opsFor('properties.cart_total', 'CONTAINS').map((o) => o.value)).toContain('CONTAINS')
-    expect(opsFor('properties.coupon_code', '').map((o) => o.value)).not.toContain('GT')
+    expect(opsFor('properties.utm_source', '').map((o) => o.value)).not.toContain('GT')
+    expect(opsFor('properties.amount', '').length).toBe(11)
   })
 })
 

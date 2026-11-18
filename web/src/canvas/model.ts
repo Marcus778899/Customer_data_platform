@@ -10,7 +10,7 @@ export type Layout = DraftLayout
 
 /** 畫布上節點卡的固定尺寸（px，RF 需要初始尺寸才能不等量測就畫出連線） */
 export const CARD_W = 176
-export const CARD_H = 88
+export const CARD_H = 96
 const GAP_X = 72
 const GAP_Y = 32
 

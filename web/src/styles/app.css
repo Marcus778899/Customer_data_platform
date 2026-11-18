@@ -176,7 +176,7 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 .graph .mk.taken path { fill: var(--color-edge-taken); }
 .graph .react-flow__handle { opacity: 0; pointer-events: none; }
 .graph .react-flow__node { pointer-events: none; }
-.node { pointer-events: all; width: var(--node-width); height: var(--node-height); text-align: left; font: inherit; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-strong); border-left: 6px solid var(--catc, var(--color-edge)); border-radius: var(--radius-sm); cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
+.node { pointer-events: all; width: var(--node-width); height: var(--node-height); text-align: left; font: inherit; padding: 10px 8px 10px 10px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-strong); border-left: 6px solid var(--catc, var(--color-edge)); border-radius: var(--radius-sm); cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 1px; overflow: hidden; }
 .node.cat-source { --catc: var(--color-node-source); }
 .node.cat-wait { --catc: var(--color-node-wait); }
 .node.cat-branch { --catc: var(--color-node-branch); }
@@ -300,9 +300,17 @@ table.enr .enr-time { display: block; }
 .vflow li.now .vn { background: var(--color-primary); color: var(--color-primary-text); border-color: var(--color-primary); }
 .head-act { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .edbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-@media (min-width: 1101px) { .edbody:has(.edside > *) { grid-template-columns: minmax(0, 1fr) var(--panel-width); } }
 .edmain { min-width: 0; }
 .edside { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.edside[hidden] { display: none; }
+/* 面板浮在畫布右側（開關不改畫布大小，所以不改縮放）；>1100px 才浮，以下排到圖下方 */
+@media (min-width: 1101px) {
+  .canvas-area > .edside { position: absolute; z-index: 6; top: var(--space-2); right: var(--space-2); bottom: var(--space-2); width: calc(var(--panel-width) + var(--space-3)); overflow-y: auto; }
+}
+@media (max-width: 1100px) {
+  .canvas-area > .edside { margin-top: var(--space-3); }
+  .canvas-area:has(.edside:not([hidden])) .canvas-wrap { height: 300px; }
+}
 .tb-full { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-2); }
 .tb-group { display: inline-flex; gap: var(--space-1); padding-right: var(--space-3); border-right: 1px solid var(--color-border); }
 .tb-group:last-child { border-right: 0; }
@@ -316,7 +324,7 @@ table.enr .enr-time { display: block; }
 .canvas-wrap .react-flow { background: transparent; }
 .canvas-wrap .react-flow__edge-path.e { fill: none; stroke: var(--color-edge); stroke-width: 2; }
 .canvas-wrap .react-flow__edge-path.e.back { stroke-dasharray: 2 5; stroke-linecap: round; }
-.canvas-wrap .e-label { font-size: var(--text-xs); fill: var(--color-text-muted); paint-order: stroke; stroke: var(--color-graph-bg); stroke-width: 4px; }
+.canvas-wrap .e-label { font-size: 17px; font-weight: 600; fill: var(--color-text-muted); paint-order: stroke; stroke: var(--color-graph-bg); stroke-width: 4px; }
 .canvas-wrap .mk path { fill: var(--color-edge); }
 .canvas-wrap .react-flow__handle { opacity: 0; pointer-events: none; }
 .canvas-wrap .react-flow__node { pointer-events: all; }
@@ -327,14 +335,32 @@ table.enr .enr-time { display: block; }
 .cnode.cat-send { --catc: var(--color-node-send); }
 .cnode.cat-end { --catc: var(--color-node-end); }
 .cnode .n-head { display: flex; justify-content: space-between; gap: var(--space-2); }
-.cnode .n-cat { font-size: var(--text-xs); color: var(--color-text-muted); }
-.cnode .n-name { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cnode .n-sum { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cnode .n-cat { font-size: 1.05rem; line-height: 1.25; color: var(--color-text-muted); }
+.cnode .n-name { font-size: 1.3rem; line-height: 1.2; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cnode .n-sum { font-size: 1.05rem; line-height: 1.25; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cnode .n-err { font-size: var(--text-xs); font-weight: 700; color: var(--color-danger-fg); background: var(--color-danger-bg); padding: 0 var(--space-1); border-radius: var(--radius-sm); }
 .cnode.has-error { border-color: var(--color-danger-fg); border-width: 2px; border-left-width: 6px; }
 .cnode.selected { box-shadow: 0 0 0 3px var(--color-focus); }
 .cnode:focus-visible { box-shadow: var(--focus-ring); }
 .zoombar { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 5; display: flex; align-items: center; gap: var(--space-2); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-2); }
+.zoombar .pct { min-width: 3.5em; text-align: center; color: var(--color-text-muted); }
+.zoombar .pct.low { background: var(--color-warning-bg); color: var(--color-warning-fg); font-weight: 700; border-radius: var(--radius-sm); }
+.zfnote { position: absolute; left: var(--space-3); bottom: calc(var(--space-3) + 52px); z-index: 5; display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); border-radius: var(--radius-md); background: var(--color-warning-bg); color: var(--color-warning-fg); border: 1px solid var(--color-warning-fg); font-size: var(--text-sm); font-weight: 600; }
+.zfnote .btn { background: var(--color-surface); }
+.zfhint { position: absolute; left: var(--space-3); top: var(--space-3); z-index: 5; margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--color-text); color: var(--color-surface); font-size: var(--text-sm); box-shadow: var(--shadow-popover); }
+/* 小地圖緊貼縮放列右邊 */
+.canvas-wrap .react-flow__minimap { left: calc(var(--space-3) + 232px); right: auto; bottom: 0; margin: var(--space-3) !important; }
+.ph-act { display: flex; gap: var(--space-2); margin-left: auto; flex: none; }
+.drtab { position: absolute; z-index: 6; right: 0; top: var(--space-4); width: 44px; min-height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); border: 1px solid var(--color-border-strong); border-right: 0; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; font-weight: 700; font-size: var(--text-sm); cursor: pointer; box-shadow: var(--shadow-popover); }
+.drtab:hover { background: var(--color-bg); }
+.drtab:focus-visible { box-shadow: var(--focus-ring); }
+.drtab-text { writing-mode: vertical-rl; letter-spacing: .08em; }
+.kind-toggle { align-items: center; }
+.kind-toggle .kt-label { font-size: var(--text-sm); color: var(--color-text-muted); }
+.kind-toggle .btn { min-height: 32px; }
+.cond-line > select { text-overflow: clip; }
+.cond-group .cond-group .cond-line > :first-child { flex: 1 1 100%; min-width: 12em; }
+@media (max-width: 1100px) { .panel-collapse, .zfhint, .drtab { display: none; } }
 .empty-hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 4; max-width: 320px; box-shadow: var(--shadow-popover); }
 .empty-hint p { margin: 0 0 var(--space-2); }
 .statusbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin: var(--space-2) 0; font-size: var(--text-sm); }
@@ -462,7 +488,7 @@ textarea { font: inherit; padding: var(--space-2) var(--space-3); border: 1px so
   .uhead .tagx { flex-basis: auto; order: 3; margin-left: 0; }
   .uhead .x2 { margin-left: auto; }
   .undo { flex-wrap: wrap; }
-  .canvas-wrap { height: clamp(300px, 52vh, 480px); }
+  .canvas-wrap { height: 300px; }
 }
 
 /* 列表客戶欄第二行（ux-polish-web #180） */
@@ -470,3 +496,17 @@ textarea { font: inherit; padding: var(--space-2) var(--space-3); border: 1px so
 
 /* 窄畫布不放小地圖（Canvas.tsx 的 MINI_MIN_WIDTH 同值，符合視窗時不再為它讓位） */
 @media (max-width: 640px) { .canvas-wrap .react-flow__minimap { display: none; } }
+
+/* 編輯頁：側欄收成 56px 圖示軌，畫布多出 176px（>1024px；以下沿用頂列） */
+.shell.rail { grid-template-columns: 56px minmax(0, 1fr); }
+.rail .side { align-items: center; gap: var(--space-2); padding: var(--space-3) 0; }
+.rail .side .rl { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-md); color: var(--color-nav-text); background: transparent; border: 0; cursor: pointer; }
+.rail .side .rl:hover { background: var(--color-nav-active-bg); }
+.rail .side .rl[aria-current="page"] { background: var(--color-nav-active-bg); box-shadow: inset 3px 0 0 var(--color-nav-focus); }
+.rail .side .rl svg { width: 20px; height: 20px; }
+.rail .side .rl.pl { margin-top: auto; }
+@media (max-width: 1024px) { .shell.rail { grid-template-columns: minmax(0, 1fr); } }
+.rail .side .nl-text, .rail .side .tag, .rail .side .brand, .rail .side .who-side { display: none; }
+.rail .side .nav a { padding: 0; justify-content: center; }
+.rail .side .side-toggle { width: 44px; min-height: 44px; padding: 0; overflow: hidden; text-indent: -999px; white-space: nowrap; position: relative; margin-top: auto; }
+.rail .side .side-toggle::after { content: "››"; position: absolute; inset: 0; display: grid; place-items: center; text-indent: 0; }
