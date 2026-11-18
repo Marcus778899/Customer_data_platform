@@ -142,6 +142,7 @@
 | canvas-layout-fix | frontend | done | 0 | PR #248 |
 | canvas-fit-fix | frontend | todo | 0 |  |
 | trace-cancelled-fix | frontend | todo | 0 |  |
+| stop-cancel-design | architect | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
