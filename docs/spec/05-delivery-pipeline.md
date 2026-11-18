@@ -261,12 +261,12 @@ void killJourney(String journeyId, String reason) {
 
 - 停在哪個節點
 - 已經發過哪些訊息（`deliveryHistory`）
-- 有幾則訊息被取消（`SkipReason = KILL_SWITCH`）
+- 有幾則訊息被取消（v0.3.0 落地：`delivery_task.status = CANCELLED` 且 `cancel_reason = JOURNEY_STOPPED`，見下「落地」；不用 `SkipReason`）
 - 誰在什麼時候按下停止、理由是什麼
 
 ### 落地（v0.2.0 第二版，`docs/design/DESIGN-03.md`）
 
-只做旅程層（`docs/contracts/journeys.md` §3.5）；判定來源只有 Postgres 的 `journey.status`（Redis 於之後的版本接上）。步驟 1 與 3 同一交易（設 `ABORTED`、outbox `PENDING` → `CANCELLED`）；步驟 4、5 由背景清理迴圈分批做（每批一個小交易，每筆寫一列軌跡）；步驟 2 本版無 Redis 可設。consumer 在發送前檢查 `journey.status` 與 outbox 列狀態，任一為停止／取消即 `CANCELLED`。
+只做旅程層（`docs/contracts/journeys.md` §3.5）；判定來源只有 Postgres 的 `journey.status`（Redis 於之後的版本接上）。步驟 1 與 3 同一交易（設 `ABORTED`、outbox `PENDING` → `CANCELLED`）；步驟 4、5 由背景清理迴圈分批做（每批一個小交易，每筆寫一列軌跡）；步驟 2 本版無 Redis 可設。consumer 在發送前檢查 `journey.status` 與 outbox 列狀態，任一為停止／取消即 `CANCELLED`。v0.3.0 起取消 outbox 的同一敘述即為每則訊息寫一筆 `delivery_task`（`CANCELLED`、`cancel_reason`；`07` §12「V10」），尚未推送的訊息也查得到，包含停止前已走完、訊息仍待送的 Enrollment；consumer 已為同一則建立 `delivery_task`（推送與回寫之間的窄窗）時不覆寫，以該列最終狀態為準。
 
 ### 恢復
 
@@ -296,7 +296,7 @@ void killJourney(String journeyId, String reason) {
 | `SENT` | 已交給服務商，取得 `providerMessageId` |
 | `DELIVERED` / `OPENED` / `CLICKED` / `BOUNCED` | 服務商回調 |
 | `SKIPPED` | 被守門或仲裁擋下，帶 `SkipReason` |
-| `CANCELLED` | 被 G10 取消 |
+| `CANCELLED` | 被 G10 取消，或 Enrollment 中途結束（`02` §3）；原因記在 `cancel_reason` |
 | `FAILED` | 送出失敗且重試耗盡 |
 
 ---

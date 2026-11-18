@@ -109,6 +109,7 @@
 | 2026-11-12 | D-087 | v0.3.0 | 「等事件」節點也能設事件篩選（擴及 WaitForEventNode） |
 | 2026-11-17 | D-088 | v0.3.0 | ux-polish-web 派工單誤判行由甲方手動刪除，續做 |
 | 2026-11-17 | D-089 | v0.3.0 | picomatch 漏洞先忽略單條（附到期日）；發版前須升修正版並移除忽略，否則延後發版 |
+| 2026-11-18 | D-090 | v0.3.0 | 核可 stop-cancel-design：取消訊息留 CANCELLED 紀錄＋取消原因（V10），不回填 |
 
 ## 任務狀態
 
@@ -140,6 +141,10 @@
 | osv-ignore-picomatch | architect | done | 0 | PR #242 |
 | journey-builder-integration | frontend | done | 0 | PR #244 |
 | canvas-layout-fix | frontend | done | 0 | PR #248 |
+| canvas-fit-fix | frontend | todo | 0 |  |
+| trace-cancelled-fix | frontend | todo | 0 |  |
+| stop-cancel-design | architect | done | 0 | PR #254 |
+| stop-cancel-record-api | backend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -148,15 +153,10 @@
 - backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
-- 待辦：DESIGN-05 做法 #3 兩句要跟實作更正（yml 用 :name、Makefile ifneq origin），新舊對照在 masking-default-api.review.md；併入下一張 architect 設計單
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
-- 待辦（下一張 architect 設計單）：spec 07 §12「V9」讀取列「行為同 V8」改成「只略過時間過濾，金鑰紀錄照樣不算」（draft-review-scope review）
 - 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 - 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
-- 待辦（下一張 architect 設計單）：spec 02 §3、DESIGN-03 #8「進入任何終態都取消未送出訊息」改成限定中途結束的終態（goal、global_exit、停止）
 - 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
-- 待辦（下一張 architect 設計單）：spec 02 §5 補「快照截斷後仍超過 64KB 時事件的處置」（目前實作丟例外→重試→EXHAUSTED，spec 只寫拒絕建立並告警），定了再補驗收
-- 待辦（下一張 architect 設計單）：spec 02 §5 補白名單讀法與 _total_count；冷卻期上限（過長會令 cutoff 溢位而重試到 EXHAUSTED）與 advisory lock 死鎖風險，見 enrollment-reentry-engine.review.md
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
 - 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 - uat 注意：make demo-seed 尚未對真後端實跑，uat 要實跑；場景一篩選用 properties.amount，seed 示範事件帶 cart_total（目前不影響）
