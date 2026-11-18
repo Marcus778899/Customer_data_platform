@@ -1,5 +1,5 @@
 // 旅程編輯畫布頁（FE-04）：載入／空／錯誤／權限狀態，頁首、工具列、畫布、狀態列、右側面板。
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox } from '../components/ui'
@@ -79,6 +79,19 @@ function Editor({ id }: { id: string }) {
 
   const errorIds = useMemo(() => new Set((ed.report?.errors ?? []).map((i) => i.node_id).filter((x): x is string => !!x)), [ed.report])
   const loops = useMemo(() => (def ? findLoops(def) : []), [def])
+
+  // Esc：關閉面板並取消選取（對話框開著時由對話框自己處理）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || dialog) return
+      if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"]')) return
+      if (selected) setSelected(null)
+      else if (settingsOpen) setSettingsOpen(false)
+      else if (ed.reportOpen) ed.setReportOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [dialog, selected, settingsOpen, ed])
 
   const select = useCallback((nid: string | null) => {
     setSelected(nid)

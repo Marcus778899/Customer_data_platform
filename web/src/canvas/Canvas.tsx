@@ -272,12 +272,12 @@ function RevealSelected({
 }
 
 /** 小地圖：整張圖都在「面板以外的可見範圍」內就隱藏；有節點被蓋住或超出畫面才顯示 */
-function MiniGate({ size, positions }: { size: Size; positions: Positions }) {
+function MiniGate({ size, positions, panelW }: { size: Size; positions: Positions; panelW: number }) {
   const [x, y, zoom] = useStore((s) => s.transform)
   const b = bounds(positions)
   if (size.w > 0 && size.w <= NARROW_W) return null
   if (b && size.w > 0 && size.h > 0) {
-    const seen = size.w - (size.w > STACK_W ? PANEL_FALLBACK_W : 0)
+    const seen = size.w - (size.w > STACK_W ? panelW : 0)
     const l = x + b.minX * zoom
     const t = y + b.minY * zoom
     if (l >= -0.5 && t >= -0.5 && l + b.bw * zoom <= seen + 0.5 && t + b.bh * zoom <= size.h + 0.5) return null
@@ -438,7 +438,7 @@ export function Canvas({
             setDrag({})
           }}
         >
-          <MiniGate size={size} positions={positions} />
+          <MiniGate size={size} positions={positions} panelW={panelOpen ? PANEL_FALLBACK_W : 0} />
         </ReactFlow>
         <ZoomBar wrap={wrap} positions={positions} size={size} />
         <FitOnChange signature={signature} wrap={wrap} positions={positions} />

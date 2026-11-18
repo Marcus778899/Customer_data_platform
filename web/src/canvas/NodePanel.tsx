@@ -248,6 +248,9 @@ function LeafRow({
           移除
         </button>
       </div>
+      {leaf.field && kind === 'unknown' && (
+        <p className="hint">系統不知道『{fieldLabel(leaf.field)}』是數字還是文字。要比大小請選「比大小」，500 會當成數字比對。</p>
+      )}
       {needsKindToggle(leaf.field, view.op) && <KindToggle num={view.num} disabled={locked} onChange={(num) => edit({ num })} />}
       {error && (
         <p className="ferr" role="alert" id={veId}>
