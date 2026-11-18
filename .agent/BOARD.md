@@ -112,6 +112,7 @@
 | 2026-11-18 | D-090 | v0.3.0 | 核可 stop-cancel-design：取消訊息留 CANCELLED 紀錄＋取消原因（V10），不回填 |
 | 2026-11-18 | D-091 | v0.3.0 | CDP_TRUSTED_PROXIES 改必填（直連填 -）、IPv6 以 /64 計數，v0.3.0 修（修改 D-084） |
 | 2026-11-18 | D-092 | v0.3.0 | picomatch 不卡 v0.3.0 發版，忽略延到 2027-03-18，#240 追蹤（修改 D-089） |
+| 2026-11-18 | D-093 | v0.3.0 | picomatch advisory 已撤回：刪忽略條目、#240 結案（D-089／D-092 結案） |
 
 ## 任務狀態
 
@@ -152,6 +153,7 @@
 | canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
 | login-proxy-design | architect | review | 0 |  |
 | osv-ignore-extend | architect | done | 0 | PR #274 |
+| canvas-interaction-ui | designer | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -169,9 +171,8 @@
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
 - uat 完成（第七輪）：無 blocker／major，minor #268 #271；驗收條件 1～6、8、9 PASS，7 乾淨環境由 security 讀碼確認、10 待甲方關 #149；甲方驗收清單待勾
-- security v0.3.0 FAIL：H-1 依 D-092 改帶忽略發版（osv-ignore-extend 改到期日）；M-1／M-2 依 D-091 修（login-proxy-design → 後端單）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
-- 注意：osv 忽略 picomatch 到期 2027-03-18（D-092）；到期前查上游，有修正版開單升版，沒有再問甲方
 - 甲方驗收回饋記在 #276（畫布拖拉／拉線互動待 designer 評估、旅程頁節點字裁切、條件面板比較欄窄與怎麼測）；甲方回饋完再分級排單
+- security v0.3.0 FAIL 待重審：H-1 advisory 已撤回（D-093，osv-ignore-remove）；M-1／M-2 依 D-091 修（login-proxy-design 已核可 → login-proxy-api）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
 
 ## 注意事項（踩過的坑）
 
