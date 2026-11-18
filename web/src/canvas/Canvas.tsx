@@ -15,7 +15,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   CARD_H,
   CARD_W,
@@ -104,27 +104,71 @@ const MINI_STROKE = () => 'var(--color-text-muted)'
 const nodeTypes = { card: CardView }
 const edgeTypes = { link: LinkView }
 
-const FIT = { padding: 0.1, minZoom: 0.1, maxZoom: 0.8 } as const
+/** 小地圖尺寸與邊距（右下角）；符合視窗時要讓出這塊 */
+const MINI = { w: 160, h: 100, edge: 15 } as const
+const PAD = 24
+const FIT_MAX_ZOOM = 0.8
+const FIT_MIN_ZOOM = 0.1
+/** 窄畫布（手機）隱藏小地圖，只讓出縮放列 */
+const MINI_MIN_WIDTH = 640
+const ZOOMBAR_BAND = 64
 
-function fit(rf: ReturnType<typeof useReactFlow>) {
-  try {
-    void Promise.resolve(rf.fitView(FIT)).catch(() => undefined)
-  } catch {
-    // 容器尚無尺寸時忽略
-  }
+type Fit = { rf: ReturnType<typeof useReactFlow>; box: HTMLElement | null; positions: () => Record<string, { x: number; y: number }> }
+
+/**
+ * 符合視窗大小：自己用節點座標與容器實際大小算 viewport，不靠 fitView。
+ * 根因：xyflow 的 fitView 用內部量到的 pane 尺寸與節點量測值，編輯中節點剛新增、排版剛重排時
+ * 量測還沒更新，fitView 用舊尺寸排隊執行，結果縮放與位置沒變（F-19）；內建 fitView 也不會避開小地圖與縮放列（F-21）。
+ */
+function fit({ rf, box, positions }: Fit) {
+  const w = box?.offsetWidth ?? 0
+  const h = box?.offsetHeight ?? 0
+  const pos = Object.values(positions())
+  if (!w || !h || pos.length === 0) return
+  const minX = Math.min(...pos.map((p) => p.x))
+  const maxX = Math.max(...pos.map((p) => p.x + CARD_W))
+  const minY = Math.min(...pos.map((p) => p.y))
+  const maxY = Math.max(...pos.map((p) => p.y + CARD_H))
+  const bottom = w >= MINI_MIN_WIDTH ? MINI.edge + MINI.h + PAD / 3 : ZOOMBAR_BAND
+  const availW = Math.max(1, w - PAD * 2)
+  const availH = Math.max(1, h - PAD - bottom)
+  const bw = maxX - minX
+  const bh = maxY - minY
+  const zoom = Math.max(FIT_MIN_ZOOM, Math.min(FIT_MAX_ZOOM, availW / bw, availH / bh))
+  const x = PAD + (availW - bw * zoom) / 2 - minX * zoom
+  const y = PAD + (availH - bh * zoom) / 2 - minY * zoom
+  void Promise.resolve(rf.setViewport({ x, y, zoom })).catch(() => undefined)
 }
 
-/** 加節點或接線後自動讓整張圖進入畫面（F-3：新節點不可跑到畫面外）；拖曳不觸發 */
-function FitOnChange({ signature }: { signature: string }) {
+/** 加節點、接線、畫布大小改變（開關右側面板、視窗縮放）後自動讓整張圖進入畫面；拖曳不觸發 */
+function FitOnChange({ signature, wrap, positions }: { signature: string; wrap: React.RefObject<HTMLDivElement | null>; positions: () => Record<string, { x: number; y: number }> }) {
   const rf = useReactFlow()
   useEffect(() => {
-    const id = window.requestAnimationFrame(() => fit(rf))
-    return () => window.cancelAnimationFrame(id)
-  }, [signature, rf])
+    const box = wrap.current?.querySelector<HTMLElement>('.react-flow') ?? null
+    const run = () => fit({ rf, box, positions })
+    let raf = window.requestAnimationFrame(run)
+    let ro: ResizeObserver | undefined
+    if (box && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        window.cancelAnimationFrame(raf)
+        raf = window.requestAnimationFrame(run)
+      })
+      ro.observe(box)
+    }
+    return () => {
+      window.cancelAnimationFrame(raf)
+      ro?.disconnect()
+    }
+  }, [signature, rf, wrap, positions])
   return null
 }
 
-function Zoom() {
+function ZoomFit({ wrap, positions }: { wrap: React.RefObject<HTMLDivElement | null>; positions: () => Record<string, { x: number; y: number }> }) {
+  const rf = useReactFlow()
+  return <Zoom onFit={() => fit({ rf, box: wrap.current?.querySelector<HTMLElement>('.react-flow') ?? null, positions })} />
+}
+
+function Zoom({ onFit }: { onFit: () => void }) {
   const rf = useReactFlow()
   const zoom = useStore((s) => s.transform[2])
   return (
@@ -142,7 +186,7 @@ function Zoom() {
         type="button"
         className="btn secondary sm"
         aria-label="符合視窗大小"
-        onClick={() => fit(rf)}
+        onClick={onFit}
       >
         ⤢
       </button>
@@ -168,6 +212,12 @@ export function Canvas({
   const [drag, setDrag] = useState<Record<string, { x: number; y: number }>>({})
   const full = useMemo(() => fillLayout(def, layout), [def, layout])
   const signature = useMemo(() => topologyKey(def), [def])
+  const wrap = useRef<HTMLDivElement>(null)
+  const fullRef = useRef(full)
+  useLayoutEffect(() => {
+    fullRef.current = full
+  }, [full])
+  const positions = useCallback(() => fullRef.current.nodes, [])
 
   const nodes = useMemo<CardNode[]>(
     () =>
@@ -228,14 +278,13 @@ export function Canvas({
 
   return (
     <ReactFlowProvider>
-      <div className="canvas-wrap">
+      <div className="canvas-wrap" ref={wrap}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          fitView
-          fitViewOptions={FIT}
+          defaultViewport={{ x: PAD, y: PAD, zoom: FIT_MAX_ZOOM }}
           minZoom={0.1}
           maxZoom={1.5}
           nodesConnectable={false}
@@ -251,10 +300,10 @@ export function Canvas({
             setDrag({})
           }}
         >
-          <MiniMap aria-hidden="true" pannable zoomable nodeStrokeWidth={2} nodeColor={MINI_FILL} nodeStrokeColor={MINI_STROKE} />
+          <MiniMap aria-hidden="true" style={{ width: MINI.w, height: MINI.h, margin: MINI.edge }} pannable zoomable nodeStrokeWidth={2} nodeColor={MINI_FILL} nodeStrokeColor={MINI_STROKE} />
         </ReactFlow>
-        <Zoom />
-        <FitOnChange signature={signature} />
+        <ZoomFit wrap={wrap} positions={positions} />
+        <FitOnChange signature={signature} wrap={wrap} positions={positions} />
       </div>
     </ReactFlowProvider>
   )

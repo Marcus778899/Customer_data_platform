@@ -141,9 +141,11 @@
 | osv-ignore-picomatch | architect | done | 0 | PR #242 |
 | journey-builder-integration | frontend | done | 0 | PR #244 |
 | canvas-layout-fix | frontend | done | 0 | PR #248 |
-| canvas-fit-fix | frontend | todo | 0 |  |
-| trace-cancelled-fix | frontend | todo | 0 |  |
+| canvas-fit-fix | frontend | done | 0 | PR #255 |
+| trace-cancelled-fix | frontend | done | 0 | PR #257 |
 | stop-cancel-design | architect | done | 0 | PR #254 |
+| stop-cancel-record-api | backend | todo | 0 |  |
+| advanced-states-flake-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -155,14 +157,12 @@
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
 - 注意：前端 qa「A」交件前要跑 npm run lint -w web（eslint＋tsc），連兩張單（event-filter-canvas-ui、trace-branch-ui）因測試檔 lint／型別錯誤多走一次仲裁
 - 定案（architect，不需 D-編號）：integration 的 demo-seed 改走草稿→editor 送審→admin 核准，不放寬 §3.1；注意 session cookie 帶 Secure，Python 要手動帶 Cookie 與 XSRF-TOKEN
-- 待辦：advanced-states.test.tsx 仍偶發逾時（檔內自設 asyncUtilTimeout 5000，全域設定蓋不過）；開小單由 qa 放寬該檔
 - 發版前必修（甲方要求）：picomatch 漏洞 #240 要真正升到修正版、移除忽略規則才可 ae release open；派 security 審查時一併檢查
 - 注意：osv 忽略規則 2026-12-18 到期；到期前 v0.3.0 未發版且上游無修正版，所有 PR 會再轉紅，延期要另問甲方（D-089）
 - uat 注意：make demo-seed 尚未對真後端實跑，uat 要實跑；場景一篩選用 properties.amount，seed 示範事件帶 cart_total（目前不影響）
 - 請甲方：本機 .env 的 CDP_INGEST_API_KEY 與 CDP_ADMIN_API_KEY 相同，後端會拒絕啟動（v0.3.0 新規則）；請各自用 openssl rand -hex 32 產生不同值
 - uat F-12：本機從 loopback 連線時 X-Forwarded-For 被採信、可繞過登入限速；符合 auth.md §3（未設 CDP_TRUSTED_PROXIES = 私有網段＋loopback 皆信任），但部署在私有網段時可被偽造。發版前資安審查要判定預設值是否要收緊
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
-- trace-cancelled-fix 已交第一輪（921ed6a），暫不開 PR：等 stop-cancel-design 合併後 amend（負責檔案加 web/src/api/types.ts、依 cancel_reason 顯示），qa A 補測再 lock、派回同一 frontend
 
 ## 注意事項（踩過的坑）
 

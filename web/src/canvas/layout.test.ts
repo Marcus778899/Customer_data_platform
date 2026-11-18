@@ -40,10 +40,10 @@ describe('畫布排版', () => {
 })
 
 describe('旅程頁縮放', () => {
-  it('fitScale：放得下不縮、放不下等比縮、最小 0.6、量不到就不縮', () => {
+  it('fitScale：放得下不縮、放不下等比縮、最小 0.8、量不到就不縮', () => {
     expect(fitScale(1000, 1160)).toBe(1)
     expect(fitScale(1440, 1160)).toBeCloseTo(0.806, 2)
-    expect(fitScale(3000, 1160)).toBe(0.6)
+    expect(fitScale(3000, 1160)).toBe(0.8)
     expect(fitScale(1440, 0)).toBe(1)
   })
 })
