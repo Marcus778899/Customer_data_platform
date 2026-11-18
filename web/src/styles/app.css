@@ -184,10 +184,10 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 .node.cat-action { --catc: var(--color-node-action); }
 .node.cat-end { --catc: var(--color-node-end); }
 .node .n-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); min-width: 0; }
-.node .n-cat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--text-xs); color: var(--color-text-muted); }
+.node .n-cat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8125rem; color: var(--color-text-muted); }
 .node .n-name { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.node .n-type { font-size: var(--text-xs); min-height: 1em; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.node .n-state { font-size: var(--text-xs); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.node .n-type { font-size: 0.8125rem; min-height: 1em; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .n-state { font-size: 0.8125rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
 .node.visited { border-color: var(--color-trace-visited); border-width: 2px; border-left-width: 6px; }
 .node.visited .n-state { color: var(--color-trace-visited); }
 .node.current { border-color: var(--color-trace-current); border-width: 3px; border-left-width: 6px; background: var(--color-warning-bg); }
@@ -197,7 +197,7 @@ table.plain th, table.plain td { padding: var(--space-1) var(--space-2); }
 .node:focus-visible, .graph:focus-visible { box-shadow: var(--focus-ring); }
 .graph-note { display: none; }
 .graph .e-label { font-size: var(--text-xs); fill: var(--color-text-muted); paint-order: stroke; stroke: var(--color-graph-bg); stroke-width: 4px; }
-.node .n-stat { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .n-stat { font-size: 0.8125rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node .n-stat b { color: var(--color-text); font-size: var(--text-sm); }
 .stats-bar { margin-bottom: var(--space-2); }
 .stats-bar p { margin: 0 0 var(--space-2); }
@@ -300,7 +300,7 @@ table.enr .enr-time { display: block; }
 .vflow li.now .vn { background: var(--color-primary); color: var(--color-primary-text); border-color: var(--color-primary); }
 .head-act { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .edbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-@media (min-width: 1101px) { .edbody { grid-template-columns: minmax(0, 1fr) var(--panel-width); } }
+@media (min-width: 1101px) { .edbody:has(.edside > *) { grid-template-columns: minmax(0, 1fr) var(--panel-width); } }
 .edmain { min-width: 0; }
 .edside { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .tb-full { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-2); }
@@ -433,7 +433,7 @@ textarea { font: inherit; padding: var(--space-2) var(--space-3); border: 1px so
 .leaf.bad { outline: 2px solid var(--color-danger-fg); outline-offset: -2px; background: var(--color-danger-bg); }
 .leaf.bad select, .leaf.bad input { background: var(--color-surface); }
 .leaf.unsup { background: repeating-linear-gradient(135deg, var(--color-neutral-bg) 0 8px, var(--color-bg) 8px 16px); }
-.sentence { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; grid-template-areas: "f f x" "o v v"; gap: var(--space-2) var(--space-1); align-items: start; }
+.sentence { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 44px; grid-template-areas: "f f x" "o v v"; gap: var(--space-2) var(--space-1); align-items: start; }
 /* 側欄只有 360px：欄位一行、比較＋值一行（不限視窗寬） */
 .sentence > .sf { grid-area: f; }
 .sentence > select { grid-area: o; }
@@ -467,3 +467,6 @@ textarea { font: inherit; padding: var(--space-2) var(--space-3); border: 1px so
 
 /* 列表客戶欄第二行（ux-polish-web #180） */
 .cust-sub { display: block; color: var(--color-text-muted); font-size: var(--text-sm); }
+
+/* 窄畫布不放小地圖（Canvas.tsx 的 MINI_MIN_WIDTH 同值，符合視窗時不再為它讓位） */
+@media (max-width: 640px) { .canvas-wrap .react-flow__minimap { display: none; } }
