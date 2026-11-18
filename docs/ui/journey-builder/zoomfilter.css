@@ -12,7 +12,7 @@
 /* 縮放：固定下限，不隨面板開關重算 */
 .zf .cv .inner { zoom: .72; }
 .page.zf.pan .stbar + .cvwrap > .cv .inner { margin-left: -41px; }
-.page.zf.wide .stbar + .cvwrap > .cv .inner { zoom: .46; margin-left: 24px; }
+
 .zoom .fit { width: auto; padding: 0 var(--space-3); display: inline-flex; align-items: center; gap: 6px; border-left: 1px solid var(--color-border); font-size: var(--text-sm); }
 .zoom .pct.low { background: var(--color-warning-bg); color: var(--color-warning-fg); font-weight: 700; }
 .zfhint { position: absolute; left: 50%; top: var(--space-3); transform: translateX(-50%); z-index: 3; display: flex; gap: var(--space-3); align-items: center; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--color-text); color: #fff; font-size: var(--text-sm); box-shadow: var(--shadow-popover); max-width: calc(100% - 32px); }
@@ -46,15 +46,41 @@
   .zfhint { position: static; transform: none; max-width: none; border-radius: 0; }
   .typeseg { flex-wrap: wrap; }
 }
-/* 手動欄位：先選欄位、再填代碼、最後比較＋值 */
-.dr .sentence.stk.r2 { grid-template-columns: minmax(6.5em, 1fr) minmax(0, 1.1fr) 32px; grid-template-areas: "o v x"; }
-.dr .sentence.stk.r2.long { grid-template-areas: "o o x" "v v v"; }
-.dr .sentence.stk.r2 > select { grid-area: o; } .dr .sentence.stk.r2 > input { grid-area: v; } .dr .sentence.stk.r2 > .x2 { grid-area: x; }
-.manrow select { width: 100%; }
 /* 設計稿：這幾頁只看篩選區塊，收起名稱與下一步，列表才在第一屏 */
 #zf-num-pick .dr .body > .field, #zf-num-errors .dr .body > .field, #zf-num-pick .dr .body > .fs:last-child, #zf-num-errors .dr .body > .fs:last-child { display: none; }
 @media (max-width: 640px) { .dr .sentence.stk.r2 { grid-template-areas: "o v x"; } }
-#zf-num-pick .stbar + .cvwrap > .cv, #zf-num-errors .stbar + .cvwrap > .cv, #zf-num-cond .stbar + .cvwrap > .cv { height: 1180px; }
+#zf-num-pick .stbar + .cvwrap > .cv, #zf-num-errors .stbar + .cvwrap > .cv, #zf-num-cond .stbar + .cvwrap > .cv { height: 1060px; }
 @media (max-width: 1100px) { #zf-num-pick .stbar + .cvwrap > .cv, #zf-num-errors .stbar + .cvwrap > .cv, #zf-num-cond .stbar + .cvwrap > .cv { height: 340px; } }
-@media (min-width: 1101px) { #zf-num-errors .stbar + .cvwrap > .cv { height: 1780px; } #zf-num-cond .stbar + .cvwrap > .cv { height: 1000px; } }
+@media (min-width: 1101px) { #zf-num-errors .stbar + .cvwrap > .cv { height: 1500px; } #zf-num-cond .stbar + .cvwrap > .cv { height: 960px; } }
 @media (max-width: 1024px) { .shell.rail { grid-template-columns: minmax(0, 1fr); } .rail .side { display: none; } }
+
+/* 縮放後實際字級 >= 12px（F-31 驗收）：編輯畫布補償節點副文字、類別字與連線標籤 */
+.zf .nd .cat { font-size: 1.05rem; } .zf .nd .sm { font-size: 1.05rem; }
+.zf .el { font-size: 17px; font-weight: 600; }
+.zf .nd { padding: 10px 12px; }
+/* 小地圖緊貼縮放列右邊；只在圖超出畫面時出現 */
+.zf .mini { left: calc(var(--space-4) + 227px); }
+/* 縮放列上方的警告（取代整條橫幅） */
+.zfnote { position: absolute; left: var(--space-4); bottom: calc(var(--space-4) + 52px); z-index: 3; display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); border-radius: var(--radius-md); background: var(--color-warning-bg); color: var(--color-warning-fg); border: 1px solid var(--color-warning-fg); font-size: var(--text-sm); font-weight: 600; }
+.zfnote svg { flex: none; width: 16px; height: 16px; }
+.zfnote .btn { background: var(--color-surface); }
+/* 提示左上、淡出（設計稿延遲 8 秒，實作 2 秒） */
+.zfhint { left: var(--space-4); top: var(--space-3); transform: none; }
+@media (prefers-reduced-motion: no-preference) { .zfhint { animation: zfade .4s 8s forwards; } }
+@keyframes zfade { to { opacity: 0; visibility: hidden; } }
+/* 句子式條件列：手動欄位代碼只在編輯時多一行 */
+.dr .sentence.stk.ed { grid-template-areas: "f f x" "p p p" "o v v"; }
+.dr .sentence.stk.ed.long, .dr .sentence.stk.long { grid-template-areas: "f f x" "o o o" "v v v"; }
+.dr .sentence.stk.ed.long { grid-template-areas: "f f x" "p p p" "o o o" "v v v"; }
+.dr .sentence.stk > .pfx { grid-area: p; }
+.dr .sentence.stk.long > :nth-child(2) { grid-area: o; }
+.dr .sentence.stk .pfx input, .dr .sentence.stk .pfx > span { min-height: 36px; font-size: var(--text-sm); }
+.dr .sentence.stk.ed > select:nth-of-type(2) { grid-area: o; } .dr .sentence.stk.ed > input[aria-label="值"] { grid-area: v; }
+.dr .sentence.stk.long > select:nth-of-type(2) { grid-area: o; } .dr .sentence.stk.long > input[aria-label="值"] { grid-area: v; }
+/* 圖示軌跟著 section 拉滿 */
+.rail .side { position: static; height: auto; }
+/* 窄螢幕：面板開著時畫布縮短並捲到選取節點；沒有收合鈕與提示 */
+@media (max-width: 1100px) { .dr > header .col, .zfhint { display: none; } #zf-open .stbar + .cvwrap > .cv { height: 280px; } }
+@media (max-width: 1100px) { #zf-open .stbar + .cvwrap > .cv .inner { margin-top: -30px; } }
+@media (max-width: 640px) { #zf-open.state .page.zf.pan .stbar + .cvwrap > .cv .inner { margin-left: -1085px; } }
+.zf .nd .nm { font-size: 1.3rem; } .zf .nd { padding: 10px 8px 10px 10px; } .zf .nd .sm { letter-spacing: -.01em; }
