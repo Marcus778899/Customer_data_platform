@@ -38,7 +38,7 @@ public class JdbcJourneyStore implements JourneyStore {
 
     @Override
     public Optional<JourneyRow> find(String journeyId) {
-        return jdbc.sql("select " + COLUMNS + " from journey where journey_id = :id")
+        return jdbc.sql("select " + COLUMNS + " from journey where journey_id = :id and deleted_at is null")
                 .param("id", journeyId)
                 .query((rs, n) -> map(rs))
                 .optional();
@@ -46,7 +46,7 @@ public class JdbcJourneyStore implements JourneyStore {
 
     @Override
     public Optional<JourneyRow> lock(String journeyId) {
-        return jdbc.sql("select " + COLUMNS + " from journey where journey_id = :id for update")
+        return jdbc.sql("select " + COLUMNS + " from journey where journey_id = :id and deleted_at is null for update")
                 .param("id", journeyId)
                 .query((rs, n) -> map(rs))
                 .optional();
@@ -122,6 +122,21 @@ public class JdbcJourneyStore implements JourneyStore {
                 .param("id", journeyId)
                 .param("now", ts(now))
                 .update();
+    }
+
+    @Override
+    public void markDeleted(String journeyId, String userId, Instant now) {
+        int updated =
+                jdbc.sql(
+                                "update journey set deleted_at = :now, deleted_by = :user, updated_at = :now"
+                                        + " where journey_id = :id and status = 'DRAFT' and deleted_at is null")
+                        .param("id", journeyId)
+                        .param("user", userId)
+                        .param("now", ts(now))
+                        .update();
+        if (updated != 1) {
+            throw new IllegalStateException("markDeleted 影響 " + updated + " 列：" + journeyId);
+        }
     }
 
     @Override

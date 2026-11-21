@@ -1,6 +1,7 @@
 package com.cdp.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.List;
@@ -235,5 +236,23 @@ class JdbcJourneyStoreIntegrationTest {
                 .param("at", at)
                 .param("p", props)
                 .update();
+    }
+
+    @Test
+    void markDeleted_hidesFromFindAndLock_andRejectsPublished() {
+        store.insertDraftJourney("j1", def("A"), "u1", T0);
+        store.markDeleted("j1", "u1", T1);
+
+        assertThat(store.find("j1")).isEmpty();
+        assertThat(store.lock("j1")).isEmpty();
+        assertThat(jdbc.sql("select deleted_by from journey where journey_id = 'j1'")
+                        .query(String.class)
+                        .single())
+                .isEqualTo("u1");
+        assertThatThrownBy(() -> store.markDeleted("j1", "u1", T1)).isInstanceOf(IllegalStateException.class);
+
+        store.insertDraftJourney("j2", def("B"), "u1", T0);
+        store.markPublished("j2", 1, false, T1);
+        assertThatThrownBy(() -> store.markDeleted("j2", "u1", T1)).isInstanceOf(IllegalStateException.class);
     }
 }

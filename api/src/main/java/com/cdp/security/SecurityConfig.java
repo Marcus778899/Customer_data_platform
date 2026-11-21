@@ -111,6 +111,8 @@ public class SecurityConfig {
                         .access(AuthorizationManagers.anyOf(editorSession, adminKey))
                         .requestMatchers(HttpMethod.PUT, V1 + "/journeys/*/draft").access(editorSession)
                         .requestMatchers(HttpMethod.DELETE, V1 + "/journeys/*/draft").access(editorSession)
+                        // 刪除從未發佈的旅程（journeys.md §3.6）：EDITOR 以上的 session，Bearer 403
+                        .requestMatchers(HttpMethod.DELETE, V1 + "/journeys/*").access(editorSession)
                         // 核准、退回：只有 ADMIN 的 session（不收任何 Bearer）
                         .requestMatchers(HttpMethod.POST,
                                 V1 + "/journeys/*/reviews/*/approve", V1 + "/journeys/*/reviews/*/reject")

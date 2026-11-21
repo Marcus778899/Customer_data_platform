@@ -51,6 +51,9 @@ public interface JourneyStore {
 
     void clearDraft(String journeyId, Instant now);
 
+    /** 軟刪除從未發佈的旅程（status DRAFT）；呼叫端已持鎖，影響 0 列丟 IllegalStateException。 */
+    void markDeleted(String journeyId, String userId, Instant now);
+
     /** 發佈後：ACTIVE、latest_version；clearDraft 為真時一併清草稿（核准），否則保留（管理金鑰建立）。 */
     void markPublished(String journeyId, int version, boolean clearDraft, Instant now);
 

@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,8 @@ import tools.jackson.databind.json.JsonMapper;
 /** journeys.md §3：草稿的建立、讀取、存檔（只驗結構）、刪除與 validate。 */
 @Service
 public class JourneyDraftService {
+
+    private static final Logger log = LoggerFactory.getLogger(JourneyDraftService.class);
 
     static final int MAX_NODES = 200;
     static final int MAX_BYTES = 256 * 1024;
@@ -122,6 +126,20 @@ public class JourneyDraftService {
         if (row.draft() != null) {
             journeys.clearDraft(journeyId, clock.instant());
         }
+    }
+
+    /** journeys.md §3.6：軟刪除從未發佈的旅程；檢查順序同契約。 */
+    @Transactional
+    public void deleteJourney(String journeyId, Caller caller) {
+        JourneyRow row = journeys.lock(journeyId).orElseThrow(JourneyDraftService::journeyNotFound);
+        if (row.status() != JourneyStatus.DRAFT) {
+            throw new ApiException(ErrorCode.JOURNEY_PUBLISHED, "已發佈過的旅程不能刪除，請改用停止。");
+        }
+        if (reviews.findPending(journeyId).isPresent()) {
+            throw inReview();
+        }
+        journeys.markDeleted(journeyId, caller.userId(), clock.instant());
+        log.info("journey_deleted journey_id={} user_id={}", journeyId, caller.userId());
     }
 
     @Transactional(readOnly = true)
