@@ -3,7 +3,7 @@
 import { Graph, layout as dagreLayout } from '@dagrejs/dagre'
 import type { DraftDefinition, DraftLayout, JourneyNode } from '../api/types'
 import { CARD_H, CARD_W } from '../graph/card'
-import { cardFilterSummary } from './eventFilter'
+import { cardFilterSummary, FILTER_OPS } from './eventFilter'
 
 export type Def = DraftDefinition
 export type DefNode = JourneyNode
@@ -133,19 +133,7 @@ const FIELD_LABEL: Record<string, string> = {
 export const fieldLabel = (code: string): string => FIELD_LABEL[code] ?? code
 export const eventFieldLabel = (key: string): string => FIELD_LABEL[`trigger.properties.${key}`] ?? `事件屬性 ${key}`
 
-export const OPERATORS: { value: string; label: string; noValue?: boolean }[] = [
-  { value: 'EQ', label: '等於' },
-  { value: 'NEQ', label: '不等於' },
-  { value: 'IN', label: '屬於其中之一' },
-  { value: 'NOT_IN', label: '不屬於其中任何一個' },
-  { value: 'GT', label: '大於' },
-  { value: 'GTE', label: '至少' },
-  { value: 'LT', label: '小於' },
-  { value: 'LTE', label: '至多' },
-  { value: 'CONTAINS', label: '包含' },
-  { value: 'IS_NULL', label: '沒有值', noValue: true },
-  { value: 'IS_NOT_NULL', label: '有值', noValue: true },
-]
+export const OPERATORS: { value: string; label: string; noValue?: boolean }[] = FILTER_OPS.map((o) => ({ value: o.value, label: o.menu, ...(o.noValue ? { noValue: true } : {}) }))
 export const MAX_COND_DEPTH = 5
 
 export function condOf(node: DefNode): CondGroup {
