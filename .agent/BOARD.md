@@ -159,6 +159,7 @@
 | login-proxy-api | backend | done | 0 | PR #285 |
 | node-card-unify | frontend | done | 1 | PR #289 |
 | journey-delete-api | backend | done | 0 | PR #288 |
+| canvas-connect-drag | frontend | done | 1 | PR #291 |
 
 ## 卡住／待甲方決定
 
@@ -181,6 +182,10 @@
 - 2026-11-22 已關 v0.3.0 修好的 issue：#144～#150、#152、#153、#178～#180、#184、#187、#188、#240（uat 重測若重現再重開）
 - 注意：規格改到連線接點或卡片尺寸時，開單要一起列出驗收測試裡檢查接點位置的 helper（例 node-card-unify/helpers.tsx anchorMismatches），否則 worker 撞舊斷言要多走仲裁；前端 worker 交件前跑完整 npm test -w web（含 tests/unit）
 - 下一張 designer 單順手清：tokens.css 的 --node-width／--node-height 已無程式使用（node-card-unify review）
+- 後續單備註（canvas-connect-drag review）：condition-compare-ux 不動 NodePanel「下一步」的 data-port／focusPort；journey-header-save-delete 保留 useDraftEditor.edit 的 keepLayout、「還有 N 個出口沒接」搬到新標頭、Delete／Esc 全域處理要排除 alertdialog；下一張 designer 單追認：選填出口有圓點但不算未接、往左回頭線改自繪圓角折線、清 tokens.css 的 --node-width／--node-height；backlog：整張卡可拖（要改測試 setup）
+- 注意：前端 qa「A」的樣式測試要驗斷點下的顯示／隱藏，不只寬度；worker 改了 CSS 要重新截圖
+- journey-header-save-delete 開單時寫進背景：alertdialog 排除目前只加在 Esc 處理，Delete 鍵也要補（canvas-connect-drag qa 第 3 輪）
+- 下一張 designer 單追認（canvas-connect-drag review 2）：1024 節點庫圖示軌留名稱（圖示在上名稱在下），uat 目視「A/B 分流」等名稱是否超寬
 
 ## 注意事項（踩過的坑）
 
