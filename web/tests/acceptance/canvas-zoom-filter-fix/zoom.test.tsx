@@ -12,7 +12,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  cleanup, editorBackend, openEditor, resetEnv, screen, selectNode, skeleton, teardown, userEvent, waitFor, type Def,
+  cleanup, editorBackend, libraryItem, openEditor, resetEnv, screen, selectNode, skeleton, teardown, userEvent, waitFor, type Def,
 } from '../journey-canvas-ui/fixtures'
 import { BOX, mockLayout, nodeRects, outsideBox, restoreLayout, viewport } from '../canvas-fit-fix/fixtures'
 
@@ -73,8 +73,7 @@ describe('F-31 自動縮放不低於下限', () => {
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await ready()
-    const tb = screen.getByRole('toolbar', { name: '加入節點' })
-    await userEvent.click(tb.querySelector('button')!)
+    await userEvent.click(libraryItem(screen.getByRole('complementary', { name: '節點庫' }), '訊息'))
     await settle()
     expect(viewport().zoom).toBeGreaterThanOrEqual(0.75 - 0.005)
   }, 60000)
