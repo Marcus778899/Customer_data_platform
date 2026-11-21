@@ -157,8 +157,8 @@
 | osv-ignore-remove | architect | done | 0 | PR #279 |
 | journey-delete-design | architect | done | 0 | PR #284 |
 | login-proxy-api | backend | done | 0 | PR #285 |
-| node-card-unify | frontend | in-progress | 0 |  |
-| journey-delete-api | backend | in-progress | 0 |  |
+| node-card-unify | frontend | qa-fail | 1 |  |
+| journey-delete-api | backend | done | 0 | PR #288 |
 
 ## 卡住／待甲方決定
 
@@ -179,6 +179,7 @@
 - 注意（journey-delete-design）：journey 改軟刪除（deleted_at），之後任何讀 journey 表的新查詢都要加 deleted_at IS NULL
 - v0.3.0 剩餘實作：journey-delete-api、node-card-unify 進行中；canvas-connect-drag、condition-compare-ux、journey-header-save-delete 依序開（改同一批前端檔）；login-proxy.md 做法 #4 補正併入下一張 architect 單；全部合併後 security 重審、uat 重測、甲方驗收
 - 2026-11-22 已關 v0.3.0 修好的 issue：#144～#150、#152、#153、#178～#180、#184、#187、#188、#240（uat 重測若重現再重開）
+- canvas-connect-drag 開單時寫進背景：node-card-unify 把編輯畫布連線端點改由節點座標＋CARD_W／CARD_H 直接算（不用 RF 量測 handle），拖線時 handle 位置要跟這組座標一致
 
 ## 注意事項（踩過的坑）
 
