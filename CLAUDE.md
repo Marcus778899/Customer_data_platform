@@ -23,11 +23,11 @@
 - 業務規則與術語：`docs/domain/`（`README.md` 是索引，用到哪條讀哪個檔）；跟程式、派工單矛盾時以它為準並回報；只有 architect 在設計單裡修改
 - 既有專案的舊文件：`docs/inventory/`（`README.md` 是總覽，各子目錄的逐檔清單附摘要與讀法）；原檔不搬不改，要引用就照清單找
 - 需要甲方決定的事寫成 D-編號，集中在 `docs/decisions.md`；其他文件只引用編號
-- 決策分級：只有這四類開 D-編號問甲方——①範圍（做不做、做多少）②成本與外部依賴（付費服務、新技術棧或套件）③品牌與對外語氣（品牌色、名稱、文案語氣、視覺方向）④不可逆或有風險（刪資料、權限、資料遷移、安全與法規；降低防護也算，例：資安掃描排除整個路徑、關掉規則）。資安掃描的誤判不算④：architect 可以只針對那一類誤判加窄規則，在忽略設定裡附理由，並證明同樣格式的真密鑰仍會被抓到，發版前由 security 逐條追認。其他可逆、在範圍內的細節（互動方式、版面、元件、欄位排序、命名…）由負責角色自己決定，寫進設計或 UI 規格的「自行決定」表，甲方核可設計時一起看
+- 決策分級：只有這四類開 D-編號問甲方——①範圍（做不做、做多少）②成本與外部依賴（付費服務、新技術棧或套件）③品牌與對外語氣（品牌色、名稱、文案語氣、視覺方向）④不可逆或有風險（刪資料、權限、資料遷移、安全與法規；降低防護也算，例：資安掃描排除整個路徑、關掉規則）。資安掃描的誤判不算④：architect 可以只針對那一類誤判加窄規則，在忽略設定裡附理由，並證明同樣格式的真密鑰仍會被抓到，發版前由 security 逐條追認。其他可逆、在範圍內的細節（互動方式、版面、元件、欄位排序、命名…）由負責角色自己決定，寫進設計或 UI 規格的「自行決定」表。設計的新增、修改、刪除只要不帶出新 D-編號、不碰這四類，就不找甲方核可：qa → architect review（designer 的單加視覺評審）→ 合併，發版前甲方驗收時一起看；拿掉功能或畫面算①，推翻甲方決定過或改過的項目要問。工具誤判（hook、guard、掃描擋錯）是流程摩擦，回報 manager 修，不開 D-編號
 - 設定值（port、domain、token…）只放 `.env`；文件與程式只寫變數名稱；不可讀 `.env`
 - 文件精簡：同一件事只寫一次，其他地方引用
 - 「完成」必須附實際執行的驗證指令與輸出；沒跑過不算完成
 - 回報格式依工具的 `contracts/report.schema.json`（`.claude/skills/agent-engineering/contracts/`；做派工單的角色都要寫）
-- 甲方常態授權（甲方只做決策，其他由 manager 推進）：manager 可自行執行 `ae task`、`ae board`、`ae docs`、`ae check-env setup`、`ae release open`，以及 `ae pr` 的 `lock`、`open`、`record`、`ruling`、`sync`、`next`、`merge`（merge 由程式檢查 qa、review、CI 都通過才合併到 develop），以及 `gh issue create --label backlog`（minor 問題、medium／low 資安發現排進 backlog）；甲方關卡只有 `ae board scope`（確認本輪範圍與驗收條件）、`ae pr approve`、`ae pr unblock`、`ae release finish`，會跳確認視窗
-- Bash 在 sandbox 裡；docker 只能直接下 `docker compose …`（唯一在 sandbox 外的例外），不要包在 make、script 裡或跟 `cd`、`&&` 寫在同一個指令
+- 甲方常態授權（甲方只做決策，其他由 manager 推進）：manager 可自行執行 `ae task`、`ae board`、`ae docs`、`ae check-env setup`、`ae release open`，以及 `ae pr` 的 `lock`、`open`、`record`、`ruling`、`sync`、`next`、`merge`（merge 由程式檢查 qa、review、CI 都通過才合併到 develop），以及 `gh issue create --label backlog`（minor 問題、medium／low 資安發現排進 backlog）；甲方關卡只有 `ae board scope`（確認本輪範圍與驗收條件）、`ae pr approve`（含甲方決策的設計單）、`ae pr unblock`、`ae release finish`，會跳確認視窗
+- Bash 在 sandbox 裡；少數指令（`docker compose …`、`ae task`、`ae pr`、`ae wt`、`ae import`）由專案設定**自動**在 sandbox 外執行：照常下、單獨一行，不要包在 make、script 裡或跟 `cd`、`&&`、`<`、`|` 寫在同一個指令（接了設定就認不出來）；**不要加 dangerouslyDisableSandbox**（hook 會擋，加了只會讓甲方一直按確認）
 <!-- agent-engineering:end -->
