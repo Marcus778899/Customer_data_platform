@@ -157,6 +157,7 @@ export function exampleFor(l: CondLeaf, ok: boolean): ExampleValue {
     return by[op][ok ? 0 : 1]
   }
   const first = Array.isArray(v) ? v[0] : v
+  const outside = Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'number') ? Math.max(...(v as number[])) + 1 : OUTSIDE
   const other = typeof first === 'number' ? first + 1 : altText(first)
   switch (op) {
     case 'EQ':
@@ -166,9 +167,9 @@ export function exampleFor(l: CondLeaf, ok: boolean): ExampleValue {
     case 'CONTAINS':
       return out(ok ? `${condValueText(v)}_plus` : other)
     case 'IN':
-      return out(ok ? first : OUTSIDE)
+      return out(ok ? first : outside)
     case 'NOT_IN':
-      return out(ok ? OUTSIDE : first)
+      return out(ok ? outside : first)
     case 'IS_NOT_NULL':
       return ok ? out('gold') : out(undefined)
     case 'IS_NULL':
@@ -244,9 +245,22 @@ export function buildExamples(root: Cond): Examples | null {
     const strs = [...new Set(consts.filter((v): v is string => typeof v === 'string'))]
     strs.forEach(add)
     strs.forEach((t) => add(`${t}_plus`))
-    let other = '其他值'
-    for (let i = 2; strs.includes(other); i++) other = `其他值${i}`
-    add(other)
+    // 同欄位多個「包含」：要有同時包含每個常數的字串（常數依各種順序串接；太多時只串正序與倒序）
+    const subs = [...new Set(mine.filter((l) => l.operator === 'CONTAINS' && typeof l.value === 'string').map((l) => l.value as string))]
+    if (subs.length > 1) {
+      const perms = (xs: string[]): string[][] => (xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((r) => [x, ...r])))
+      const orders = subs.length <= 4 ? perms(subs) : [subs, [...subs].reverse()]
+      orders.forEach((o) => {
+        add(o.join(''))
+        add(`${o.join('')}_plus`)
+      })
+    }
+    // 只有數字常數的欄位不放文字代表值，避免範例出現不相干的文字
+    if (strs.length || !nums.length) {
+      let other = '其他值'
+      for (let i = 2; strs.includes(other); i++) other = `其他值${i}`
+      add(other)
+    }
     add(undefined)
     return out
   })
@@ -269,7 +283,10 @@ export function buildExamples(root: Cond): Examples | null {
   const yes = results.find((r) => r.pass)
   const diff = (a: unknown[], b: unknown[]) => a.filter((v, i) => JSON.stringify(v) !== JSON.stringify(b[i])).length
   const noList = results.filter((r) => !r.pass)
-  const no = yes ? noList.reduce<(typeof noList)[number] | undefined>((best, r) => (!best || diff(r.vals, yes.vals) < diff(best.vals, yes.vals) ? r : best), undefined) : noList[0]
+  // 不會符合那位：先比有幾個欄位跟會符合那位不同，再比有幾條不合（同分取候選順序在前者）
+  const badCount = (vals: unknown[]) => leaves.filter((l) => evalLeaf(vals[fields.findIndex((f) => f.field === l.field)], l.operator, l.value) === underNot.has(l)).length
+  const key = (r: (typeof noList)[number]) => (yes ? diff(r.vals, yes.vals) : 0) * 1000 + badCount(r.vals)
+  const no = noList.reduce<(typeof noList)[number] | undefined>((best, r) => (!best || key(r) < key(best) ? r : best), undefined)
   const rows = (vals: unknown[], base: unknown[] | null): ExampleRow[] =>
     fields.map((f, i) => {
       const mine = leaves.filter((l) => l.field === f.field)

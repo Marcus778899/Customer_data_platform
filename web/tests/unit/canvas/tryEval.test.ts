@@ -189,6 +189,28 @@ describe('buildExamples：有解就找得到、無解才說矛盾', () => {
   it('GTE 500 且 LTE 500：會符合的是 500', () => {
     expect(val(yesOf({ op: 'AND', children: [leaf('GTE', 500, 'a'), leaf('LTE', 500, 'a')] })!)).toBe(500)
   })
+  it.each([
+    ['包含 a 且 包含 b', ['a', 'b']],
+    ['包含 ab 且 包含 bc（需 abc）', ['ab', 'bc']],
+    ['包含 a、b、c', ['a', 'b', 'c']],
+    ['包含 a、b、c、d、e（超過 4 個，正序串接）', ['a', 'b', 'c', 'd', 'e']],
+  ])('同欄位多個「%s」：有會符合的客戶', (_n, subs) => {
+    const root: Cond = { op: 'AND', children: subs.map((x) => leaf('CONTAINS', x, 'a')) }
+    const rows = yesOf(root)
+    expect(rows).not.toBeNull()
+    expect(evalTree(root, () => val(rows!))).toBe(true)
+  })
+  it('真矛盾仍回 null：EQ gold 且 CONTAINS zzz', () => {
+    expect(yesOf({ op: 'AND', children: [leaf('EQ', 'gold', 'a'), leaf('CONTAINS', 'zzz', 'a')] })).toBeNull()
+  })
+  it('數字欄 NOT_IN 加範圍：不會符合那位只有一條不合、值不是文字', () => {
+    for (const children of [[leaf('NOT_IN', [5, 6, 7], 'a'), leaf('GT', 4, 'a'), leaf('LT', 8, 'a')], [leaf('NOT_IN', [5, 6, 7], 'a'), leaf('GT', 4, 'a')]]) {
+      const e = buildExamples({ op: 'AND', children })!
+      expect(typeof e.no![0].value).toBe('number')
+      expect(e.no![0].bads.length).toBe(1)
+      expect(e.yes![0].value).not.toBeUndefined()
+    }
+  })
   it('NOT 底下的條件：不會符合那位標出原因', () => {
     const one = buildExamples({ op: 'NOT', children: [leaf('EQ', 'gold')] })!
     expect(one.no![0].bads).toEqual(['不合：不可以是等於 gold'])
@@ -237,8 +259,25 @@ describe('buildExamples：有解就找得到、無解才說矛盾', () => {
     for (let x = -3; x <= 524; x += 0.25) domain.push(x)
     check(numLeaves, domain)
   })
+  it('包含系列與 IN／NOT_IN／EQ 混用：結論與全部短字串取樣一致', () => {
+    const ls: CondLeaf[] = [
+      ...['a', 'b', 'ab', 'ba'].map((v) => leaf('CONTAINS', v, 'a')),
+      leaf('IN', ['ab', 'x'], 'a'), leaf('NOT_IN', ['a'], 'a'), leaf('NOT_IN', ['ab', 'b'], 'a'), leaf('EQ', 'a', 'a'), leaf('NEQ', 'ab', 'a'),
+    ]
+    const domain: unknown[] = [undefined]
+    const alpha = ['a', 'b', 'x']
+    let cur = ['']
+    for (let n = 0; n < 4; n++) {
+      cur = cur.flatMap((t) => alpha.map((c) => t + c))
+      domain.push(...cur)
+    }
+    check(ls, domain)
+  })
   it('文字欄：結論與取樣一致', () => {
-    const domain: unknown[] = [undefined, 'gold', 'vip', 'silver', 'bronze', 'gold_plus', 'vip_plus', 'silver_plus', 'zzz', 'a gold b']
+    const base = ['gold', 'vip', 'silver']
+    const domain: unknown[] = [undefined, ...base, 'bronze', 'gold_plus', 'vip_plus', 'silver_plus', 'zzz', 'a gold b']
+    // 包含多個常數的字串：兩兩與三個串接（各種順序）
+    for (const x of base) for (const y of base) if (x !== y) domain.push(x + y, ...base.filter((z) => z !== x && z !== y).map((z) => x + y + z))
     check(textLeaves, domain)
   })
 })
