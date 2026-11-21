@@ -38,3 +38,13 @@ export function pickZoom(fitW: number, contentW: number, rightAt: (z: number) =>
   for (let p = ZOOM_MAX_AUTO * 100 + 1; p <= ZOOM_PHONE_MAX * 100; p++) if (ok(p / 100)) return p / 100
   return ZOOM_MIN_AUTO
 }
+
+/** 出口圓點半徑（直徑 16、觸控區 32）；選取最右欄節點時要把它算進可見範圍 */
+export const HANDLE_R = 8
+/** 編輯畫布連線繞到欄外的距離 */
+export const ROUTE_OUT = 24
+
+/** 右緣第 index 個出口（共 count 個）的 y（相對卡片上緣）：單一出口在中點，多個出口等距分布；CSS 位置與連線端點共用 */
+export function outletY(index: number, count: number): number {
+  return count <= 1 ? CARD_H / 2 : (CARD_H * (index + 1)) / (count + 1)
+}

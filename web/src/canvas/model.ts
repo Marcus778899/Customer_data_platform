@@ -43,12 +43,36 @@ export const NODE_META: Record<string, NodeMeta> = {
   EndNode: { label: '結束', category: 'end', categoryLabel: '出口', idPrefix: 'end' },
 }
 
-/** 工具列的節點順序與分組（UI 規格：動作、分流、結束） */
-export const PALETTE: { group: string; types: string[] }[] = [
-  { group: '動作', types: ['SendMessageNode', 'WaitDelayNode', 'WaitForEventNode'] },
-  { group: '分流', types: ['ConditionNode', 'SplitTestNode', 'MergeNode'] },
-  { group: '結束', types: ['GoalNode', 'ExitNode', 'EndNode'] },
+/** 節點庫的分組與每項一句白話說明（docs/ui/canvas-interaction.md §1：發送、等待、分支、結果） */
+export const PALETTE: { group: string; items: { type: string; hint: string }[] }[] = [
+  { group: '發送', items: [{ type: 'SendMessageNode', hint: '傳一則訊息給客戶' }] },
+  {
+    group: '等待',
+    items: [
+      { type: 'WaitDelayNode', hint: '等一段時間再往下走' },
+      { type: 'WaitForEventNode', hint: '等客戶做某件事，等不到就逾時' },
+    ],
+  },
+  {
+    group: '分支',
+    items: [
+      { type: 'ConditionNode', hint: '依客戶資料分成「是」「否」' },
+      { type: 'SplitTestNode', hint: '把客戶隨機分到不同組' },
+      { type: 'MergeNode', hint: '讓不同路線回到同一步' },
+    ],
+  },
+  {
+    group: '結果',
+    items: [
+      { type: 'GoalNode', hint: '客戶達成目標' },
+      { type: 'ExitNode', hint: '客戶中途離開旅程' },
+      { type: 'EndNode', hint: '旅程到這裡結束' },
+    ],
+  },
 ]
+
+/** 節點庫項目拖進畫布時 dataTransfer 的類型 */
+export const NODE_MIME = 'application/x-cdp-node-type'
 
 export const typeLabel = (type: string) => NODE_META[type]?.label ?? type
 export const categoryOf = (type: string): { category: Category; label: string } => {
@@ -188,6 +212,26 @@ export function targetsOf(n: DefNode): { port: string; target: string }[] {
 }
 export const targetOfPort = (n: DefNode, port: string): string =>
   targetsOf(n).find((t) => t.port === port)?.target ?? ''
+
+/** 出口名稱（括號後的補充說明不算）：是、否、送出後… */
+export const portName = (s: OutputSpec): string => s.label.split('（')[0]
+
+/** 還沒接的必填出口（選填出口不算） */
+export const freePorts = (n: DefNode): OutputSpec[] => outputSpecs(n).filter((s) => !s.optional && !targetOfPort(n, s.port))
+
+/** 整張圖還沒接下一步的必填出口數 */
+export const freePortCount = (def: Def): number => def.nodes.reduce((sum, n) => sum + freePorts(n).length, 0)
+
+/** 可以被連線指向的節點：不含開始與進入條件 */
+export const canTarget = (n: DefNode | undefined): boolean => !!n && n.type !== 'StartNode' && n.type !== 'EventSourceNode'
+
+/** 把 source 的 port 接到 target；不合法（自己、進入條件、沒有這個出口、節點不存在）回傳 null */
+export function connect(def: Def, source: string, port: string, target: string): Def | null {
+  const from = def.nodes.find((n) => n.id === source)
+  const to = def.nodes.find((n) => n.id === target)
+  if (!from || !canTarget(to) || source === target || !outputSpecs(from).some((s) => s.port === port)) return null
+  return updateNode(def, source, (n) => setOutput(n, port, target))
+}
 
 export interface Variant {
   port: string
@@ -395,6 +439,18 @@ export function placeNew(layout: Layout, anchorId: string | null, existing: stri
   for (let i = 0; taken(x, y) && i < 200; i++) y += CARD_H + GAP_Y
   if (!Number.isFinite(x)) x = 0
   return { x, y }
+}
+
+/** 放在指定座標（卡片左上角）；與其他卡重疊就往下挪 */
+export function nudgeFree(layout: Layout, existing: string[], at: { x: number; y: number }): { x: number; y: number } {
+  const taken = (py: number) =>
+    existing.some((id) => {
+      const p = layout.nodes[id]
+      return p && Math.abs(p.x - at.x) < CARD_W + 8 && Math.abs(p.y - py) < CARD_H + 8
+    })
+  let y = at.y
+  for (let i = 0; taken(y) && i < 200; i++) y += CARD_H + GAP_Y
+  return { x: at.x, y }
 }
 
 // ---------- 迴圈（D-050：不限圈數，只提醒） ----------

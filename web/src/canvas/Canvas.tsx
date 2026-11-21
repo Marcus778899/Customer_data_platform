@@ -1,35 +1,56 @@
 // 編輯畫布：@xyflow/react 負責繪製與縮放；節點是 <button aria-pressed>，邊與裝飾 aria-hidden。
-// 連線在右側面板的「下一步」選單設定；節點可拖曳，座標存進 layout。
+// 連線有三種做法，效果相同：拉線（出口圓點拖到節點，放開在空白處跳「接上新節點」選單）、
+// 出口圓點按 Enter（焦點移到面板的「下一步」下拉）、面板「下一步」下拉本身。節點可拖曳，座標存進 layout。
 import {
   BaseEdge,
-  getSmoothStepPath,
+  EdgeLabelRenderer,
   Handle,
   MiniMap,
   Position,
   ReactFlow,
   ReactFlowProvider,
+  useConnection,
   useReactFlow,
   useStore,
+  type Connection,
   type Edge,
   type EdgeProps,
+  type FinalConnectionState,
   type Node,
   type NodeProps,
 } from '@xyflow/react'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { pickZoom } from '../graph/card'
+import { HANDLE_R, outletY, pickZoom } from '../graph/card'
+import { placeRemove, routeEdge, type Pt, type Route } from '../graph/route'
 import {
+  canTarget,
   CARD_H,
   CARD_W,
   categoryOf,
   displayName,
   fillLayout,
+  NODE_MIME,
   outputSpecs,
+  PALETTE,
+  portName,
   summaryOf,
   targetsOf,
   topologyKey,
+  typeLabel,
   type Def,
   type Layout,
 } from './model'
+
+interface PortView {
+  port: string
+  y: number
+  connected: boolean
+  optional: boolean
+  label: string
+  /** 多個出口才顯示出口名 */
+  multi: boolean
+  aria: string
+}
 
 interface CardData extends Record<string, unknown> {
   name: string
@@ -38,72 +59,132 @@ interface CardData extends Record<string, unknown> {
   summary: string
   selected: boolean
   hasError: boolean
+  locked: boolean
+  targetable: boolean
+  ports: PortView[]
   onSelect: (id: string) => void
+  onPort: (id: string, port: string) => void
   id: string
 }
 type CardNode = Node<CardData, 'card'>
 
 const CardView = memo(function CardView({ data }: NodeProps<CardNode>) {
+  // 拉線中：來源自己與不能被連的節點（進入條件）變淡，其他節點游標移上綠框
+  const linkFrom = useConnection((c) => (c.inProgress ? c.fromNode.id : null))
+  const nogo = linkFrom !== null && (linkFrom === data.id || !data.targetable)
   return (
-    <button
-      type="button"
-      className={`cnode cat-${data.category}${data.selected ? ' selected' : ''}${data.hasError ? ' has-error' : ''}`}
-      aria-pressed={data.selected}
-      onClick={() => data.onSelect(data.id)}
-    >
-      <Handle type="target" position={Position.Left} isConnectable={false} />
-      <span className="n-head">
-        <span className="n-cat">{data.categoryLabel}</span>
-        {data.hasError && <span className="n-err">有錯誤</span>}
-      </span>
-      <span className="n-name" title={data.name}>{data.name}</span>
-      <span className="n-sum">{data.summary}</span>
-      <Handle type="source" position={Position.Right} isConnectable={false} />
-    </button>
+    <div className={`cwrap${nogo ? ' nogo' : ''}`}>
+      <button
+        type="button"
+        className={`cnode cat-${data.category}${data.selected ? ' selected' : ''}${data.hasError ? ' has-error' : ''}`}
+        aria-pressed={data.selected}
+        onClick={() => data.onSelect(data.id)}
+      >
+        <span className="n-head">
+          <span className="n-cat">{data.categoryLabel}</span>
+          {data.hasError && <span className="n-err">有錯誤</span>}
+        </span>
+        <span className="n-name" title={data.name}>{data.name}</span>
+        <span className="n-sum">{data.summary}</span>
+      </button>
+      {/* 整張卡都是入口：拉線放開在卡片上任何位置都連到這個節點 */}
+      <Handle id="in" type="target" position={Position.Left} className="in-cover nodrag nopan" isConnectableStart={false} isConnectable={!data.locked && data.targetable} />
+      {data.ports.map((p) => (
+        <Handle
+          key={p.port}
+          id={p.port}
+          type="source"
+          position={Position.Right}
+          className="out-hd nodrag nopan"
+          style={{ top: p.y }}
+          isConnectableEnd={false}
+          isConnectable={!data.locked}
+        >
+          <button
+            type="button"
+            className="out-btn"
+            data-connected={p.connected ? 'true' : 'false'}
+            data-optional={p.optional ? 'true' : undefined}
+            data-label={p.multi ? p.label : undefined}
+            aria-label={p.aria}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              e.stopPropagation()
+              data.onPort(data.id, p.port)
+            }}
+          />
+        </Handle>
+      ))}
+    </div>
   )
 })
 
 interface LinkData extends Record<string, unknown> {
-  back: boolean
   label: string
-  /** 連線兩端的流程座標（來源卡右緣中點、目標卡左緣中點）：卡片尺寸固定，直接由座標與常數算，不等瀏覽器量測 */
-  from: { x: number; y: number }
-  to: { x: number; y: number }
+  route: Route
+  selected: boolean
+  /** 可見範圍（畫面像素）右緣：面板浮在畫布右側時要扣掉面板寬 */
+  visibleRight: number
+  onRemove: (id: string) => void
+  locked: boolean
 }
 
+const REMOVE_ROUND = 44
+const REMOVE_PILL = { w: 120, h: 44 }
+const LONG_EDGE = 160
+
 function LinkView(props: EdgeProps<Edge<LinkData>>) {
-  const { id, sourcePosition, targetPosition, data } = props
-  const sourceX = data?.from.x ?? props.sourceX
-  const sourceY = data?.from.y ?? props.sourceY
-  const targetX = data?.to.x ?? props.targetX
-  const targetY = data?.to.y ?? props.targetY
-  let path: string
-  if (data?.back) {
-    const y = Math.max(sourceY, targetY) + CARD_H / 2 + 24
-    path = `M${sourceX} ${sourceY} C ${sourceX + 60} ${y}, ${targetX - 60} ${y}, ${targetX} ${targetY}`
-  } else {
-    ;[path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 8 })
-  }
+  const { id, data } = props
+  const [tx, ty, zoom] = useStore((s) => s.transform)
+  const w = useStore((s) => s.width)
+  const h = useStore((s) => s.height)
+  if (!data) return null
+  const { route } = data
   const marker = `mk-${id}`
+  let button: { x: number; y: number; long: boolean } | null = null
+  if (data.selected) {
+    const long = route.length * zoom >= LONG_EDGE
+    const size = long ? REMOVE_PILL : { w: REMOVE_ROUND, h: REMOVE_ROUND }
+    const mid = { x: route.mid.x * zoom + tx, y: route.mid.y * zoom + ty }
+    const box = { left: 8, top: 8, right: Math.max(8, (data.visibleRight || w) - 8), bottom: Math.max(8, h - 8) }
+    const at = w > 0 && h > 0 ? placeRemove(mid, route.side, long, box, size) : mid
+    button = { x: (at.x - tx) / zoom, y: (at.y - ty) / zoom, long }
+  }
   return (
-    <g aria-hidden="true">
-      <defs>
-        <marker id={marker} className="mk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
-          <path d="M0 0L10 5L0 10z" />
-        </marker>
-      </defs>
-      <BaseEdge
-        id={id}
-        path={path}
-        className={`e${data?.back ? ' back' : ''}`}
-        markerEnd={`url(#${marker})`}
-      />
-      {data?.label && (
-        <text className="e-label" x={(sourceX + targetX) / 2} y={(sourceY + targetY) / 2 - 6} textAnchor="middle">
-          {data.label}
-        </text>
+    <>
+      <g aria-hidden="true">
+        <BaseEdge id={id} path={route.d} className={`e${route.kind === 'forward' ? '' : ' back'}${data.selected ? ' sel' : ''}`} markerEnd={`url(#${marker})`} interactionWidth={24} />
+        <defs>
+          <marker id={marker} className={`mk${data.selected ? ' sel' : ''}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0 0L10 5L0 10z" />
+          </marker>
+        </defs>
+        {data.label && (
+          <text className="e-label" x={route.mid.x} y={route.mid.y - 6} textAnchor="middle">
+            {data.label}
+          </text>
+        )}
+      </g>
+      {button && !data.locked && (
+        <EdgeLabelRenderer>
+          <button
+            type="button"
+            className={`edel nodrag nopan${button.long ? '' : ' round'}`}
+            style={{ transform: `translate(-50%, -50%) translate(${button.x}px, ${button.y}px) scale(${1 / zoom})` }}
+            aria-label="移除連線"
+            title="移除連線"
+            onClick={(e) => {
+              e.stopPropagation()
+              data.onRemove(id)
+            }}
+          >
+            {button.long ? '移除連線' : <span aria-hidden="true" className="edel-x" />}
+          </button>
+        </EdgeLabelRenderer>
       )}
-    </g>
+    </>
   )
 }
 
@@ -264,7 +345,8 @@ function RevealSelected({
       if (!w || !h || !p) return
       const vp = rf.getViewport()
       const left = vp.x + p.x * vp.zoom
-      const right = left + CARD_W * vp.zoom
+      // 出口圓點突出卡片右緣 HANDLE_R，一起算進可見範圍
+      const right = left + (CARD_W + HANDLE_R) * vp.zoom
       const top = vp.y + p.y * vp.zoom
       if (w <= STACK_W) {
         const nx = w / 2 - (p.x + CARD_W / 2) * vp.zoom
@@ -344,24 +426,80 @@ function ZoomBar({ wrap, positions, size }: { wrap: Wrap; positions: Positions; 
   )
 }
 
-export function Canvas({
-  def,
-  layout,
-  selectedId,
-  errorIds,
-  panelOpen = false,
-  onSelect,
-  onMove,
-}: {
+/** 首次提示是否已看過：記在 localStorage（讀寫失敗就當沒看過、不記） */
+const HINT_KEY = 'cdp.canvas.connect-hint'
+const hintSeen = () => {
+  try {
+    return localStorage.getItem(HINT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+const markHintSeen = () => {
+  try {
+    localStorage.setItem(HINT_KEY, '1')
+  } catch {
+    /* 不能記就下次再顯示 */
+  }
+}
+
+const MENU_W = 240
+const MENU_H = 440
+const MENU_GAP = 16
+const DRAG_MIN = 6
+
+interface LinkMenu {
+  /** 選單左上角（畫布容器內的像素） */
+  x: number
+  y: number
+  /** 放開處（流程座標） */
+  flow: Pt
+  from: { id: string; port: string }
+  /** 來源出口與放開處（畫布容器內的像素），畫保留的虛線 */
+  start: Pt
+  drop: Pt
+}
+
+interface CanvasProps {
   def: Def
   layout: Layout | null
   selectedId: string | null
+  selectedEdge: string | null
   errorIds: ReadonlySet<string>
   /** 右側面板（浮在畫布上）是否展開：展開時選取節點會把被蓋住的節點平移出來 */
   panelOpen?: boolean
+  /** 送審中：不能連線、移動、刪線 */
+  locked?: boolean
   onSelect: (id: string) => void
+  onSelectEdge: (id: string | null) => void
   onMove: (id: string, pos: { x: number; y: number }) => void
-}) {
+  /** 拉線連到節點 */
+  onConnect: (source: string, port: string, target: string) => void
+  onRemoveLink: (edgeId: string) => void
+  /** 出口圓點按 Enter：焦點移到面板的「下一步」下拉 */
+  onPortKey: (id: string, port: string) => void
+  /** 從節點庫拖進來，或放開在空白處選了節點：pos 是卡片左上角（流程座標），from 有值就連到該出口 */
+  onAddAt: (type: string, pos: Pt, from?: { id: string; port: string }) => void
+}
+
+function CanvasBody({
+  def,
+  layout,
+  selectedId,
+  selectedEdge,
+  errorIds,
+  panelOpen = false,
+  locked = false,
+  onSelect,
+  onSelectEdge,
+  onMove,
+  onConnect,
+  onRemoveLink,
+  onPortKey,
+  onAddAt,
+}: CanvasProps) {
+  const rf = useReactFlow()
+  const linking = useConnection((c) => c.inProgress)
   const [drag, setDrag] = useState<Record<string, { x: number; y: number }>>({})
   const full = useMemo(() => fillLayout(def, layout), [def, layout])
   const signature = useMemo(() => topologyKey(def), [def])
@@ -380,10 +518,33 @@ export function Canvas({
   }, [moved])
   const movedNode = moved ? def.nodes.find((n) => n.id === moved) : null
 
+  const [hint, setHint] = useState(() => !hintSeen())
+  const dismissHint = useCallback(() => {
+    markHintSeen()
+    setHint(false)
+  }, [])
+  const [menu, setMenu] = useState<LinkMenu | null>(null)
+  const [over, setOver] = useState(false)
+  const pressAt = useRef<Pt | null>(null)
+
+  const panelW = panelOpen && size.w > STACK_W ? PANEL_FALLBACK_W : 0
+
   const nodes = useMemo<CardNode[]>(
     () =>
       def.nodes.map((n) => {
         const meta = categoryOf(n.type)
+        const specs = outputSpecs(n)
+        const name = displayName(n)
+        const used = new Set(targetsOf(n).map((t) => t.port))
+        const ports: PortView[] = specs.map((s, i) => ({
+          port: s.port,
+          y: outletY(i, specs.length),
+          connected: used.has(s.port),
+          optional: !!s.optional,
+          label: portName(s),
+          multi: specs.length > 1,
+          aria: specs.length > 1 ? `從『${name}』的『${portName(s)}』出口拉線到下一步` : `從『${name}』的出口拉線到下一步`,
+        }))
         return {
           id: n.id,
           type: 'card',
@@ -394,90 +555,236 @@ export function Canvas({
           focusable: false,
           dragHandle: '.n-head',
           handles: [
-            { type: 'target', position: Position.Left, x: 0, y: CARD_H / 2, width: 1, height: 1 },
-            { type: 'source', position: Position.Right, x: CARD_W, y: CARD_H / 2, width: 1, height: 1 },
+            { id: 'in', type: 'target', position: Position.Left, x: 0, y: CARD_H / 2, width: 1, height: 1 },
+            ...ports.map((p) => ({ id: p.port, type: 'source' as const, position: Position.Right, x: CARD_W, y: p.y, width: 1, height: 1 })),
           ],
           data: {
             id: n.id,
-            name: displayName(n),
+            name,
             category: meta.category,
             categoryLabel: meta.label,
             summary: summaryOf(n),
             selected: n.id === selectedId,
             hasError: errorIds.has(n.id),
+            locked,
+            targetable: canTarget(n),
+            ports,
             onSelect,
+            onPort: onPortKey,
           },
         }
       }),
-    [def, full, drag, selectedId, errorIds, onSelect],
+    [def, full, drag, selectedId, errorIds, locked, onSelect, onPortKey],
   )
 
   const edges = useMemo<Edge<LinkData>[]>(() => {
     const ids = new Set(def.nodes.map((n) => n.id))
+    const cards = def.nodes.map((n) => drag[n.id] ?? full.nodes[n.id]).filter((p): p is Pt => !!p)
     const out: Edge<LinkData>[] = []
     for (const n of def.nodes) {
       const specs = outputSpecs(n)
       const multi = specs.length > 1
       for (const t of targetsOf(n)) {
         if (!ids.has(t.target)) continue
-        const a = drag[n.id] ?? full.nodes[n.id]
-        const b = drag[t.target] ?? full.nodes[t.target]
-        const label = multi ? (specs.find((s) => s.port === t.port)?.label.split('（')[0] ?? '') : ''
+        const a = drag[n.id] ?? full.nodes[n.id] ?? { x: 0, y: 0 }
+        const b = drag[t.target] ?? full.nodes[t.target] ?? { x: 0, y: 0 }
+        const idx = specs.findIndex((s) => s.port === t.port)
+        const from = { x: a.x + CARD_W, y: a.y + (idx >= 0 ? outletY(idx, specs.length) : CARD_H / 2) }
+        const id = `${n.id}:${t.port}`
         out.push({
-          id: `${n.id}:${t.port}`,
+          id,
           source: n.id,
+          sourceHandle: idx >= 0 ? t.port : undefined,
           target: t.target,
+          targetHandle: 'in',
           type: 'link',
           selectable: false,
           focusable: false,
+          zIndex: selectedEdge === id ? 10 : 0,
           data: {
-            back: !!a && !!b && b.x <= a.x,
-            label,
-            from: { x: (a?.x ?? 0) + CARD_W, y: (a?.y ?? 0) + CARD_H / 2 },
-            to: { x: b?.x ?? 0, y: (b?.y ?? 0) + CARD_H / 2 },
+            label: multi && idx >= 0 ? portName(specs[idx]) : '',
+            route: routeEdge(from, a, b, cards),
+            selected: selectedEdge === id,
+            visibleRight: size.w - panelW,
+            onRemove: onRemoveLink,
+            locked,
           },
         })
       }
     }
     return out
-  }, [def, full, drag])
+  }, [def, full, drag, selectedEdge, size.w, panelW, locked, onRemoveLink])
+
+  const isValidConnection = useCallback(
+    (c: Edge | Connection) => c.source !== c.target && canTarget(def.nodes.find((n) => n.id === c.target)),
+    [def],
+  )
+  const handleConnect = useCallback(
+    (c: Connection) => {
+      if (!c.sourceHandle || !isValidConnection(c)) return
+      dismissHint()
+      onConnect(c.source, c.sourceHandle, c.target)
+    },
+    [isValidConnection, dismissHint, onConnect],
+  )
+  const handleConnectEnd = (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+      const press = pressAt.current
+      pressAt.current = null
+      if (locked || state.isValid || state.toNode || !state.fromNode || !state.fromHandle?.id) return
+      const pt = 'changedTouches' in event ? event.changedTouches[0] : event
+      if (!pt || (press && Math.hypot(pt.clientX - press.x, pt.clientY - press.y) < DRAG_MIN)) return
+      const fromId = state.fromNode.id
+      const port = state.fromHandle.id
+      const rect = wrap.current?.getBoundingClientRect()
+      const drop = { x: pt.clientX - (rect?.left ?? 0), y: pt.clientY - (rect?.top ?? 0) }
+      const w = wrap.current?.offsetWidth ?? 0
+      const h = wrap.current?.offsetHeight ?? 0
+      const flow = rf.screenToFlowPosition({ x: pt.clientX, y: pt.clientY })
+      // 放開點右側 16px（放不下改左側）；不蓋住來源出口
+      let x = drop.x + MENU_GAP
+      if (w > 0 && x + MENU_W > w - 8) x = Math.max(8, drop.x - MENU_GAP - MENU_W)
+      let y = h > 0 ? Math.min(Math.max(8, drop.y - 24), Math.max(8, h - MENU_H - 8)) : drop.y
+      const p = fullRef.current.nodes[fromId]
+      const specs = outputSpecs(def.nodes.find((n) => n.id === fromId) ?? { id: fromId, type: '', name: null, config: {}, outputs: {} })
+      const idx = Math.max(0, specs.findIndex((s) => s.port === port))
+      const vp = rf.getViewport()
+      const start = p ? { x: vp.x + (p.x + CARD_W) * vp.zoom, y: vp.y + (p.y + outletY(idx, specs.length)) * vp.zoom } : drop
+      if (start.x >= x - HANDLE_R && start.x <= x + MENU_W + HANDLE_R && start.y >= y - HANDLE_R && start.y <= y + MENU_H + HANDLE_R) {
+        y = Math.min(start.y + 24, Math.max(8, h - MENU_H - 8))
+      }
+      setMenu({ x, y, flow, from: { id: fromId, port }, start, drop })
+  }
+
+  // 選單開著時：Esc 取消（先於 Editor 的 Esc，不順便取消選取）
+  useEffect(() => {
+    if (!menu) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopPropagation()
+      setMenu(null)
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [menu])
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (menu) menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+  }, [menu])
+
+  const acceptsDrop = (e: React.DragEvent) => !locked && [...(e.dataTransfer?.types ?? [])].includes(NODE_MIME)
 
   return (
+    <div
+      className={`canvas-wrap${linking ? ' linking' : ''}${menu ? ' menuopen' : ''}${over ? ' dragover' : ''}`}
+      ref={wrap}
+      onDragOver={(e) => {
+        if (!acceptsDrop(e)) return
+        e.preventDefault()
+        setOver(true)
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setOver(false)
+      }}
+      onDrop={(e) => {
+        setOver(false)
+        const type = e.dataTransfer?.getData(NODE_MIME)
+        if (!type || locked) return
+        e.preventDefault()
+        const at = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+        onAddAt(type, { x: Math.round(at.x - CARD_W / 2), y: Math.round(at.y - CARD_H / 2) })
+      }}
+    >
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultViewport={{ x: PAD, y: PAD, zoom: AUTO_MIN }}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        nodesConnectable={!locked}
+        nodeDragThreshold={4}
+        connectionRadius={24}
+        isValidConnection={isValidConnection}
+        onConnect={handleConnect}
+        onConnectStart={(e) => {
+          const pt = 'touches' in e ? e.touches[0] : e
+          pressAt.current = pt ? { x: pt.clientX, y: pt.clientY } : null
+        }}
+        onConnectEnd={handleConnectEnd}
+        onEdgeClick={(_, edge) => onSelectEdge(edge.id)}
+        onPaneClick={() => {
+          onSelectEdge(null)
+          setMenu(null)
+        }}
+        nodesFocusable={false}
+        edgesFocusable={false}
+        elementsSelectable={false}
+        zoomOnDoubleClick={false}
+        preventScrolling={false}
+        disableKeyboardA11y
+        onNodeDrag={(_, node) => setDrag((d) => ({ ...d, [node.id]: node.position }))}
+        onNodeDragStop={(_, node) => {
+          onMove(node.id, { x: Math.round(node.position.x), y: Math.round(node.position.y) })
+          setDrag({})
+        }}
+      >
+        <MiniGate size={size} positions={positions} panelW={panelW} />
+      </ReactFlow>
+      <RightFade size={size} positions={positions} />
+      <ZoomBar wrap={wrap} positions={positions} size={size} />
+      <FitOnChange signature={signature} wrap={wrap} positions={positions} />
+      <RevealSelected selectedId={selectedId} panelOpen={panelOpen} wrap={wrap} positions={positions} onMoved={setMoved} />
+      {movedNode && size.w > STACK_W && (
+        <p className="zfhint" aria-live="polite">
+          已移動畫面，讓『{displayName(movedNode)}』露出來
+        </p>
+      )}
+      {over && <div className="dropmsg">放開就新增在這裡</div>}
+      {/* 首次提示：放在畫布容器內、viewport 之外，不跟著平移縮放 */}
+      {hint && !menu && (
+        <div className="coach">
+          <span>從節點右邊的圓點按住、拉到下一個節點就連好了。連錯了？點那條線，按「移除連線」。</span>
+          <button type="button" onClick={dismissHint}>
+            知道了
+          </button>
+        </div>
+      )}
+      {menu && (
+        <>
+          <svg className="menu-line" aria-hidden="true">
+            <path d={`M${menu.start.x} ${menu.start.y} L${menu.drop.x} ${menu.drop.y}`} />
+          </svg>
+          <div className="cmenu" ref={menuRef} role="group" aria-label="接上新節點" style={{ left: menu.x, top: menu.y }}>
+            <h4>接上新節點</h4>
+            {PALETTE.flatMap((g) => g.items).map((it) => (
+              <button
+                key={it.type}
+                type="button"
+                className={`m cat-${categoryOf(it.type).category}`}
+                onClick={() => {
+                  onAddAt(it.type, { x: Math.round(menu.flow.x), y: Math.round(menu.flow.y - CARD_H / 2) }, menu.from)
+                  setMenu(null)
+                }}
+              >
+                {typeLabel(it.type)}
+              </button>
+            ))}
+            <button type="button" className="m cancel" onClick={() => setMenu(null)}>
+              取消
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export function Canvas(props: CanvasProps) {
+  return (
     <ReactFlowProvider>
-      <div className="canvas-wrap" ref={wrap}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          defaultViewport={{ x: PAD, y: PAD, zoom: AUTO_MIN }}
-          minZoom={MIN_ZOOM}
-          maxZoom={MAX_ZOOM}
-          nodesConnectable={false}
-          nodesFocusable={false}
-          edgesFocusable={false}
-          elementsSelectable={false}
-          zoomOnDoubleClick={false}
-          preventScrolling={false}
-          disableKeyboardA11y
-          onNodeDrag={(_, node) => setDrag((d) => ({ ...d, [node.id]: node.position }))}
-          onNodeDragStop={(_, node) => {
-            onMove(node.id, { x: Math.round(node.position.x), y: Math.round(node.position.y) })
-            setDrag({})
-          }}
-        >
-          <MiniGate size={size} positions={positions} panelW={panelOpen ? PANEL_FALLBACK_W : 0} />
-        </ReactFlow>
-        <RightFade size={size} positions={positions} />
-        <ZoomBar wrap={wrap} positions={positions} size={size} />
-        <FitOnChange signature={signature} wrap={wrap} positions={positions} />
-        <RevealSelected selectedId={selectedId} panelOpen={panelOpen} wrap={wrap} positions={positions} onMoved={setMoved} />
-        {movedNode && size.w > STACK_W && (
-          <p className="zfhint" aria-live="polite">
-            已移動畫面，讓『{displayName(movedNode)}』露出來
-          </p>
-        )}
-      </div>
+      <CanvasBody {...props} />
     </ReactFlowProvider>
   )
 }
