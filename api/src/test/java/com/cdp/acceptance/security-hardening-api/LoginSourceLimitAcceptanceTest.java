@@ -19,8 +19,8 @@ import com.cdp.acceptance.security.SecurityTestSupport;
 
 /**
  * security-hardening-api 驗收（#153，auth.md §3 v0.3.0）：帳號鎖定以 email＋來源 IP 為單位、來源 IP 總量鎖定。
- * 門檻：email＋IP 3 次、來源總量 5 次、鎖定 4 秒。測試連線來自本機（屬預設信任的 loopback／私有代理），
- * 以 {@code X-Forwarded-For} 模擬不同來源。假設屬性名 {@code cdp.login.ip-max-failures}（CDP_LOGIN_IP_MAX_FAILURES）。
+ * 門檻：email＋IP 3 次、來源總量 5 次、鎖定 4 秒。測試連線來自本機，以 {@code cdp.security.trusted-proxies=127.0.0.1,::1}
+ * 明確信任 loopback（D-091 起無預設信任），再以 {@code X-Forwarded-For} 模擬不同來源。假設屬性名 {@code cdp.login.ip-max-failures}（CDP_LOGIN_IP_MAX_FAILURES）。
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -28,7 +28,8 @@ import com.cdp.acceptance.security.SecurityTestSupport;
             "spring.rabbitmq.listener.simple.auto-startup=false",
             "cdp.login.max-failures=3",
             "cdp.login.lockout=PT4S",
-            "cdp.login.ip-max-failures=5"
+            "cdp.login.ip-max-failures=5",
+            "cdp.security.trusted-proxies=127.0.0.1,::1"
         })
 @ActiveProfiles("test")
 @Import(SecurityTestSupport.class)

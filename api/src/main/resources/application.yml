@@ -47,9 +47,10 @@ server:
         path: /api
   tomcat:
     remoteip:
-      # 來源 IP（auth.md §3）：只有信任代理（CDP_TRUSTED_PROXIES，Tomcat 正規式）帶的 X-Forwarded-For 才採信；未設定 = 私有網段與 loopback
+      # 來源 IP（auth.md §3）：信任範圍由 TrustedProxiesTomcatCustomizer 依 cdp.security.trusted-proxies 覆寫；
+      # (?!) 是失效時的基底（不信任任何代理）。保留 remote-ip-header 以確保建立 RemoteIpValve
       remote-ip-header: X-Forwarded-For
-      internal-proxies: ${CDP_TRUSTED_PROXIES:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|127\.\d+\.\d+\.\d+|0:0:0:0:0:0:0:1|::1}
+      internal-proxies: "(?!)"
 cdp:
   engine:
     poll-interval: ${ENGINE_POLL_INTERVAL}
@@ -74,6 +75,8 @@ cdp:
     # auth.md §1；機密只在 .env
     ingest-api-key: ${CDP_INGEST_API_KEY}
     admin-api-key: ${CDP_ADMIN_API_KEY}
+    # 信任的代理（auth.md §3 來源 IP，D-091）；必填、不給預設
+    trusted-proxies: ${CDP_TRUSTED_PROXIES}
     # D-061：管理金鑰可否建立旅程版本（journeys.md §3.3 第 3 列）；沒有設定時為允許
     admin-key-journey-create: ${CDP_ADMIN_KEY_JOURNEY_CREATE:true}
   login:
