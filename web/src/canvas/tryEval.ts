@@ -54,7 +54,9 @@ export function evalLeaf(actual: unknown, operator: string, value: unknown): boo
 /** 整棵條件樹；getActual 取每個葉節點的實際值 */
 export function evalTree(c: Cond, getActual: (leaf: CondLeaf) => unknown): boolean {
   if (isGroup(c)) {
-    if (c.op === 'NOT') return !(c.children[0] ? evalTree(c.children[0], getActual) : true)
+    // 同引擎 ConditionEvaluator：空群組不成立；NOT 恰好一個子條件才可能成立
+    if (c.children.length === 0) return false
+    if (c.op === 'NOT') return c.children.length === 1 && !evalTree(c.children[0], getActual)
     return c.op === 'OR' ? c.children.some((x) => evalTree(x, getActual)) : c.children.every((x) => evalTree(x, getActual))
   }
   return evalLeaf(getActual(c), c.operator, c.value)
@@ -78,7 +80,7 @@ export const nameOf = (field: string): string => {
 }
 
 // ---------- 整理條件 ----------
-/** 去掉還沒選欄位的葉節點與空群組（同寫進草稿的規則）；全空回 null */
+/** 去掉還沒選欄位的葉節點與空群組（試算只看填完的條件；草稿本身照原樣寫入）；全空回 null */
 export function prune(c: Cond): Cond | null {
   if (isGroup(c)) {
     const children = c.children.map(prune).filter((x): x is Cond => x !== null)
@@ -176,27 +178,94 @@ export function exampleFor(l: CondLeaf, ok: boolean): ExampleValue {
   }
 }
 
+/** 範例客戶的一個欄位：每個欄位一個值（引擎也是每個欄位取一個值） */
+export interface ExampleRow {
+  field: string
+  name: string
+  /** undefined = 沒填 */
+  value: unknown
+  shown: string
+  /** 補充說明（例：剛好等於也算） */
+  notes: string[]
+  /** 這個欄位不合的原因（例：要大於 500（剛好等於不算）） */
+  bads: string[]
+}
 export interface Examples {
-  yes: ExampleValue[]
-  no: ExampleValue[]
+  /** null = 沒有客戶能符合（條件互相矛盾） */
+  yes: ExampleRow[] | null
+  /** null = 每位客戶都會符合 */
+  no: ExampleRow[] | null
 }
 
-/** 一位會符合、一位不會符合的客戶（依 leavesOf 順序）；不會符合的那位盡量只讓一條不合。條件超過 10 條不產生 */
+const boundary = (l: CondLeaf, v: unknown): string => {
+  if (typeof v !== 'number' || v !== l.value) return ''
+  return l.operator === 'GT' || l.operator === 'LT' ? '剛好等於不算' : l.operator === 'GTE' || l.operator === 'LTE' ? '剛好等於也算' : ''
+}
+const MAX_COMBOS = 20000
+
+/** 巢狀的 NOT 不是恰好一個子條件時，引擎不會讓它成立 */
+export function hasBadNot(c: Cond): boolean {
+  return isGroup(c) && ((c.op === 'NOT' && c.children.length !== 1) || c.children.some(hasBadNot))
+}
+
+/**
+ * 一位會符合、一位不會符合的客戶：每個欄位一個值，候選值取該欄位各條件的範例值（成立、不成立、沒填），
+ * 用 evalTree 搜尋組合；不會符合的那位盡量只讓一個欄位跟會符合那位不同。
+ * 找不到會符合（條件互斥）或不會符合（永遠成立）的客戶時該側回 null。條件太多組合爆炸時整個回 null。
+ */
 export function buildExamples(root: Cond): Examples | null {
   const leaves = leavesOf(root)
-  if (!leaves.length || leaves.length > 10) return null
-  const pairs = leaves.map((l) => ({ ok: exampleFor(l, true), no: exampleFor(l, false) }))
-  const run = (mask: number) => {
-    const vals = new Map<CondLeaf, ExampleValue>()
-    leaves.forEach((l, i) => vals.set(l, mask & (1 << i) ? { ...pairs[i].no, bad: true } : pairs[i].ok))
-    return { vals, pass: evalTree(root, (l) => vals.get(l)?.value) }
+  const fields = sampleFields(leaves)
+  if (!fields.length) return null
+  const cands = fields.map((f) => {
+    const seen = new Set<string>()
+    const out: unknown[] = []
+    const add = (v: unknown) => {
+      const k = v === undefined ? 'undef' : JSON.stringify(v)
+      if (!seen.has(k)) {
+        seen.add(k)
+        out.push(v)
+      }
+    }
+    const mine = leaves.filter((l) => l.field === f.field)
+    mine.forEach((l) => add(exampleFor(l, true).value))
+    mine.forEach((l) => add(exampleFor(l, false).value))
+    add(undefined)
+    return out
+  })
+  const total = cands.reduce((n, c) => n * c.length, 1)
+  if (total > MAX_COMBOS) return null
+  const combos: unknown[][] = []
+  const walk = (i: number, cur: unknown[]) => {
+    if (i === cands.length) return void combos.push(cur)
+    for (const v of cands[i]) walk(i + 1, [...cur, v])
   }
-  const bits = (n: number) => n.toString(2).replace(/0/g, '').length
-  const runs = Array.from({ length: 1 << leaves.length }, (_, i) => i)
-    .sort((a, b) => bits(a) - bits(b) || a - b)
-    .map(run)
-  const yes = runs.find((r) => r.pass)
-  const no = runs.find((r) => !r.pass)
-  if (!yes || !no) return null
-  return { yes: leaves.map((l) => yes.vals.get(l)!), no: leaves.map((l) => no.vals.get(l)!) }
+  walk(0, [])
+  const passOf = (vals: unknown[]) => evalTree(root, (l) => vals[fields.findIndex((f) => f.field === l.field)])
+  const results = combos.map((vals) => ({ vals, pass: passOf(vals) }))
+  const yes = results.find((r) => r.pass)
+  const diff = (a: unknown[], b: unknown[]) => a.filter((v, i) => JSON.stringify(v) !== JSON.stringify(b[i])).length
+  const noList = results.filter((r) => !r.pass)
+  const no = yes ? noList.reduce<(typeof noList)[number] | undefined>((best, r) => (!best || diff(r.vals, yes.vals) < diff(best.vals, yes.vals) ? r : best), undefined) : noList[0]
+  const rows = (vals: unknown[], base: unknown[] | null): ExampleRow[] =>
+    fields.map((f, i) => {
+      const mine = leaves.filter((l) => l.field === f.field)
+      const v = vals[i]
+      const changed = base !== null && JSON.stringify(v) !== JSON.stringify(base[i])
+      const fails = mine.filter((l) => !evalLeaf(v, l.operator, l.value))
+      return {
+        field: f.field,
+        name: f.name,
+        value: v,
+        shown: v === undefined ? '沒填' : String(v),
+        notes: base === null ? mine.map((l) => boundary(l, v)).filter(Boolean) : [],
+        bads: changed
+          ? fails.map((l) => {
+              const b = boundary(l, v)
+              return `不合：要${fragment(l)}${b ? `（${b}）` : ''}`
+            })
+          : [],
+      }
+    })
+  return { yes: yes ? rows(yes.vals, null) : null, no: no ? rows(no.vals, yes ? yes.vals : null) : null }
 }

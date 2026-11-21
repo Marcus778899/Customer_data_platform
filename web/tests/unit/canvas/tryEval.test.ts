@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FILTER_OPS, opMenuLabel, opsFor, OP_GROUPS, unknownKindHint } from '../../../src/canvas/eventFilter'
 import { OPERATORS, type Cond, type CondLeaf } from '../../../src/canvas/model'
-import { buildExamples, conditionSentence, evalLeaf, evalTree, exampleFor, fragment, hasUnsupported, isAttrLeaf, leavesOf, parseSample, prune, sampleFields } from '../../../src/canvas/tryEval'
+import { buildExamples, conditionSentence, evalLeaf, evalTree, exampleFor, fragment, hasBadNot, hasUnsupported, isAttrLeaf, leavesOf, parseSample, prune, sampleFields } from '../../../src/canvas/tryEval'
 
 const MISSING = undefined
 // 契約 docs/contracts/journeys.md §4.1 共用測試向量（逐條）：[#, actual, operator, value, 結果]
@@ -122,21 +122,52 @@ describe('範例客戶', () => {
     expect(exampleFor(leaf('GT', ''), true).note).toBe('請先填數字')
     expect(exampleFor(leaf('WHAT', 'x'), true).shown).toBe('沒填')
   })
-  it('buildExamples：AND 只有一條不合；OR 與 NOT 也找得到；太多條不產生', () => {
+  it('NOT 要恰好一個子條件、空群組不成立（同引擎 ConditionEvaluator）', () => {
+    const silver = () => 'silver'
+    expect(evalTree({ op: 'NOT', children: [leaf('EQ', 'gold'), leaf('EQ', 'vip')] }, silver)).toBe(false)
+    expect(evalTree({ op: 'NOT', children: [leaf('EQ', 'gold')] }, silver)).toBe(true)
+    expect(evalTree({ op: 'AND', children: [] }, silver)).toBe(false)
+    expect(evalTree({ op: 'OR', children: [] }, silver)).toBe(false)
+    expect(hasBadNot({ op: 'AND', children: [{ op: 'NOT', children: [leaf('EQ', 'a'), leaf('EQ', 'b')] }] })).toBe(true)
+    expect(hasBadNot({ op: 'NOT', children: [leaf('EQ', 'a')] })).toBe(false)
+  })
+  const rowOf = (rows: NonNullable<ReturnType<typeof buildExamples>>['yes'], field: string) => rows!.filter((r) => r.field === field)
+  it('buildExamples：每個欄位一個值；AND 的不會符合那位只有一個欄位不同、說明在該欄位下', () => {
     const and: Cond = { op: 'AND', children: [leaf('GT', 500, 'a'), leaf('EQ', 'gold'), leaf('IS_NOT_NULL', undefined, 'c')] }
     const e = buildExamples(and)!
-    expect(e.yes.every((v) => !v.bad)).toBe(true)
-    expect(e.no.filter((v) => v.bad).length).toBe(1)
-    const or: Cond = { op: 'OR', children: [leaf('GT', 500, 'a'), leaf('EQ', 'gold')] }
-    expect(buildExamples(or)!.no.filter((v) => v.bad).length).toBe(2)
-    const not: Cond = { op: 'NOT', children: [leaf('EQ', 'gold')] }
-    const n = buildExamples(not)!
-    expect(n.yes[0].bad).toBe(true)
-    expect(n.no[0].bad).toBeFalsy()
+    expect(e.yes!.every((r) => r.bads.length === 0)).toBe(true)
+    expect(e.no!.filter((r) => r.bads.length).length).toBe(1)
+    const one = buildExamples({ op: 'AND', children: [leaf('GT', 500)] })!
+    expect(one.no![0].bads).toEqual(['不合：要大於 500（剛好等於不算）'])
+    expect(buildExamples({ op: 'AND', children: [leaf('GTE', 500)] })!.yes![0].notes).toEqual(['剛好等於也算'])
+  })
+  it('同欄位範圍條件（GT 500 且 LT 1000）：兩位客戶各只有一個金額，判定正確', () => {
+    const root: Cond = { op: 'AND', children: [leaf('GT', 500, 'amt'), leaf('LT', 1000, 'amt')] }
+    const e = buildExamples(root)!
+    expect(e.yes!.length).toBe(1)
+    expect(e.no!.length).toBe(1)
+    const get = (rows: typeof e.yes) => rowOf(rows, 'amt')[0].value
+    expect(evalTree(root, () => get(e.yes))).toBe(true)
+    expect(evalTree(root, () => get(e.no))).toBe(false)
+    expect(e.no![0].bads.length).toBeGreaterThan(0)
+  })
+  it('同欄位互斥（EQ gold 且 EQ vip）：不產生會符合的客戶，不會符合那位仍有', () => {
+    const e = buildExamples({ op: 'AND', children: [leaf('EQ', 'gold'), leaf('EQ', 'vip')] })!
+    expect(e.yes).toBeNull()
+    expect(e.no).not.toBeNull()
+    expect(e.no!.length).toBe(1)
+  })
+  it('OR、NOT、多子條件 NOT、永遠成立、太多組合', () => {
+    const or = buildExamples({ op: 'OR', children: [leaf('GT', 500, 'a'), leaf('EQ', 'gold')] })!
+    expect(or.yes).not.toBeNull()
+    expect(or.no!.every((r) => r.bads.length >= 0)).toBe(true)
+    const not = buildExamples({ op: 'NOT', children: [leaf('EQ', 'gold')] })!
+    expect(not.yes![0].value).not.toBe('gold')
+    expect(not.no![0].value).toBe('gold')
+    expect(buildExamples({ op: 'NOT', children: [leaf('EQ', 'a'), leaf('EQ', 'b')] })!.yes).toBeNull()
+    expect(buildExamples({ op: 'OR', children: [leaf('IS_NULL'), leaf('IS_NOT_NULL')] })!.no).toBeNull()
     expect(buildExamples({ op: 'AND', children: [] })).toBeNull()
-    expect(buildExamples({ op: 'AND', children: Array.from({ length: 11 }, () => leaf('EQ', 'x')) })).toBeNull()
-    // 永遠成立的樹（OR 含 IS_NULL／IS_NOT_NULL 同欄位）找不到不符合的客戶
-    expect(buildExamples({ op: 'OR', children: [leaf('IS_NULL'), leaf('IS_NOT_NULL')] })).not.toBeNull()
+    expect(buildExamples({ op: 'AND', children: Array.from({ length: 11 }, (_, i) => leaf('EQ', 'x', `f${i}`)) })).toBeNull()
   })
 })
 

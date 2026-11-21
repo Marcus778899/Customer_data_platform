@@ -1,7 +1,7 @@
 // 條件面板底部「試試看」：只用使用者輸入的樣本判斷，不讀客戶、不呼叫 API（docs/ui/canvas-interaction.md §3）。
 import { useId, useState } from 'react'
 import { type CondGroup, type CondLeaf } from './model'
-import { buildExamples, evalTree, fragment, hasUnsupported, leavesOf, nameOf, parseSample, prune, sampleFields, type ExampleValue } from './tryEval'
+import { buildExamples, evalTree, fragment, hasBadNot, hasUnsupported, leavesOf, nameOf, parseSample, prune, sampleFields, type ExampleRow } from './tryEval'
 
 const PATH_CHECK = 'M20 6 9 17l-5-5'
 const PATH_X = 'M18 6 6 18M6 6l12 12'
@@ -15,29 +15,28 @@ function Ico({ d }: { d: string }) {
   )
 }
 
-function Rows({ leaves, values }: { leaves: CondLeaf[]; values: ExampleValue[] }) {
+function Rows({ rows }: { rows: ExampleRow[] }) {
   return (
     <dl>
-      {leaves.map((l, i) => {
-        const v = values[i]
-        return (
-          <div key={i} className="try-ex-row">
-            <dt>{nameOf(l.field)}</dt>
-            <dd className={v.bad ? 'fail' : 'ok'}>
-              <Ico d={v.bad ? PATH_X : PATH_CHECK} />
-              <span>{v.shown}</span>
-              {v.bad ? (
-                <span className="why">
-                  不合：要{fragment(l)}
-                  {v.note ? `（${v.note}）` : ''}
-                </span>
-              ) : (
-                v.note && <span className="why">{v.note}</span>
-              )}
-            </dd>
-          </div>
-        )
-      })}
+      {rows.map((r) => (
+        <div key={r.field} className="try-ex-row">
+          <dt>{r.name}</dt>
+          <dd className={r.bads.length ? 'fail' : 'ok'}>
+            <Ico d={r.bads.length ? PATH_X : PATH_CHECK} />
+            <span>{r.shown}</span>
+            {r.notes.map((n) => (
+              <span key={n} className="why">
+                {n}
+              </span>
+            ))}
+            {r.bads.map((n) => (
+              <span key={n} className="why">
+                {n}
+              </span>
+            ))}
+          </dd>
+        </div>
+      ))}
     </dl>
   )
 }
@@ -68,6 +67,7 @@ export function TryIt({ cond }: { cond: CondGroup }) {
         ) : !root ? (
           <p className="hint">先加入條件並選好欄位，就能在這裡試算。</p>
         ) : null}
+        {root && !unsupported && hasBadNot(root) && <p className="hint">「但不可以是…」要剛好一個條件，引擎才可能讓它成立；現在不會有客戶符合。</p>}
         {examples && root && (
           <div className="try-ex">
             <div className="yes">
@@ -75,14 +75,14 @@ export function TryIt({ cond }: { cond: CondGroup }) {
                 <Ico d={PATH_CHECK} />
                 一位會符合的客戶
               </p>
-              <Rows leaves={leaves} values={examples.yes} />
+              {examples.yes ? <Rows rows={examples.yes} /> : <p className="why-none">這個條件沒有客戶能符合（條件互相矛盾）。</p>}
             </div>
             <div className="no">
               <p className="hd">
                 <Ico d={PATH_X} />
                 一位不會符合的客戶
               </p>
-              <Rows leaves={leaves} values={examples.no} />
+              {examples.no ? <Rows rows={examples.no} /> : <p className="why-none">每位客戶都會符合。</p>}
             </div>
           </div>
         )}
