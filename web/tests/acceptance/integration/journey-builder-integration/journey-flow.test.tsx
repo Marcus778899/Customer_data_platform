@@ -98,7 +98,7 @@ describe('畫布建旅程 → 送審 → 他人核准上線', () => {
     start('/journeys/new')
     await userEvent.type(await screen.findByLabelText('旅程名稱'), '棄單挽回')
     await userEvent.click(screen.getByRole('button', { name: '建立草稿' }))
-    await screen.findByRole('toolbar', { name: '加入節點' })
+    await screen.findByRole('complementary', { name: '節點庫' })
     expect(window.location.pathname).toBe(`/journeys/${JID}/edit`)
 
     // 2) 設進入事件 → 自動儲存（PUT 帶目前 revision）

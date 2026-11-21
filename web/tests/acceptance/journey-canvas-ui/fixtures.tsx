@@ -120,9 +120,19 @@ export function editorBackend(opts: {
   return { api, state, puts, lastPut: () => puts().at(-1)!.body as PutBody }
 }
 
+/** 節點庫（canvas-connect-drag：左側 aside，aria-label「節點庫」，取代頂部工具列「加入節點」） */
+export const LIB_NAME = '節點庫'
+export const library = () => screen.getByRole('complementary', { name: LIB_NAME })
+/** 節點庫裡名稱以 label 開頭的項目（項目文字＝名稱＋一句說明） */
+export const libraryItem = (lib: HTMLElement, label: string) => {
+  const hit = within(lib).getAllByRole('button').find((b) => (b.textContent ?? '').trim().startsWith(label))
+  if (!hit) throw new Error(`節點庫沒有「${label}」`)
+  return hit
+}
+
 export async function openEditor(path = EDIT) {
   start(path)
-  return screen.findByRole('toolbar', { name: '加入節點' })
+  return screen.findByRole('complementary', { name: LIB_NAME })
 }
 
 /** 畫布上的節點按鈕（排除工具列、面板、窄螢幕選單；條件的「全部符合」切換鈕在面板內） */
@@ -143,11 +153,10 @@ export async function selectNode(name: string) {
   await waitFor(() => expect(nodeButton(name).getAttribute('aria-pressed')).toBe('true'))
 }
 
-/** 工具列加節點：按下後把新出現的節點按鈕選起來，回傳它 */
+/** 節點庫加節點（按一下）：按下後把新出現的節點按鈕選起來，回傳它 */
 export async function addNode(label: string) {
   const before = nodeButtons()
-  const tb = screen.getByRole('toolbar', { name: '加入節點' })
-  await userEvent.click(within(tb).getByRole('button', { name: label }))
+  await userEvent.click(libraryItem(library(), label))
   const added = await waitFor(() => {
     const now = nodeButtons()
     const fresh = now.filter((b) => !before.includes(b))
