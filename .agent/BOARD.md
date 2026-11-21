@@ -153,8 +153,10 @@
 | canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
 | login-proxy-design | architect | done | 0 | PR #275 |
 | osv-ignore-extend | architect | done | 0 | PR #274 |
-| canvas-interaction-ui | designer | todo | 0 |  |
-| osv-ignore-remove | architect | todo | 0 |  |
+| canvas-interaction-ui | designer | review | 1 |  |
+| osv-ignore-remove | architect | done | 0 | PR #279 |
+| journey-delete-design | architect | review | 0 |  |
+| login-proxy-api | backend | done | 0 | PR #285 |
 
 ## 卡住／待甲方決定
 
@@ -171,9 +173,11 @@
 - uat 第三輪（canvas-layout-fix 合併後）：目視 F-3／F-16 畫布縮放與小地圖、等事件節點卡條件不截斷；逐項核對 UX #144 #145 #147 #180 #187 #188；停止時已排入 outbox 的訊息
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
-- uat 完成（第七輪）：無 blocker／major，minor #268 #271；驗收條件 1～6、8、9 PASS，7 乾淨環境由 security 讀碼確認、10 待甲方關 #149；甲方驗收清單待勾
 - 甲方驗收回饋記在 #276（畫布拖拉／拉線互動待 designer 評估、旅程頁節點字裁切、條件面板比較欄窄與怎麼測）；甲方回饋完再分級排單
 - security v0.3.0 FAIL 待重審：H-1 advisory 已撤回（D-093，osv-ignore-remove）；M-1／M-2 依 D-091 修（login-proxy-design 已核可 → login-proxy-api）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
+- 注意（journey-delete-design）：journey 改軟刪除（deleted_at），之後任何讀 journey 表的新查詢都要加 deleted_at IS NULL
+- 請甲方手動關 #240（picomatch advisory 撤回，PR #279 已移除忽略，D-093）
+- 待甲方核可（2026-11-21）：canvas-interaction-ui（PR #282，視覺評審 3 輪仍 REVISE 5 項，建議併入 canvas-connect-drag 驗收）、journey-delete-design（PR #284）；核可後開 journey-delete-api 與前端四張單；login-proxy.md 做法 #4 依實作補正併入下一張 architect 單；全部合併後 security 重審、uat 重測、甲方驗收
 
 ## 注意事項（踩過的坑）
 
