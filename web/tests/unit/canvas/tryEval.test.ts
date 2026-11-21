@@ -211,6 +211,57 @@ describe('buildExamples：有解就找得到、無解才說矛盾', () => {
       expect(e.yes![0].value).not.toBeUndefined()
     }
   })
+  const noBads = (root: Cond) => buildExamples(root)!.no!.flatMap((r) => r.bads).length
+  it.each([
+    ['qa1 包含 a、b、c', ['a', 'b', 'c']],
+    ['qa2 包含 a、ab、b', ['a', 'ab', 'b']],
+    ['qa3 包含 ab、bc、a、x', ['ab', 'bc', 'a', 'x']],
+    ['包含 a 且 包含 ab', ['a', 'ab']],
+  ])('%s：不會符合那位只有 1 條紅字原因且判定為不成立', (_n, subs) => {
+    const root: Cond = { op: 'AND', children: subs.map((x) => leaf('CONTAINS', x, 'a')) }
+    const e = buildExamples(root)!
+    expect(e.tooMany).toBeUndefined()
+    expect(noBads(root)).toBe(1)
+    expect(evalTree(root, () => e.no![0].value)).toBe(false)
+  })
+  it('同欄位 2–4 條（CONTAINS／EQ／NEQ／IN／NOT_IN）：不合條數不多於字母表 {a,b,c,x} 長度 ≤ 8 暴力窮舉的最少條數', () => {
+    const alpha = ['a', 'b', 'c', 'x']
+    const all: Array<string | undefined> = [undefined]
+    let layer = ['']
+    for (let n = 0; n <= 8; n++) {
+      if (n > 0) layer = layer.flatMap((t) => alpha.map((c) => t + c))
+      all.push(...layer)
+    }
+    const consts = ['a', 'b', 'c', 'ab', 'bc', 'x', 'xb']
+    const C = (v: string) => leaf('CONTAINS', v, 'a')
+    const cases: CondLeaf[][] = []
+    for (let i = 0; i < consts.length; i++)
+      for (let j = i + 1; j < consts.length; j++) {
+        cases.push([C(consts[i]), C(consts[j])])
+        for (let k = j + 1; k < consts.length; k++) cases.push([C(consts[i]), C(consts[j]), C(consts[k])])
+      }
+    cases.push(
+      [C('ab'), C('bc'), C('a'), C('x')], [C('a'), C('b'), C('c'), C('x')], [C('xb'), C('b'), C('x'), C('c')], [C('a'), C('ab'), C('b')],
+      [C('a'), C('b'), leaf('NEQ', 'a', 'a')], [C('a'), C('b'), C('c'), leaf('NOT_IN', ['a', 'b'], 'a')], [C('b'), leaf('IN', ['ab', 'x'], 'a')],
+      [C('a'), C('b'), leaf('IN', ['ab', 'xb'], 'a')], [C('c'), C('x'), leaf('NEQ', 'x', 'a'), leaf('NEQ', 'c', 'a')], [leaf('EQ', 'ab', 'a'), C('a')],
+      [leaf('NEQ', 'a', 'a'), leaf('NEQ', 'b', 'a'), C('c')], [leaf('NOT_IN', ['a', 'b'], 'a'), leaf('NOT_IN', ['bc'], 'a'), C('b')],
+      [leaf('IN', ['a', 'ab', 'xb'], 'a'), C('b'), leaf('NEQ', 'ab', 'a')],
+    )
+    for (const ls of cases) {
+      const root: Cond = { op: 'AND', children: ls }
+      let min = Infinity
+      for (const v of all) {
+        const bad = ls.filter((l) => !evalLeaf(v, l.operator, l.value)).length
+        if (bad > 0) min = Math.min(min, bad)
+      }
+      const e = buildExamples(root)!
+      const label = JSON.stringify(ls.map((l) => [l.operator, l.value]))
+      expect(e.tooMany, label).toBeUndefined()
+      expect(e.yes, label).not.toBeNull()
+      expect(noBads(root), label).toBeGreaterThanOrEqual(1)
+      expect(noBads(root), label).toBeLessThanOrEqual(min)
+    }
+  })
   it('NOT 底下的條件：不會符合那位標出原因', () => {
     const one = buildExamples({ op: 'NOT', children: [leaf('EQ', 'gold')] })!
     expect(one.no![0].bads).toEqual(['不合：不可以是等於 gold'])

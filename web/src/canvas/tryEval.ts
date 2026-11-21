@@ -245,15 +245,20 @@ export function buildExamples(root: Cond): Examples | null {
     const strs = [...new Set(consts.filter((v): v is string => typeof v === 'string'))]
     strs.forEach(add)
     strs.forEach((t) => add(`${t}_plus`))
-    // 同欄位多個「包含」：要有同時包含每個常數的字串（常數依各種順序串接；太多時只串正序與倒序）
+    // 同欄位多個「包含」：要有同時包含各常數的字串，也要有「少幾個常數」的字串（讓不會符合那位只差一條）。
+    // 2–4 個常數時取每個至少 2 個常數的子集、每種順序的串接（最多 60 個）；超過 4 個只串正序與倒序（已知限制）
     const subs = [...new Set(mine.filter((l) => l.operator === 'CONTAINS' && typeof l.value === 'string').map((l) => l.value as string))]
     if (subs.length > 1) {
       const perms = (xs: string[]): string[][] => (xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((r) => [x, ...r])))
-      const orders = subs.length <= 4 ? perms(subs) : [subs, [...subs].reverse()]
-      orders.forEach((o) => {
-        add(o.join(''))
-        add(`${o.join('')}_plus`)
-      })
+      if (subs.length <= 4) {
+        for (let mask = 1; mask < 1 << subs.length; mask++) {
+          const pick = subs.filter((_, i) => mask & (1 << i))
+          if (pick.length >= 2) perms(pick).forEach((o) => add(o.join('')))
+        }
+      } else {
+        add(subs.join(''))
+        add([...subs].reverse().join(''))
+      }
     }
     // 只有數字常數的欄位不放文字代表值，避免範例出現不相干的文字
     if (strs.length || !nums.length) {
