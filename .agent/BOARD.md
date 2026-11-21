@@ -157,13 +157,13 @@
 | osv-ignore-remove | architect | done | 0 | PR #279 |
 | journey-delete-design | architect | done | 0 | PR #284 |
 | login-proxy-api | backend | done | 0 | PR #285 |
-| node-card-unify | frontend | todo | 0 |  |
+| node-card-unify | frontend | in-progress | 0 |  |
+| journey-delete-api | backend | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
 - CI 後續優化（forkCount 1／2／3 比較、ci-speedup.md 補實測值）甲方同意暫緩；v0.2.0 批 5：relay-perf-test、demo-seed-integration
 - 甲方新需求：非工程人員的成效分析與 A/B 測試，已開 issue #157，待甲方有空時討論範圍與版本
-- backlog issue 合併後需甲方手動關（gh issue close 被權限擋，甲方之後改上游）：已完成待關 #149
 - event_filter 畫布 UI：designer event-filter-ui（#215）補規格，實作排進後續前端單
 - 注意：多個 agent 同時跑 Docker 驗收會讓 Testcontainers 連線逾時（contract-fix qa 誤判 FAIL）；之後同時跑 Docker 的單不超過 2 張，或以 PR CI 為準
 - 待辦（designer 追認，併入下一張 designer 單）：事件篩選欄位下拉用原生 select（規格寫 role=listbox）、未填完不即時標紅；uat 要目視：等事件節點卡「條件」不截、375 畫布不切節點卡、1440 × 不掉行
@@ -177,8 +177,8 @@
 - 甲方驗收回饋記在 #276（畫布拖拉／拉線互動待 designer 評估、旅程頁節點字裁切、條件面板比較欄窄與怎麼測）；甲方回饋完再分級排單
 - security v0.3.0 FAIL 待重審：H-1 advisory 已撤回（D-093，osv-ignore-remove）；M-1／M-2 依 D-091 修（login-proxy-design 已核可 → login-proxy-api）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
 - 注意（journey-delete-design）：journey 改軟刪除（deleted_at），之後任何讀 journey 表的新查詢都要加 deleted_at IS NULL
-- 請甲方手動關 #240（picomatch advisory 撤回，PR #279 已移除忽略，D-093）
-- 待甲方核可（2026-11-21）：canvas-interaction-ui（PR #282，視覺評審 3 輪仍 REVISE 5 項，建議併入 canvas-connect-drag 驗收）、journey-delete-design（PR #284）；核可後開 journey-delete-api 與前端四張單；login-proxy.md 做法 #4 依實作補正併入下一張 architect 單；全部合併後 security 重審、uat 重測、甲方驗收
+- v0.3.0 剩餘實作：journey-delete-api、node-card-unify 進行中；canvas-connect-drag、condition-compare-ux、journey-header-save-delete 依序開（改同一批前端檔）；login-proxy.md 做法 #4 補正併入下一張 architect 單；全部合併後 security 重審、uat 重測、甲方驗收
+- 2026-11-22 已關 v0.3.0 修好的 issue：#144～#150、#152、#153、#178～#180、#184、#187、#188、#240（uat 重測若重現再重開）
 
 ## 注意事項（踩過的坑）
 
