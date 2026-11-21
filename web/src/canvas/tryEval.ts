@@ -195,6 +195,8 @@ export interface Examples {
   yes: ExampleRow[] | null
   /** null = 每位客戶都會符合 */
   no: ExampleRow[] | null
+  /** 條件太多、組合太多：不產生範例 */
+  tooMany?: boolean
 }
 
 const boundary = (l: CondLeaf, v: unknown): string => {
@@ -228,19 +230,40 @@ export function buildExamples(root: Cond): Examples | null {
       }
     }
     const mine = leaves.filter((l) => l.field === f.field)
+    // 先放各條件的成立／不成立範例值（決定預設呈現），再補上涵蓋每個判斷區間的代表值
     mine.forEach((l) => add(exampleFor(l, true).value))
     mine.forEach((l) => add(exampleFor(l, false).value))
+    const consts = mine.flatMap((l) => (Array.isArray(l.value) ? l.value : l.value === undefined ? [] : [l.value]))
+    const nums = [...new Set(consts.filter((v): v is number => typeof v === 'number' && Number.isFinite(v)))].sort((x, y) => x - y)
+    nums.forEach(add)
+    nums.slice(1).forEach((n, i) => add((nums[i] + n) / 2))
+    if (nums.length) {
+      add(nums[0] - 1)
+      add(nums[nums.length - 1] + 1)
+    }
+    const strs = [...new Set(consts.filter((v): v is string => typeof v === 'string'))]
+    strs.forEach(add)
+    strs.forEach((t) => add(`${t}_plus`))
+    let other = '其他值'
+    for (let i = 2; strs.includes(other); i++) other = `其他值${i}`
+    add(other)
     add(undefined)
     return out
   })
   const total = cands.reduce((n, c) => n * c.length, 1)
-  if (total > MAX_COMBOS) return null
+  if (total > MAX_COMBOS) return { yes: null, no: null, tooMany: true }
   const combos: unknown[][] = []
   const walk = (i: number, cur: unknown[]) => {
     if (i === cands.length) return void combos.push(cur)
     for (const v of cands[i]) walk(i + 1, [...cur, v])
   }
   walk(0, [])
+  const underNot = new Set<CondLeaf>()
+  const markNot = (c: Cond, inNot: boolean) => {
+    if (isGroup(c)) c.children.forEach((x) => markNot(x, inNot || c.op === 'NOT'))
+    else if (inNot) underNot.add(c)
+  }
+  markNot(root, false)
   const passOf = (vals: unknown[]) => evalTree(root, (l) => vals[fields.findIndex((f) => f.field === l.field)])
   const results = combos.map((vals) => ({ vals, pass: passOf(vals) }))
   const yes = results.find((r) => r.pass)
@@ -252,19 +275,20 @@ export function buildExamples(root: Cond): Examples | null {
       const mine = leaves.filter((l) => l.field === f.field)
       const v = vals[i]
       const changed = base !== null && JSON.stringify(v) !== JSON.stringify(base[i])
-      const fails = mine.filter((l) => !evalLeaf(v, l.operator, l.value))
+      const reasons = mine.flatMap((l) => {
+        const ok = evalLeaf(v, l.operator, l.value)
+        if (underNot.has(l)) return ok ? [`不合：不可以是${fragment(l)}`] : []
+        if (ok) return []
+        const b = boundary(l, v)
+        return [`不合：要${fragment(l)}${b ? `（${b}）` : ''}`]
+      })
       return {
         field: f.field,
         name: f.name,
         value: v,
         shown: v === undefined ? '沒填' : String(v),
-        notes: base === null ? mine.map((l) => boundary(l, v)).filter(Boolean) : [],
-        bads: changed
-          ? fails.map((l) => {
-              const b = boundary(l, v)
-              return `不合：要${fragment(l)}${b ? `（${b}）` : ''}`
-            })
-          : [],
+        notes: base === null ? [...new Set(mine.map((l) => boundary(l, v)).filter(Boolean))] : [],
+        bads: changed ? [...new Set(reasons)] : [],
       }
     })
   return { yes: yes ? rows(yes.vals, null) : null, no: no ? rows(no.vals, yes ? yes.vals : null) : null }

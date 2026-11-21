@@ -160,14 +160,86 @@ describe('範例客戶', () => {
   it('OR、NOT、多子條件 NOT、永遠成立、太多組合', () => {
     const or = buildExamples({ op: 'OR', children: [leaf('GT', 500, 'a'), leaf('EQ', 'gold')] })!
     expect(or.yes).not.toBeNull()
-    expect(or.no!.every((r) => r.bads.length >= 0)).toBe(true)
+    expect(or.no!.filter((r) => r.bads.length).length).toBe(2)
     const not = buildExamples({ op: 'NOT', children: [leaf('EQ', 'gold')] })!
     expect(not.yes![0].value).not.toBe('gold')
     expect(not.no![0].value).toBe('gold')
     expect(buildExamples({ op: 'NOT', children: [leaf('EQ', 'a'), leaf('EQ', 'b')] })!.yes).toBeNull()
     expect(buildExamples({ op: 'OR', children: [leaf('IS_NULL'), leaf('IS_NOT_NULL')] })!.no).toBeNull()
     expect(buildExamples({ op: 'AND', children: [] })).toBeNull()
-    expect(buildExamples({ op: 'AND', children: Array.from({ length: 11 }, (_, i) => leaf('EQ', 'x', `f${i}`)) })).toBeNull()
+    expect(buildExamples({ op: 'AND', children: Array.from({ length: 11 }, (_, i) => leaf('EQ', 'x', `f${i}`)) })!.tooMany).toBe(true)
+  })
+})
+
+describe('buildExamples：有解就找得到、無解才說矛盾', () => {
+  const yesOf = (root: Cond) => buildExamples(root)!.yes
+  const val = (rows: NonNullable<ReturnType<typeof yesOf>>) => rows[0].value
+  it.each([
+    ['常數之間 GT 500 且 LT 520', { op: 'AND', children: [leaf('GT', 500, 'a'), leaf('LT', 520, 'a')] }],
+    ['常數之間 GT 0 且 LT 1（小數）', { op: 'AND', children: [leaf('GT', 0, 'a'), leaf('LT', 1, 'a')] }],
+    ['等於邊界 GTE 500 且 LTE 500', { op: 'AND', children: [leaf('GTE', 500, 'a'), leaf('LTE', 500, 'a')] }],
+    ['避開兩個值 NEQ silver 且 NEQ gold', { op: 'AND', children: [leaf('NEQ', 'silver', 'a'), leaf('NEQ', 'gold', 'a')] }],
+    ['IN 與 NEQ 組合', { op: 'AND', children: [leaf('IN', ['gold', 'vip'], 'a'), leaf('NEQ', 'gold', 'a')] }],
+    ['NOT_IN 兩個再 NEQ', { op: 'AND', children: [leaf('NOT_IN', ['gold', 'vip'], 'a'), leaf('NEQ', 'silver', 'a')] }],
+  ] as Array<[string, Cond]>)('%s：有會符合的客戶且判定為成立', (_n, root) => {
+    const rows = yesOf(root)
+    expect(rows).not.toBeNull()
+    expect(evalTree(root, () => val(rows!))).toBe(true)
+  })
+  it('GTE 500 且 LTE 500：會符合的是 500', () => {
+    expect(val(yesOf({ op: 'AND', children: [leaf('GTE', 500, 'a'), leaf('LTE', 500, 'a')] })!)).toBe(500)
+  })
+  it('NOT 底下的條件：不會符合那位標出原因', () => {
+    const one = buildExamples({ op: 'NOT', children: [leaf('EQ', 'gold')] })!
+    expect(one.no![0].bads).toEqual(['不合：不可以是等於 gold'])
+    const mixed = buildExamples({ op: 'AND', children: [leaf('GT', 500, 'amt'), { op: 'NOT', children: [leaf('EQ', 'gold')] }] })!
+    expect(mixed.no!.flatMap((r) => r.bads).length).toBe(1)
+  })
+  it('同欄位重複說明只列一次', () => {
+    const e = buildExamples({ op: 'AND', children: [leaf('GTE', 500, 'a'), leaf('LTE', 500, 'a')] })!
+    expect(e.yes![0].notes).toEqual(['剛好等於也算'])
+  })
+
+  // 小型窮舉對照：單一欄位、一到兩個條件（AND／OR／NOT），與稠密取樣的「真實有沒有解」比對
+  const numLeaves: CondLeaf[] = [
+    ...['GT', 'GTE', 'LT', 'LTE', 'EQ', 'NEQ'].flatMap((op) => [0, 1, 500, 520].map((v) => leaf(op, v, 'a'))),
+    leaf('IN', [0, 1], 'a'), leaf('IN', [500, 520], 'a'), leaf('NOT_IN', [0, 1], 'a'), leaf('NOT_IN', [500, 520], 'a'),
+    leaf('IS_NULL', undefined, 'a'), leaf('IS_NOT_NULL', undefined, 'a'),
+  ]
+  const textLeaves: CondLeaf[] = [
+    ...['EQ', 'NEQ', 'CONTAINS'].flatMap((op) => ['gold', 'vip', 'silver'].map((v) => leaf(op, v, 'a'))),
+    leaf('IN', ['gold', 'vip'], 'a'), leaf('IN', ['vip', 'silver'], 'a'), leaf('NOT_IN', ['gold', 'vip'], 'a'), leaf('NOT_IN', ['vip', 'silver'], 'a'),
+    leaf('IS_NULL', undefined, 'a'), leaf('IS_NOT_NULL', undefined, 'a'),
+  ]
+  const trees = (ls: CondLeaf[]): Cond[] => [
+    ...ls.map((a): Cond => ({ op: 'NOT', children: [a] })),
+    ...ls.flatMap((a) =>
+      ls.flatMap((b): Cond[] => [
+        { op: 'AND', children: [a, b] },
+        { op: 'OR', children: [a, b] },
+        { op: 'AND', children: [a, { op: 'NOT', children: [b] }] },
+      ]),
+    ),
+  ]
+  const check = (ls: CondLeaf[], domain: unknown[]) => {
+    for (const root of trees(ls)) {
+      const truth = domain.map((v) => evalTree(root, () => v))
+      const e = buildExamples(root)!
+      const label = JSON.stringify(root)
+      expect(e.yes !== null, `yes ${label}`).toBe(truth.some(Boolean))
+      expect(e.no !== null, `no ${label}`).toBe(truth.some((t) => !t))
+      if (e.yes) expect(evalTree(root, () => e.yes![0].value), `yes值 ${label}`).toBe(true)
+      if (e.no) expect(evalTree(root, () => e.no![0].value), `no值 ${label}`).toBe(false)
+    }
+  }
+  it('數字欄：結論與稠密取樣一致', () => {
+    const domain: unknown[] = [undefined]
+    for (let x = -3; x <= 524; x += 0.25) domain.push(x)
+    check(numLeaves, domain)
+  })
+  it('文字欄：結論與取樣一致', () => {
+    const domain: unknown[] = [undefined, 'gold', 'vip', 'silver', 'bronze', 'gold_plus', 'vip_plus', 'silver_plus', 'zzz', 'a gold b']
+    check(textLeaves, domain)
   })
 })
 

@@ -51,6 +51,7 @@ export function TryIt({ cond }: { cond: CondGroup }) {
   const asNum = new Map(fields.map((f) => [f.field, f.asNumber]))
   const actualOf = (l: CondLeaf) => parseSample(samples[l.field] ?? '', asNum.get(l.field) ?? false)
   const examples = !unsupported && root ? buildExamples(root) : null
+  const badNot = !!root && hasBadNot(root)
   const pass = !unsupported && root ? evalTree(root, actualOf) : false
   const results = leaves.map((l) => evalTree(l, actualOf))
   const shownSample = (l: CondLeaf) => ((samples[l.field] ?? '').trim() === '' ? '沒填' : samples[l.field])
@@ -67,15 +68,16 @@ export function TryIt({ cond }: { cond: CondGroup }) {
         ) : !root ? (
           <p className="hint">先加入條件並選好欄位，就能在這裡試算。</p>
         ) : null}
-        {root && !unsupported && hasBadNot(root) && <p className="hint">「但不可以是…」要剛好一個條件，引擎才可能讓它成立；現在不會有客戶符合。</p>}
-        {examples && root && (
+        {root && !unsupported && badNot && <p className="hint">「但不可以是…」裡只能放一個條件，現在不會有客戶符合。</p>}
+        {examples?.tooMany && <p className="hint">條件太多，請直接用下方樣本試算。</p>}
+        {examples && !examples.tooMany && root && (
           <div className="try-ex">
             <div className="yes">
               <p className="hd">
                 <Ico d={PATH_CHECK} />
                 一位會符合的客戶
               </p>
-              {examples.yes ? <Rows rows={examples.yes} /> : <p className="why-none">這個條件沒有客戶能符合（條件互相矛盾）。</p>}
+              {examples.yes ? <Rows rows={examples.yes} /> : badNot ? null : <p className="why-none">這個條件沒有客戶能符合（條件互相矛盾）。</p>}
             </div>
             <div className="no">
               <p className="hd">
