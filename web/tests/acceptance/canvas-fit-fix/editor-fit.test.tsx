@@ -3,7 +3,7 @@
  * canvas-fit-fix：uat v0.3.0 第三輪 F-19～F-21。編輯畫布在「看全圖」、新增節點、接線後，
  * 整張圖的每個節點都要落在畫布容器內（容器尺寸由 fixtures.mockLayout 固定為 1000x600），
  * 且不被小地圖（右下）與縮放列（左下）蓋住。
- * canvas-zoom-filter-fix 改寫：按鈕改名「看全圖」；自動縮放（進頁、加節點、接線）有 70% 下限，圖太大時允許超出畫布（以縮放停在下限為準），
+ * canvas-zoom-filter-fix 改寫：按鈕改名「看全圖」；自動縮放（進頁、加節點、接線）有 75% 下限（node-card-unify：原 70%），圖太大時允許超出畫布（以縮放停在下限為準），
  * 只有「看全圖」保證整張在畫布內；小地圖只在圖超出可見範圍時存在。進入點、工具列、右側面板假設同 journey-canvas-ui/fixtures。
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -61,14 +61,14 @@ const fan = (): Def => ({
   ],
 })
 
-/** 自動縮放：整張在畫布內，或縮放已停在 70% 下限（圖太大，從開始節點起靠左捲動） */
+/** 自動縮放：整張在畫布內，或縮放已停在 75% 下限（圖太大，從開始節點起靠左捲動） */
 const inViewOrAtFloor = async (why: string) =>
   waitFor(
     () => {
       const rs = nodeRects()
       expect(rs.length, '畫布上要有節點').toBeGreaterThan(0)
       const z = viewport().zoom
-      if (z < 0.7 - 0.005) expect(outsideBox(rs), `${why}：縮放 ${z} 低於 70% 下限，圖又沒整張進畫布`).toEqual([])
+      if (z < 0.75 - 0.005) expect(outsideBox(rs), `${why}：縮放 ${z} 低於 75% 下限，圖又沒整張進畫布`).toEqual([])
     },
     { timeout: 4000 },
   )
@@ -141,11 +141,11 @@ describe('F-19 新增節點、接線後自動符合：新節點與其他節點�
     await inViewOrAtFloor('接完線後')
   }, 90000)
 
-  it('場景一規模（11 個節點）進頁：縮放不低於 70%，圖太寬時超出畫布（不縮小）；「看全圖」後整張在畫布內', async () => {
+  it('場景一規模（11 個節點）進頁：縮放不低於 75%，圖太寬時超出畫布（不縮小）；「看全圖」後整張在畫布內', async () => {
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await inViewOrAtFloor('進頁')
-    await waitFor(() => expect(viewport().zoom).toBeGreaterThanOrEqual(0.7 - 0.005))
+    await waitFor(() => expect(viewport().zoom).toBeGreaterThanOrEqual(0.75 - 0.005))
     await userEvent.click(screen.getByRole('button', { name: '看全圖' }))
     await inView('按看全圖後')
   }, 60000)

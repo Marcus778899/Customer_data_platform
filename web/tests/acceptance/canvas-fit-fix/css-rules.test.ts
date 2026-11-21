@@ -54,10 +54,9 @@ describe('F-24 事件篩選的「比較」下拉不被截斷', () => {
 })
 
 describe('F-25 旅程頁節點卡的字縮放後仍讀得到', () => {
-  it('卡內最小字級（n-cat／n-type／n-state／n-stat）乘上最小縮放後 >= 10px', () => {
-    const src = readFileSync(new URL('../../../src/graph/FlowGraph.tsx', import.meta.url), 'utf8')
-    const minScale = Number(/const MIN_SCALE\s*=\s*([\d.]+)/.exec(src)?.[1])
-    expect(Number.isNaN(minScale), '讀不到 FlowGraph 的 MIN_SCALE').toBe(false)
+  it('卡內最小字級（n-cat／n-type／n-state／n-stat）乘上最小縮放（75%）後 >= 10px', () => {
+    // node-card-unify：三處縮放下限統一 75%（docs/ui/canvas-interaction.md §2），不再讀 FlowGraph 的常數
+    const minScale = 0.75
     const sizes = ['n-cat', 'n-type', 'n-state', 'n-stat'].map((c) => {
       const rule = rulesFor(css, new RegExp(`^\\.node\\s+\\.${c}$`)).map((r) => /font-size:\s*([^;]+);/.exec(r)?.[1]).find(Boolean)
       return { c, px: px(rule ?? '') }

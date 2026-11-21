@@ -3,12 +3,12 @@
  * canvas-zoom-filter-fix：F-31 編輯畫布縮放（docs/ui/journey-builder.md「畫布縮放」）。
  * 沿用 canvas-fit-fix/fixtures 的版面模擬（容器 BOX，預設 1000x600；窄螢幕測試暫時改成 375 寬）。
  * 對 worker 的假設：
- *   - 自動縮放（載入、新增節點後）下限 70%（容器寬 <=640 為 85%）；圖比畫布寬時從「開始」節點起靠左，不再縮小。
+ *   - 自動縮放（載入、新增節點後）下限 75%（node-card-unify：原 70%；窄螢幕不再固定 85%，同樣 >= 75%）；圖比畫布寬時從「開始」節點起靠左，不再縮小。
  *   - 縮放列按鈕 aria-label：縮小、放大、看全圖（⤢，原「符合視窗大小」）、符合寬度（⇔，上限 100%）。
  *   - 「看全圖」縮到 60% 以下時出現文字「縮小檢視中，文字偏小」與按鈕「回到可讀大小」。
  *   - 面板標頭有「收合」鈕（名稱含「收合」），收合後出現名稱含「展開」的按鈕。
  *   - 小地圖 `.react-flow__minimap`：整張圖都在可見範圍內時不存在；窄螢幕（容器 <=640）不顯示縮放列與小地圖。
- *   - 節點卡高度 96px。
+ *   - 節點卡高度 120px（node-card-unify：原 96px）。
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -31,7 +31,7 @@ afterEach(() => {
 
 const node = (id: string, type: string, outputs: Record<string, unknown>, name: string | null, config: Record<string, unknown> = {}) => ({ id, type, name, config, outputs })
 const msg = { channel_id: 'mock_default', template_id: 't' }
-/** 11 個節點、8 層，比 1000px 畫布在 70% 時還寬 */
+/** 11 個節點、8 層，比 1000px 畫布在 75% 時還寬 */
 const scene = (): Def => ({
   name: '場景', description: null, settings: {}, entry_node: 'start',
   nodes: [
@@ -57,44 +57,44 @@ const btn = (name: RegExp) => screen.getByRole('button', { name })
 const settle = () => new Promise((r) => setTimeout(r, 600))
 
 describe('F-31 自動縮放不低於下限', () => {
-  it('11 個節點的圖進頁：縮放 >= 70%，從「開始」節點起靠左（不為了塞進畫布而縮小）', async () => {
+  it('11 個節點的圖進頁：縮放 >= 75%，從「開始」節點起靠左（不為了塞進畫布而縮小）', async () => {
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await ready()
-    expect(viewport().zoom).toBeGreaterThanOrEqual(0.7 - 0.005)
+    expect(viewport().zoom).toBeGreaterThanOrEqual(0.75 - 0.005)
     const rs = nodeRects()
     const left = Math.min(...rs.map((r) => r.x))
     expect(left, '最左的節點（開始）要在畫布內靠左').toBeGreaterThanOrEqual(-0.5)
     expect(left).toBeLessThanOrEqual(60)
-    expect(Math.max(...rs.map((r) => r.x + r.w)), '前置條件：圖在 70% 時比畫布寬').toBeGreaterThan(BOX.w)
+    expect(Math.max(...rs.map((r) => r.x + r.w)), '前置條件：圖在 75% 時比畫布寬').toBeGreaterThan(BOX.w)
   }, 60000)
 
-  it('新增節點後自動置中也不低於 70%', async () => {
+  it('新增節點後自動置中也不低於 75%', async () => {
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await ready()
     const tb = screen.getByRole('toolbar', { name: '加入節點' })
     await userEvent.click(tb.querySelector('button')!)
     await settle()
-    expect(viewport().zoom).toBeGreaterThanOrEqual(0.7 - 0.005)
+    expect(viewport().zoom).toBeGreaterThanOrEqual(0.75 - 0.005)
   }, 60000)
 
-  it('窄螢幕（容器 375 寬）自動縮放固定 85%，不顯示縮放列與小地圖', async () => {
+  it('窄螢幕（容器 375 寬）自動縮放不低於 75%，不顯示縮放列與小地圖', async () => {
     BOX.w = 375
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await ready()
-    expect(viewport().zoom).toBeGreaterThanOrEqual(0.85 - 0.005)
+    expect(viewport().zoom).toBeGreaterThanOrEqual(0.75 - 0.005)
     expect(document.querySelector('.react-flow__minimap')).toBeNull()
     expect(screen.queryByRole('group', { name: '縮放' })).toBeNull()
   }, 60000)
 
-  it('節點卡高度 96px', async () => {
+  it('節點卡高度 120px', async () => {
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await ready()
     const hs = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map((n) => n.style.height)
-    expect(new Set(hs)).toEqual(new Set(['96px']))
+    expect(new Set(hs)).toEqual(new Set(['120px']))
   }, 60000)
 })
 
@@ -120,7 +120,7 @@ describe('F-31 開關面板、選取節點不改縮放', () => {
 })
 
 describe('F-31 縮放列：看全圖、符合寬度、上下限', () => {
-  it('「看全圖」整張進畫布並水平垂直置中；低於 60% 出現提示，「回到可讀大小」回到 >= 70%', async () => {
+  it('「看全圖」整張進畫布並水平垂直置中；低於 60% 出現提示，「回到可讀大小」回到 >= 75%', async () => {
     editorBackend({ def: scene(), revision: 1 })
     await openEditor()
     await ready()
@@ -137,7 +137,7 @@ describe('F-31 縮放列：看全圖、符合寬度、上下限', () => {
     expect(await screen.findByText('縮小檢視中，文字偏小')).toBeTruthy()
     expect(document.querySelector('.react-flow__minimap'), '圖完全可見時隱藏小地圖').toBeNull()
     await userEvent.click(btn(/回到可讀大小/))
-    await waitFor(() => expect(viewport().zoom).toBeGreaterThanOrEqual(0.7 - 0.005))
+    await waitFor(() => expect(viewport().zoom).toBeGreaterThanOrEqual(0.75 - 0.005))
     expect(screen.queryByText('縮小檢視中，文字偏小')).toBeNull()
   }, 60000)
 

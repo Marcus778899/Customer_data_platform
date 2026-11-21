@@ -92,19 +92,20 @@ describe('F-11 分支畫成分叉、F-7 整張圖進一屏', () => {
     const no = translate(cardOf(/乙信1/))
     const cond = translate(cardOf(/是 VIP？/))
     expect(yes.x).toBe(no.x)
-    expect(Math.abs(yes.y - no.y)).toBeGreaterThanOrEqual(72)
+    expect(Math.abs(yes.y - no.y)).toBeGreaterThanOrEqual(120)
     expect(yes.x).toBeGreaterThan(cond.x)
     expect(translate(cardOf(/會合/)).x).toBeGreaterThan(yes.x)
   })
 
-  it('8 層的場景一規模：圖寬（含縮放）不超過 1440 寬扣掉側欄與邊距的可用寬度（約 1160px）', async () => {
+  it('8 層的場景一規模：縮放落在 75%～100%（node-card-unify：放不下時不再硬縮進一屏，改左右捲動；縮放列與提示見 node-card-unify/readonly-zoom）', async () => {
     await openJourney(branching(8))
-    const inner = document.querySelector<HTMLElement>('.graph .inner')!
-    const width = Number.parseFloat(inner.style.width)
-    expect(width).toBeGreaterThan(0)
-    const scale = scaleOf(document.querySelector('.graph .react-flow__viewport')) * scaleOf(inner)
-    const zoom = Number.parseFloat(inner.style.zoom || '1') || 1
-    expect(width * scale * zoom, `圖寬 ${width}、縮放 ${scale * zoom}`).toBeLessThanOrEqual(1160)
+    const inner = document.querySelector<HTMLElement>('.graph .inner')
+    const group = screen.getByRole('group', { name: '縮放' })
+    const pct = Number(/(\d+)\s*%/.exec(group.textContent ?? '')?.[1])
+    expect(inner).toBeTruthy()
+    expect(pct, `縮放列：${group.textContent}`).toBeGreaterThanOrEqual(75)
+    expect(pct).toBeLessThanOrEqual(100)
+    expect(scaleOf(null)).toBe(1)
     expect(bodyText()).toContain('棄單挽回')
   })
 })
