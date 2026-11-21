@@ -27,3 +27,18 @@ describe('app.css 規則（#144、#148、#178）', () => {
     expect(css).toMatch(/\.search-big\s*\{[^}]*max-width/)
   })
 })
+
+describe('節點庫 ≤1100px 圖示軌（canvas-connect-drag）', () => {
+  const block = (() => {
+    const re = /@media \(max-width: 1100px\) \{\n([\s\S]*?)\n\}/g
+    return [...css.matchAll(re)].map((m) => m[1]).find((b) => b.includes('.nodelib')) ?? ''
+  })()
+  it('標題、提示、分組名、說明、把手收起來（display: none），不被改成別的 display', () => {
+    const rule = /\.nl-title, \.nl-tip, \.nl-gh, \.nl-tx small, \.nl-grip\s*\{([^}]*)\}/.exec(block)?.[1] ?? ''
+    expect(rule.trim()).toBe('display: none;')
+  })
+  it('圖示軌 64px，且 1100 斷點裡沒有重複貼進來的 .nl-item > svg 規則', () => {
+    expect(block).toMatch(/\.nodelib\s*\{[^}]*width:\s*64px/)
+    expect(block).not.toMatch(/\.nl-item > svg/)
+  })
+})

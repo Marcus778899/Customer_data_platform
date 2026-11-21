@@ -167,13 +167,14 @@ export function useDraftEditor(journeyId: string) {
   }, [save])
 
   const edit = useCallback(
-    (fn: (d: Def, l: Layout) => [Def, Layout]) => {
+    (fn: (d: Def, l: Layout) => [Def, Layout], opts?: { keepLayout?: boolean }) => {
       if (!defRef.current || lockedRef.current) return
       const prevDef = defRef.current
       const prevLayout = fillLayout(prevDef, layoutRef.current)
       const [d, edited] = fn(prevDef, prevLayout)
       // 新增節點或接線改變後重新分層排版；使用者拖曳過的版面（與自動排版不同）原樣保留
-      const l = topologyKey(d) !== topologyKey(prevDef) && isAutoLayout(prevDef, prevLayout) ? layoutAll(d) : edited
+      // keepLayout：拖進畫布、放開在空白處新增的節點已有指定位置，不重排
+      const l = !opts?.keepLayout && topologyKey(d) !== topologyKey(prevDef) && isAutoLayout(prevDef, prevLayout) ? layoutAll(d) : edited
       defRef.current = d
       layoutRef.current = l
       dirtyRef.current = true

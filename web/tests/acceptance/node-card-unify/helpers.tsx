@@ -10,6 +10,8 @@
  *     捲動位置 0 時，容器右緣在流程座標 = GRAPH_W / 縮放。
  *   - 卡片尺寸常數（寬 200、高 120／144 等）放在 app.css（或 `.node` 直接寫死），不放 tokens.css（不在負責檔案，規格無新 token）；
  *     css-rules.test.ts 的 var() 只查 app.css 自己的定義再查 tokens.css。
+ *   - 連線接點座標（canvas-connect-drag 改）：唯讀圖維持右緣中點→左緣中點；編輯畫布多出口各出口在右緣不同高度、同欄回頭線接目標上／下緣中點。
+ *     詳見 anchorMismatches 的註解（mode 'readonly'／'editor'）。
  *   - 漸層元素 class 含 `fade`（編輯畫布 `.cvfade`）；「消失」＝元素不存在、有 hidden、或自己／祖先帶 class `end`、opacity 0、display none。
  */
 import { screen, waitFor } from '@testing-library/react'
@@ -143,15 +145,31 @@ export function edgeEnds(): Array<{ id: string; start: [number, number]; end: [n
   })
 }
 
-/** 每條邊的起點要在某張卡右緣中點、終點要在某張卡左緣中點（接點位置與卡片尺寸共用同一組常數） */
-export function anchorMismatches(boxes: Box[] = readBoxes()): string[] {
-  const near = (a: number, b: number) => Math.abs(a - b) <= 1.5
+/**
+ * 連線接點檢查。接點座標的假設（canvas-connect-drag 之後；規格 docs/ui/canvas-interaction.md §1，路徑以 `path` 的 d 屬性第一組與最後一組座標為準）：
+ *   - 'readonly'（預設；旅程頁、軌跡圖，沿用 node-card-unify）：起點＝某張卡右緣中點、終點＝某張卡左緣中點（誤差 1.5）。
+ *   - 'editor'（編輯畫布）：
+ *       起點＝某張卡右緣（x ＝ 卡右緣）、y 在卡的上下緣之間；單一出口取中點，多出口（條件 是／否、A/B）各出口 y 不同，
+ *       所以不要求中點；
+ *       終點＝某張卡的入口：左緣中點（預設）、上緣中點（同一欄且目標在來源下方）、下緣中點（同一欄且目標在來源上方）。
+ *       誤差 3（箭頭可以停在入口前 2px）。
+ *     同欄回頭線與多出口的幾何另在 canvas-connect-drag/edges.test.tsx 檢查。
+ */
+export function anchorMismatches(boxes: Box[] = readBoxes(), mode: 'readonly' | 'editor' = 'readonly'): string[] {
+  const tol = mode === 'editor' ? 3 : 1.5
+  const near = (a: number, b: number) => Math.abs(a - b) <= tol
   const out: string[] = []
   for (const e of edgeEnds()) {
-    const s = boxes.some((b) => near(e.start[0], b.x + b.w) && near(e.start[1], b.y + b.h / 2))
-    const t = boxes.some((b) => near(e.end[0], b.x) && near(e.end[1], b.y + b.h / 2))
-    if (!s) out.push(`${e.id} 起點 (${e.start}) 不在任何卡的右緣中點`)
-    if (!t) out.push(`${e.id} 終點 (${e.end}) 不在任何卡的左緣中點`)
+    const s = boxes.some((b) =>
+      near(e.start[0], b.x + b.w) && (mode === 'editor' ? e.start[1] >= b.y - tol && e.start[1] <= b.y + b.h + tol : near(e.start[1], b.y + b.h / 2)),
+    )
+    const t = boxes.some(
+      (b) =>
+        (near(e.end[0], b.x) && near(e.end[1], b.y + b.h / 2)) ||
+        (mode === 'editor' && near(e.end[0], b.x + b.w / 2) && (near(e.end[1], b.y) || near(e.end[1], b.y + b.h))),
+    )
+    if (!s) out.push(`${e.id} 起點 (${e.start}) 不在任何卡的右緣${mode === 'editor' ? '' : '中點'}`)
+    if (!t) out.push(`${e.id} 終點 (${e.end}) 不在任何卡的入口（左緣中點${mode === 'editor' ? '、上緣中點、下緣中點' : ''}）`)
   }
   return out
 }

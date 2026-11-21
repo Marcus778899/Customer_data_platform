@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   DRAFT_PATH, EDIT, JID, NINE, addNode, byName, byType, chooseLabel, cleanup, editorBackend, json, nodeById, nodeButtons,
   openEditor, rename, resetEnv, screen, selectNode, skeleton, start, teardown, tryNodeButton, typeInto, userEvent,
-  waitFor, waitForPut, within, backend, bodyText, loopDef, type Def,
+  waitFor, waitForPut, within, backend, bodyText, loopDef, libraryItem, type Def,
 } from './fixtures'
 
 beforeEach(resetEnv)
@@ -23,7 +23,7 @@ describe('新建草稿', () => {
     start('/journeys/new')
     await userEvent.type(await screen.findByLabelText('旅程名稱'), '春季活動')
     await userEvent.click(screen.getByRole('button', { name: '建立草稿' }))
-    await screen.findByRole('toolbar', { name: '加入節點' })
+    await screen.findByRole('complementary', { name: '節點庫' })
     const post = api.calls.find((c) => c.method === 'POST' && c.path === '/api/v1/journeys/drafts')!
     expect(post.body).toEqual({ name: '春季活動' })
     expect(window.location.pathname).toBe(EDIT)
@@ -58,11 +58,12 @@ describe('新建草稿', () => {
   })
 })
 
-describe('節點工具列', () => {
-  it('toolbar「加入節點」有九種節點按鈕：訊息、等待、等事件、條件、A/B 分流、合流、達標、退出、結束', async () => {
+describe('節點庫（取代頂部工具列，canvas-connect-drag）', () => {
+  it('側欄「節點庫」有九種節點按鈕：訊息、等待、等事件、條件、A/B 分流、合流、達標、退出、結束；不再有工具列「加入節點」', async () => {
     editorBackend()
-    const tb = await openEditor()
-    for (const n of NINE) expect(within(tb).getByRole('button', { name: n })).toBeTruthy()
+    const lib = await openEditor()
+    for (const n of NINE) expect(libraryItem(lib, n)).toBeTruthy()
+    expect(screen.queryByRole('toolbar', { name: '加入節點' })).toBeNull()
   })
 })
 
@@ -165,7 +166,7 @@ describe('九種節點、連線、編輯、儲存、還原', () => {
     // 重新整理：重新載入同一網址，節點、名稱都還原
     cleanup()
     start(EDIT)
-    await screen.findByRole('toolbar', { name: '加入節點' })
+    await screen.findByRole('complementary', { name: '節點庫' })
     await waitFor(() => expect(nodeButtons().length).toBeGreaterThanOrEqual(10))
     for (const n of ['提醒信', '等兩小時', '等結帳', '是 VIP？', '文案測試', '會合點', '結帳完成', '已退訂', '流程結束']) {
       await waitFor(() => expect(tryNodeButton(n), n).toBeTruthy())
@@ -277,7 +278,7 @@ describe('迴圈提醒（D-050）', () => {
   it('沒有迴圈：不顯示迴圈提醒', async () => {
     editorBackend()
     await openEditor()
-    await screen.findByRole('toolbar', { name: '加入節點' })
+    await screen.findByRole('complementary', { name: '節點庫' })
     expect(bodyText()).not.toContain('圈數沒有上限')
   })
 })

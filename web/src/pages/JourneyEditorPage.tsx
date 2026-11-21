@@ -1,5 +1,6 @@
 // 旅程編輯畫布頁（FE-04）：載入／空／錯誤／權限狀態，頁首、工具列、畫布、狀態列、右側面板。
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import type { Pt } from '../graph/route'
 import { AppLink } from '../components/AppLink'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox } from '../components/ui'
@@ -12,16 +13,19 @@ import {
   displayName,
   makeNode,
   nodeById,
-  PALETTE,
+  connect,
+  freePortCount,
+  freePorts,
+  nudgeFree,
   placeNew,
   removeNode,
   setOutput,
   textOutline,
-  typeLabel,
   updateNode,
   fillLayout,
   type Def,
 } from '../canvas/model'
+import { NodeLibrary } from '../canvas/NodeLibrary'
 import { LockProvider } from '../canvas/lock'
 import { NodePanel } from '../canvas/NodePanel'
 import { SettingsPanel } from '../canvas/SettingsPanel'
@@ -44,25 +48,6 @@ function NoAccess({ id }: { id: string }) {
   )
 }
 
-function AddButtons({ onAdd, locked }: { onAdd: (type: string) => void; locked: boolean }) {
-  return (
-    <>
-      {PALETTE.map((g) => (
-        <span className="tb-group" role="group" aria-label={g.group} key={g.group}>
-          {g.types.map((t) => (
-            <button key={t} type="button" className={`btn secondary sm tb-btn cat-${t}`}
-              aria-disabled={locked ? true : undefined}
-              onClick={() => !locked && onAdd(t)}
-            >
-              {typeLabel(t)}
-            </button>
-          ))}
-        </span>
-      ))}
-    </>
-  )
-}
-
 function Editor({ id }: { id: string }) {
   const ed = useDraftEditor(id)
   const [selected, setSelected] = useState<string | null>(null)
@@ -70,6 +55,9 @@ function Editor({ id }: { id: string }) {
   // 收合的面板以「哪個面板」記錄：換選別的節點或面板就自動展開
   const [collapsedKey, setCollapsedKey] = useState<string | null>(null)
   const [locate, setLocate] = useState<{ field: string; seq: number } | null>(null)
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null)
+  const [focusPort, setFocusPort] = useState<{ port: string; seq: number } | null>(null)
+  const [live, setLive] = useState('')
   const flowId = useId()
   const { def, layout } = ed
   const [dialog, setDialog] = useState<'submit' | 'withdraw' | null>(null)
@@ -84,17 +72,19 @@ function Editor({ id }: { id: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented || dialog) return
-      if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"]')) return
-      if (selected) setSelected(null)
+      if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"], [role="alertdialog"]')) return
+      if (selectedEdge) setSelectedEdge(null)
+      else if (selected) setSelected(null)
       else if (settingsOpen) setSettingsOpen(false)
       else if (ed.reportOpen) ed.setReportOpen(false)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [dialog, selected, settingsOpen, ed])
+  }, [dialog, selected, selectedEdge, settingsOpen, ed])
 
   const select = useCallback((nid: string | null) => {
     setSelected(nid)
+    setSelectedEdge(null)
     setCollapsedKey(null)
     if (nid) setSettingsOpen(false)
   }, [])
@@ -103,6 +93,65 @@ function Editor({ id }: { id: string }) {
     setCollapsedKey(null)
     setSettingsOpen(true)
   }, [])
+
+  const { edit } = ed
+  const removeLink = useCallback(
+    (edgeId: string) => {
+      if (locked) return
+      const at = edgeId.indexOf(':')
+      const source = edgeId.slice(0, at)
+      const port = edgeId.slice(at + 1)
+      edit((d, l) => [updateNode(d, source, (n) => setOutput(n, port, '')), l])
+      setSelectedEdge(null)
+      setLive('已移除連線')
+    },
+    [edit, locked],
+  )
+  const deleteNode = useCallback(
+    (nid: string) => {
+      if (locked) return
+      edit((d, l) => {
+        const nodes = { ...l.nodes }
+        delete nodes[nid]
+        return [removeNode(d, nid), { nodes }]
+      })
+      setSelected(null)
+      setLive('已刪除節點')
+    },
+    [edit, locked],
+  )
+
+  // Delete：選取連線就移除連線，否則刪除選取的節點（進入條件與開始不可刪）；在輸入欄位、對話框裡不處理
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' || e.defaultPrevented || dialog || locked) return
+      const t = e.target as HTMLElement | null
+      if (t?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      if (selectedEdge) removeLink(selectedEdge)
+      else {
+        const n = def ? nodeById(def, selected) : undefined
+        if (n && n.type !== 'StartNode' && n.type !== 'EventSourceNode') deleteNode(n.id)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [dialog, locked, selectedEdge, selected, def, removeLink, deleteNode])
+
+  const connectPorts = useCallback(
+    (source: string, port: string, target: string) => {
+      if (locked || !def || !connect(def, source, port, target)) return
+      edit((d, l) => [connect(d, source, port, target) ?? d, l])
+      setLive('已連接')
+    },
+    [def, edit, locked],
+  )
+  const portKey = useCallback(
+    (nid: string, port: string) => {
+      select(nid)
+      setFocusPort((f) => ({ port, seq: (f?.seq ?? 0) + 1 }))
+    },
+    [select],
+  )
 
   if (ed.phase === 'loading') {
     return (
@@ -143,17 +192,26 @@ function Editor({ id }: { id: string }) {
     )
   }
 
-  const edit = ed.edit
   const setDef = (fn: (d: Def) => Def) => edit((d, l) => [fn(d), l])
   const sel = nodeById(def, selected)
 
-  function addNode(type: string) {
+  /** 新增節點：at 有值（拖入、空白處選單）放在指定位置；沒有就放在選取節點右側。
+   *  from 指定要接的出口；沒指定時，已選取節點有未連的必填出口就自動接在它後面 */
+  function addNode(type: string, at?: Pt, from?: { id: string; port: string }) {
     const created = makeNode(def!, type)
-    edit((d, l) => {
-      const pos = placeNew(l, selected && nodeById(d, selected) ? selected : null, d.nodes.map((n) => n.id))
-      return [{ ...d, nodes: [...d.nodes, created] }, { nodes: { ...l.nodes, [created.id]: pos } }]
-    })
+    const anchor = selected ? nodeById(def!, selected) : undefined
+    const link = from ?? (!at && anchor && freePorts(anchor)[0] ? { id: anchor.id, port: freePorts(anchor)[0].port } : undefined)
+    edit(
+      (d, l) => {
+        const ids = d.nodes.map((n) => n.id)
+        const pos = at ? nudgeFree(l, ids, at) : placeNew(l, selected && nodeById(d, selected) ? selected : null, ids)
+        const nodes = [...d.nodes, created].map((n) => (link && n.id === link.id ? setOutput(n, link.port, created.id) : n))
+        return [{ ...d, nodes }, { nodes: { ...l.nodes, [created.id]: pos } }]
+      },
+      { keepLayout: !!at },
+    )
     setSelected(created.id)
+    setSelectedEdge(null)
     setSettingsOpen(false)
   }
 
@@ -186,6 +244,7 @@ function Editor({ id }: { id: string }) {
   const collapsed = panelKey !== null && collapsedKey === panelKey
   const errCount = ed.report?.errors.length ?? 0
   const outline = textOutline(def)
+  const freeCount = onlyStart ? 0 : freePortCount(def)
 
   const rejected = !pending && ed.review?.status === 'REJECTED' ? ed.review : null
   const withdrawOff = pending ? withdrawBlock(ed.review, user) : undefined
@@ -288,24 +347,23 @@ function Editor({ id }: { id: string }) {
 
       <div className="edbody">
         <div className="edmain">
-          <div className="tb-full" role="toolbar" aria-label="加入節點">
-            <AddButtons onAdd={addNode} locked={locked} />
-          </div>
-          <details className="addmenu">
-            <summary>＋ 新增節點</summary>
-            <div className="addmenu-list">
-              <AddButtons onAdd={addNode} locked={locked} />
-            </div>
-          </details>
-
+          <div className="edrow">
+            <NodeLibrary onAdd={(t) => addNode(t)} locked={locked} />
           <div className="canvas-area" id={flowId}>
             <Canvas
               def={def}
               layout={layout}
               selectedId={selected}
+              selectedEdge={selectedEdge}
               errorIds={errorIds}
               panelOpen={!!panelKey && !collapsed}
+              locked={locked}
               onSelect={select}
+              onSelectEdge={(eid) => !locked && setSelectedEdge(eid)}
+              onConnect={connectPorts}
+              onRemoveLink={removeLink}
+              onPortKey={portKey}
+              onAddAt={addNode}
               onMove={(nid, pos) => edit((d, l) => [d, { nodes: { ...fillLayout(d, l).nodes, [nid]: pos } }])}
             />
             <LockProvider value={locked}>
@@ -323,15 +381,12 @@ function Editor({ id }: { id: string }) {
               def={def}
               keys={ed.fieldKeys}
               onChange={(fn) => setDef((d) => updateNode(d, sel.id, fn))}
-              onConnect={(port, target) => setDef((d) => updateNode(d, sel.id, (n) => setOutput(n, port, target)))}
-              onDelete={() => {
-                edit((d, l) => {
-                  const nodes = { ...l.nodes }
-                  delete nodes[sel.id]
-                  return [removeNode(d, sel.id), { nodes }]
-                })
-                setSelected(null)
+              onConnect={(port, target) => {
+                setDef((d) => updateNode(d, sel.id, (n) => setOutput(n, port, target)))
+                if (!target) setLive('已移除連線')
               }}
+              focusPort={focusPort}
+              onDelete={() => deleteNode(sel.id)}
               onClose={() => setSelected(null)}
               onCollapse={() => setCollapsedKey(panelKey)}
               openSettings={openSettings}
@@ -371,9 +426,11 @@ function Editor({ id }: { id: string }) {
               </div>
             )}
           </div>
+          </div>
 
           <div className="statusbar">
             <span role="status">{saveText}</span>
+            {freeCount > 0 && <span className="status-warn">還有 {freeCount} 個出口沒接下一步</span>}
             {errCount > 0 && <span className="status-err">有 {errCount} 個錯誤</span>}
             {loops.map((lp) => (
               <span className="loop-note" role="status" key={`${lp.from}>${lp.to}`}>
@@ -396,6 +453,9 @@ function Editor({ id }: { id: string }) {
           </details>
         </div>
 
+      </div>
+      <div className="sr-only" role="status" aria-live="polite">
+        {live}
       </div>
       {dialog === 'submit' && (
         <SubmitDialog

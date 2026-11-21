@@ -37,11 +37,11 @@ describe('編輯畫布', () => {
     expect(BOX.w).toBeGreaterThan(0)
   }, 60000)
 
-  it('連線起點在卡右緣中點、終點在卡左緣中點；相鄰欄的卡不重疊', async () => {
+  it('連線起點在卡右緣（多出口各出口 y 不同）、終點在卡的入口（左緣中點；同欄為上／下緣中點）；相鄰欄的卡不重疊', async () => {
     editorBackend({ def: smallDef(), revision: 1 })
     await openEditor()
     await waitFor(() => expect(document.querySelectorAll('[data-testid^="rf__edge-"] path').length).toBeGreaterThan(0))
-    expect(anchorMismatches()).toEqual([])
+    expect(anchorMismatches(readBoxes(), 'editor')).toEqual([])
     const bs = readBoxes()
     for (let i = 0; i < bs.length; i++) {
       for (let j = i + 1; j < bs.length; j++) {

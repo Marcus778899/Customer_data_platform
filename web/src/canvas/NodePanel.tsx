@@ -1,5 +1,5 @@
 // 右側節點屬性面板：名稱、各型別欄位、下一步（連線）、刪除。欄位標籤同設計稿 ed-*。
-import { useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import type { FieldKeys, Issue } from '../api/types'
 import { EventFilterEditor, type Locate } from './EventFilterEditor'
 import { fieldKind, needsKindToggle, numericInput, parseValue, textLooksNumber, valueKindLabel } from './eventFilter'
@@ -73,19 +73,22 @@ function SelectField({
   onChange,
   children,
   hint,
+  port,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   children: ReactNode
   hint?: string
+  /** 「下一步」下拉對應的出口代碼；畫布上的出口圓點按 Enter 時靠它找到要聚焦的下拉 */
+  port?: string
 }) {
   const id = useId()
   const locked = useLocked()
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} disabled={locked} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} data-port={port} value={value} disabled={locked} onChange={(e) => onChange(e.target.value)}>
         {children}
       </select>
       {hint && <span className="hint">{hint}</span>}
@@ -521,6 +524,7 @@ export function NodePanel({
   openSettings,
   issues = [],
   locate = null,
+  focusPort = null,
 }: {
   node: DefNode
   def: Def
@@ -534,13 +538,20 @@ export function NodePanel({
   /** 驗證結果的錯誤；事件篩選依 field 路徑標到對應條件 */
   issues?: readonly Issue[]
   locate?: Locate | null
+  /** 要求把焦點移到某個出口的「下一步」下拉（seq 變了就再移一次） */
+  focusPort?: { port: string; seq: number } | null
 }) {
   const hid = useId()
   const locked = useLocked()
   const targets = linkTargets(def, node.id)
   const specs = outputSpecs(node)
+  const root = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!focusPort) return
+    root.current?.querySelector<HTMLSelectElement>(`select[data-port="${focusPort.port}"]`)?.focus()
+  }, [focusPort])
   return (
-    <aside className="side-panel" aria-labelledby={hid}>
+    <aside className="side-panel" aria-labelledby={hid} ref={root}>
       <div className="ph">
         <div>
           <h2 id={hid}>{displayName(node)}</h2>
@@ -554,8 +565,8 @@ export function NodePanel({
         <>
           <h3 className="sub">下一步</h3>
           {specs.map((s) => (
-            <SelectField key={s.port} label={s.label} value={targetOfPort(node, s.port)} onChange={(v) => onConnect(s.port, v)} hint={s.optional ? '選填。不連線時，這位客戶的旅程進度就此結束' : undefined}>
-              <option value="">{s.optional ? '不處理，旅程結束' : '（尚未連線）'}</option>
+            <SelectField key={s.port} port={s.port} label={s.label} value={targetOfPort(node, s.port)} onChange={(v) => onConnect(s.port, v)} hint={s.optional ? '選填。不連線時，這位客戶的旅程進度就此結束' : undefined}>
+              <option value="">{s.optional ? '不處理，旅程結束' : '（還沒接）'}</option>
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>
                   {displayName(t)}
