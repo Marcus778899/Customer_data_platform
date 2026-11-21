@@ -45,6 +45,12 @@ public class JourneyDraftController {
         return drafts.save(journeyId, request, Caller.of(auth));
     }
 
+    @DeleteMapping("/{journeyId}")
+    public ResponseEntity<Void> deleteJourney(@PathVariable String journeyId, Authentication auth) {
+        drafts.deleteJourney(journeyId, Caller.of(auth));
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{journeyId}/draft")
     public ResponseEntity<Void> delete(@PathVariable String journeyId) {
         drafts.delete(journeyId);

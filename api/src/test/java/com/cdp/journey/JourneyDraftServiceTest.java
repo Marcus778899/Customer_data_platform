@@ -189,4 +189,28 @@ class JourneyDraftServiceTest {
         verify(journeys, org.mockito.Mockito.times(1)).clearDraft(eq("j1"), any());
         verify(journeys, never()).saveDraft(any(), org.mockito.ArgumentMatchers.anyInt(), any(), isNull(), any(), any());
     }
+
+    @Test
+    void deleteJourneyRules() {
+        Caller c = new Caller("u1", false);
+        when(journeys.lock("j1")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.deleteJourney("j1", c))
+                .satisfies(t -> assertThat(codeOf(t)).isEqualTo(ErrorCode.JOURNEY_NOT_FOUND));
+
+        for (JourneyStatus st : List.of(JourneyStatus.ACTIVE, JourneyStatus.ABORTED)) {
+            when(journeys.lock("j1")).thenReturn(Optional.of(row(st, null, 0)));
+            assertThatThrownBy(() -> service.deleteJourney("j1", c))
+                    .satisfies(t -> assertThat(codeOf(t)).isEqualTo(ErrorCode.JOURNEY_PUBLISHED));
+        }
+
+        when(journeys.lock("j1")).thenReturn(Optional.of(row(JourneyStatus.DRAFT, Map.of(), 1)));
+        when(reviews.findPending("j1")).thenReturn(Optional.of(mock(JourneyReview.class)));
+        assertThatThrownBy(() -> service.deleteJourney("j1", c))
+                .satisfies(t -> assertThat(codeOf(t)).isEqualTo(ErrorCode.DRAFT_IN_REVIEW));
+        verify(journeys, never()).markDeleted(any(), any(), any());
+
+        when(reviews.findPending("j1")).thenReturn(Optional.empty());
+        service.deleteJourney("j1", c);
+        verify(journeys).markDeleted("j1", "u1", NOW);
+    }
 }
