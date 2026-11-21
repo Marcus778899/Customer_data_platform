@@ -2,15 +2,14 @@
 // 契約：docs/contracts/journeys.md §3（節點 id 規則）、§4（節點與條件）；spec 03 §4。
 import { Graph, layout as dagreLayout } from '@dagrejs/dagre'
 import type { DraftDefinition, DraftLayout, JourneyNode } from '../api/types'
+import { CARD_H, CARD_W } from '../graph/card'
 import { cardFilterSummary } from './eventFilter'
 
 export type Def = DraftDefinition
 export type DefNode = JourneyNode
 export type Layout = DraftLayout
 
-/** 畫布上節點卡的固定尺寸（px，RF 需要初始尺寸才能不等量測就畫出連線） */
-export const CARD_W = 176
-export const CARD_H = 96
+export { CARD_H, CARD_W }
 const GAP_X = 72
 const GAP_Y = 32
 

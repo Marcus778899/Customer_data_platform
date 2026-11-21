@@ -27,7 +27,7 @@ describe('入口節點：新增', () => {
     await waitFor(() => expect(ed.api.calls.some((c) => c.path === FK && new URLSearchParams(c.search).get('event_name') === 'add_to_cart')).toBe(true))
   })
 
-  it('購物車金額 大於 500 → PUT event_filter = AND[attribute properties.cart_total GT 500（number）]；摘要句與節點卡「只限…」', async () => {
+  it('購物車金額 大於 500 → PUT event_filter = AND[attribute properties.cart_total GT 500（number）]；摘要句與節點卡「大於 500・購物車金額」', async () => {
     const ed = efBackend()
     const g = await open('加入購物車')
     const row = await addCond(g, ['properties.cart_total', '購物車金額'], ['GT', '大於'], '500')
@@ -37,7 +37,7 @@ describe('入口節點：新增', () => {
     expect(typeof (filterOf(put, 'src_1')!.children[0] as { value: unknown }).value).toBe('number')
     expect(statusText(g)).toContain('購物車金額')
     expect(statusText(g)).toContain('500')
-    await waitFor(() => expect([...document.querySelectorAll('button[aria-pressed]')].some((b) => /只限.*500/.test(b.textContent ?? ''))).toBe(true))
+    await waitFor(() => expect([...document.querySelectorAll('button[aria-pressed]')].some((b) => /大於 ?500・購物車金額/.test(b.textContent ?? ''))).toBe(true))
   })
 
   it('文字欄：優惠碼 等於 → string；IN 以逗號分隔 → 去空白的字串陣列', async () => {

@@ -24,11 +24,12 @@ describe('節點卡摘要', () => {
     expect(nodeButton('加入購物車').textContent).not.toMatch(/\d+ 項條件/)
   })
 
-  it('1 項：「只限…」白話句含「購物車金額」「大於 500」', async () => {
+  it('1 項：「大於 500・購物車金額」（比較與值在前，node-card-unify）', async () => {
     efBackend(efDef(and(leaf('properties.cart_total', 'GT', 500))))
     await openEditor()
     const t = await waitFor(() => nodeButton('加入購物車').textContent ?? '')
-    expect(t).toContain('只限')
+    expect(t).toMatch(/大於 ?500・購物車金額/)
+    expect(t).not.toContain('只限')
     expect(t).toContain('購物車金額')
     expect(t).toMatch(/大於\s*500/)
   })

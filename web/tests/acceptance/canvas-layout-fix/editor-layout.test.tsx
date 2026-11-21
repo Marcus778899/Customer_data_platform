@@ -13,8 +13,9 @@ import {
 beforeEach(resetEnv)
 afterEach(() => { cleanup(); teardown() })
 
-const W = 148
-const H = 72
+// node-card-unify：卡片尺寸 200×120（原 148×72）
+const W = 200
+const H = 120
 type Pos = { x: number; y: number }
 const posOf = (b: PutBody, d: Def, name: string): Pos => b.layout!.nodes[byName(d, name)!.id]
 

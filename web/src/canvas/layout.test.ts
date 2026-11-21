@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CARD_H, fillLayout, isAutoLayout, layoutAll, topologyKey, type Def } from './model'
-import { fitScale } from '../graph/FlowGraph'
+import { pickZoom } from '../graph/card'
 
 const def = (): Def =>
   ({
@@ -39,11 +39,23 @@ describe('畫布排版', () => {
   })
 })
 
-describe('旅程頁縮放', () => {
-  it('fitScale：放得下不縮、放不下等比縮、最小 0.8、量不到就不縮', () => {
-    expect(fitScale(1000, 1160)).toBe(1)
-    expect(fitScale(1440, 1160)).toBeCloseTo(0.806, 2)
-    expect(fitScale(3000, 1160)).toBe(0.8)
-    expect(fitScale(1440, 0)).toBe(1)
+describe('初始縮放 pickZoom', () => {
+  const xs = [0, 272, 544, 816, 1088]
+  it('放得下 100%；縮到 75% 以上放得下就縮到剛好放得下', () => {
+    expect(pickZoom(1160, 1000, () => 0, xs)).toBe(1)
+    expect(pickZoom(1160, 1400, () => 0, xs)).toBe(0.82)
+  })
+  it('放不下：取 75%～100% 中右緣不切在卡片文字中間的最大值', () => {
+    const z = pickZoom(1160, 2400, (v) => 1160 / v, xs)
+    expect(z).toBeGreaterThanOrEqual(0.75)
+    const r = 1160 / z
+    expect(xs.some((x) => r > x + 12 && r < x + 200)).toBe(false)
+  })
+  it('75%～100% 都切在文字中間：手機放大到 125%，仍找不到就 75%', () => {
+    expect(pickZoom(295, 1300, (v) => 319 / v, [0, 272, 544])).toBeGreaterThan(1)
+    expect(pickZoom(295, 1300, () => 100, [0])).toBe(0.75)
+  })
+  it('量不到寬度：不縮', () => {
+    expect(pickZoom(0, 1440, () => 0, xs)).toBe(1)
   })
 })

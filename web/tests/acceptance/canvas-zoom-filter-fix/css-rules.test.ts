@@ -1,6 +1,6 @@
 /**
  * canvas-zoom-filter-fix：樣式規則（jsdom 不算版面，讀 app.css 原文）。
- * 字級補償（規格「畫布縮放」）：類別與摘要 1.05rem、名稱 1.3rem、連線標籤 17px；行高：類別與摘要 <= 1.25、名稱 <= 1.2；
+ * node-card-unify 改寫（規格 canvas-interaction.md §2）：名稱 20px、類別與摘要 16px、連線標籤 16px；行高：類別與摘要 <= 1.25、名稱 <= 1.2；
  * 375 畫布高度規格 300px（設計稿 280px 為誤植）。
  */
 import { readFileSync } from 'node:fs'
@@ -49,18 +49,18 @@ describe('F-31 編輯畫布節點卡字級補償', () => {
   const lineMin = (sel: RegExp) =>
     Math.min(...rulesFor(css, sel).map((r) => Number(decl(r, 'line-height') ?? Number.NaN)).filter((n) => !Number.isNaN(n)), 99)
 
-  it('名稱 >= 1.3rem、類別與摘要 >= 1.05rem', () => {
-    expect(fontMax(/\.cnode\s+\.n-name$/)).toBeGreaterThanOrEqual(1.3 * 16)
-    expect(fontMax(/\.cnode\s+\.n-cat$/)).toBeGreaterThanOrEqual(1.05 * 16)
-    expect(fontMax(/\.cnode\s+\.n-sum$/)).toBeGreaterThanOrEqual(1.05 * 16)
+  it('名稱 20px、類別與摘要 16px', () => {
+    expect(fontMax(/\.cnode\s+\.n-name$/)).toBeGreaterThanOrEqual(20)
+    expect(fontMax(/\.cnode\s+\.n-cat$/)).toBeGreaterThanOrEqual(16)
+    expect(fontMax(/\.cnode\s+\.n-sum$/)).toBeGreaterThanOrEqual(16)
   })
-  it('行高收緊：類別、摘要 <= 1.25，名稱 <= 1.2（內容 <= 94px，文字不被截）', () => {
-    expect(lineMin(/\.cnode\s+\.n-name$/)).toBeLessThanOrEqual(1.2)
-    expect(lineMin(/\.cnode\s+\.n-cat$/)).toBeLessThanOrEqual(1.25)
-    expect(lineMin(/\.cnode\s+\.n-sum$/)).toBeLessThanOrEqual(1.25)
+  it('行高收緊（node-card-unify，卡高 120 內容 <= 98px：名稱 2 行不被截）：名稱 <= 1.25，類別、摘要 <= 1.3', () => {
+    expect(lineMin(/\.cnode\s+\.n-name$/)).toBeLessThanOrEqual(1.25)
+    expect(lineMin(/\.cnode\s+\.n-cat$/)).toBeLessThanOrEqual(1.3)
+    expect(lineMin(/\.cnode\s+\.n-sum$/)).toBeLessThanOrEqual(1.3)
   })
-  it('連線標籤 >= 17px', () => {
-    expect(fontMax(/\.e-label$/)).toBeGreaterThanOrEqual(17)
+  it('連線標籤 >= 16px', () => {
+    expect(fontMax(/\.e-label$/)).toBeGreaterThanOrEqual(16)
   })
 })
 

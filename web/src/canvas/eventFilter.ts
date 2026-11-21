@@ -288,10 +288,22 @@ export function cardFilterSummary(kind: 'source' | 'wait', filter: unknown, lead
   if (k === 0) return null
   if (kind === 'wait') return `${lead}・${k} 項條件`
   if (k === 1) {
-    const g = filter as WireGroup
-    return `只限${filterSentence(isWireGroup(g) && g.children.length === 1 ? g.children[0] : filter)}`
+    const leaf = singleLeaf(filter)
+    if (leaf) {
+      const op = String(leaf.operator)
+      const name = filterFieldLabel(String(leaf.field))
+      if (opNoValue(op)) return `${opLabel(op)}・${name}`
+      const v = Array.isArray(leaf.value) ? leaf.value.join('、') : valueText(leaf.value)
+      return `${opLabel(op)} ${v}・${name}`
+    }
   }
   return `符合 ${k} 項條件`
+}
+
+/** 只有一個條件、且沒有 NOT 包著時，回傳那個條件；否則 null */
+function singleLeaf(w: unknown): Record<string, unknown> | null {
+  if (isWireGroup(w)) return w.op !== 'NOT' && w.children.length === 1 ? singleLeaf(w.children[0]) : null
+  return isObj(w) && w.type === 'attribute' && typeof w.field === 'string' ? w : null
 }
 
 /** 面板上方的一句話（aria-live）。event 是事件名稱，未填時用提示字 */

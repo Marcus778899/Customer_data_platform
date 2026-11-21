@@ -146,17 +146,17 @@ describe('白話摘要', () => {
     expect(s).toContain('（「購物車金額」大於 500 且 「購物車金額」大於 500）')
     expect(filterSentence({ type: 'segment' })).toContain('無法編輯')
   })
-  it('節點卡：沒有→null；1 項只限；2 項以上符合 N 項；等事件 N 項條件', () => {
+  it('節點卡：沒有→null；1 項「大於 500・購物車金額」；2 項以上符合 N 項；等事件 N 項條件', () => {
     expect(cardFilterSummary('source', null)).toBeNull()
     expect(cardFilterSummary('source', { op: 'AND', children: [] })).toBeNull()
-    expect(cardFilterSummary('source', GT500)).toBe('只限「購物車金額」大於 500')
+    expect(cardFilterSummary('source', GT500)).toBe('大於 500・購物車金額')
     expect(cardFilterSummary('source', { op: 'AND', children: [GT500.children[0], GT500.children[0]] })).toBe('符合 2 項條件')
     expect(cardFilterSummary('wait', GT500, '24 小時')).toBe('24 小時・1 項條件')
     expect(filterLeafCount(GT500.children[0])).toBe(1)
   })
   it('model.summaryOf 帶入篩選；沒有篩選維持原樣', () => {
     const src = { id: 's', type: 'EventSourceNode', name: null, config: { event_name: 'add_to_cart', event_filter: GT500 }, outputs: {} }
-    expect(summaryOf(src)).toContain('只限')
+    expect(summaryOf(src)).toBe('大於 500・購物車金額')
     expect(summaryOf({ ...src, config: { event_name: 'add_to_cart' } })).toBe('事件 add_to_cart')
     const wait = { id: 'w', type: 'WaitForEventNode', name: null, config: { event_name: 'x', timeout: 'PT24H', event_filter: GT500 }, outputs: {} }
     expect(summaryOf(wait)).toBe('24 小時・1 項條件')
