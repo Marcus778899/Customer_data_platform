@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
+import jakarta.servlet.ServletException;
+
 import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
@@ -18,8 +20,6 @@ import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
-
-import jakarta.servlet.ServletException;
 
 /**
  * 在 Spring 自動建立 RemoteIpValve 之後，把它的信任範圍換成 {@code CDP_TRUSTED_PROXIES}（auth.md §3），
