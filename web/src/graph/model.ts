@@ -2,10 +2,8 @@ import { Graph, layout } from '@dagrejs/dagre'
 import type { EnrollmentStatus, JourneyVersion, NodeStat, TraceEntry } from '../api/types'
 import { TERMINAL } from '../format'
 import { nodeTypeText } from '../plain'
+import { CARD_H, CARD_H_STAT, CARD_W } from './card'
 
-/** 尺寸對應 tokens.css 的 --node-width／--node-height、--node-pitch（圖上相鄰欄中心距） */
-export const NODE_W = 148
-export const NODE_H = 72
 export const RANK_SEP = 32
 export const NODE_SEP = 32
 export const MARGIN = 16
@@ -66,6 +64,8 @@ export interface GraphModel {
   edges: PlacedEdge[]
   width: number
   height: number
+  /** 卡片高（同一張圖不混用）：有統計或軌跡 144，其餘 120 */
+  cardH: number
   /** 文字版節點清單（依連線順序） */
   textOrder: string[]
 }
@@ -139,12 +139,13 @@ export function loopNodeIds(def: JourneyVersion): Set<string> {
 }
 
 export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null, stats?: readonly NodeStat[]): GraphModel {
+  const cardH = overlay || stats ? CARD_H_STAT : CARD_H
   const statById = new Map((stats ?? []).map((x) => [x.node_id, x]))
   const ids = new Set(def.nodes.map((n) => n.id))
   const g = new Graph()
   g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: MARGIN, marginy: MARGIN, acyclicer: 'greedy' })
   g.setDefaultEdgeLabel(() => ({}))
-  for (const n of def.nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H })
+  for (const n of def.nodes) g.setNode(n.id, { width: CARD_W, height: cardH })
   const rawEdges: { id: string; source: string; target: string }[] = []
   for (const n of def.nodes) {
     for (const [port, target] of Object.entries(outsOf(n))) {
@@ -163,7 +164,7 @@ export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null, st
     if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) pos.set(n.id, { x: s.x, y: s.y })
     else {
       const p = g.node(n.id)
-      pos.set(n.id, { x: p.x - NODE_W / 2, y: p.y - NODE_H / 2 })
+      pos.set(n.id, { x: p.x - CARD_W / 2, y: p.y - cardH / 2 })
     }
   }
 
@@ -185,9 +186,9 @@ export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null, st
     skipped: overlay !== null && !overlay.taken.has(e.id),
     back: pos.get(e.target)!.x <= pos.get(e.source)!.x,
   }))
-  const width = Math.max(...nodes.map((n) => n.x + NODE_W), 0) + MARGIN
-  const height = Math.max(...nodes.map((n) => n.y + NODE_H), 0) + MARGIN * 2
-  return { nodes, edges, width, height, textOrder: textOrder(def) }
+  const width = Math.max(...nodes.map((n) => n.x + CARD_W), 0) + MARGIN
+  const height = Math.max(...nodes.map((n) => n.y + cardH), 0) + MARGIN * 2
+  return { nodes, edges, width, height, cardH, textOrder: textOrder(def) }
 }
 
 function textOrder(def: JourneyVersion): string[] {

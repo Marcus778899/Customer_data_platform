@@ -46,8 +46,8 @@ describe('Esc 關閉面板並取消選取', () => {
 })
 
 describe('小地圖只在面板展開時扣面板寬', () => {
-  it('畫布 1700 寬、圖約 1540 寬、面板關閉：全圖可見，沒有小地圖；選取節點開面板後才出現', async () => {
-    BOX.w = 1700
+  it('畫布 2600 寬、圖約 2380 寬、面板關閉：全圖可見，沒有小地圖；選取節點開面板後才出現', async () => {
+    BOX.w = 2600
     editorBackend({ def: wide(), revision: 1 })
     await openEditor()
     await waitFor(() => expect(nodeRects().length).toBeGreaterThan(0))

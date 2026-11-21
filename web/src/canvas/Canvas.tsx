@@ -16,6 +16,7 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { pickZoom } from '../graph/card'
 import {
   CARD_H,
   CARD_W,
@@ -55,7 +56,7 @@ const CardView = memo(function CardView({ data }: NodeProps<CardNode>) {
         <span className="n-cat">{data.categoryLabel}</span>
         {data.hasError && <span className="n-err">有錯誤</span>}
       </span>
-      <span className="n-name">{data.name}</span>
+      <span className="n-name" title={data.name}>{data.name}</span>
       <span className="n-sum">{data.summary}</span>
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </button>
@@ -65,10 +66,17 @@ const CardView = memo(function CardView({ data }: NodeProps<CardNode>) {
 interface LinkData extends Record<string, unknown> {
   back: boolean
   label: string
+  /** 連線兩端的流程座標（來源卡右緣中點、目標卡左緣中點）：卡片尺寸固定，直接由座標與常數算，不等瀏覽器量測 */
+  from: { x: number; y: number }
+  to: { x: number; y: number }
 }
 
 function LinkView(props: EdgeProps<Edge<LinkData>>) {
-  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props
+  const { id, sourcePosition, targetPosition, data } = props
+  const sourceX = data?.from.x ?? props.sourceX
+  const sourceY = data?.from.y ?? props.sourceY
+  const targetX = data?.to.x ?? props.targetX
+  const targetY = data?.to.y ?? props.targetY
   let path: string
   if (data?.back) {
     const y = Math.max(sourceY, targetY) + CARD_H / 2 + 24
@@ -107,10 +115,9 @@ const edgeTypes = { link: LinkView }
 /** 小地圖尺寸與邊距（右下角） */
 const MINI = { w: 160, h: 100, edge: 15 } as const
 const PAD = 24
-/** 自動縮放（載入、新增節點、接線）：下限 70%（窄畫布固定 85%），上限 80%；只有「看全圖」可以更小 */
-const AUTO_MIN = 0.7
-const AUTO_MAX = 0.8
-const NARROW_ZOOM = 0.85
+/** 自動縮放（載入、新增節點、接線）規則見 graph/card.ts pickZoom：75%～100%，手機最高 125%；只有「看全圖」可以更小 */
+const AUTO_MIN = 0.75
+const FIT_MAX = 0.8
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 1.5
 /** 縮放低於這個值要警告（文字偏小） */
@@ -158,7 +165,8 @@ const boxOf = (wrap: Wrap) => wrap.current?.querySelector<HTMLElement>('.react-f
 const apply = (rf: Rf, x: number, y: number, zoom: number) => void Promise.resolve(rf.setViewport({ x, y, zoom })).catch(() => undefined)
 
 /**
- * 自動縮放（F-31）：可讀優先。縮放不低於下限；圖放得進畫布就置中，放不進就從最左（開始）節點起靠左、頂端對齊，左右捲動或拖曳。
+ * 自動縮放（F-31、node-card-unify）：整張放得下就 100% 置中；放不下就從最左（開始）節點起靠左，
+ * 縮放取 75%～100% 中右緣不切在卡片文字中間的最大值（pickZoom）。手機（窄畫布）圖太高時，捲到「開始」那一列置中。
  * 自己用節點座標與容器大小算 viewport，不靠 fitView（fitView 在節點剛新增時用舊量測值，F-19）。
  */
 function place(rf: Rf, wrap: Wrap, positions: Positions) {
@@ -169,9 +177,16 @@ function place(rf: Rf, wrap: Wrap, positions: Positions) {
   if (!w || !h || !b) return
   const availW = Math.max(1, w - PAD * 2)
   const availH = Math.max(1, h - PAD - ZOOMBAR_BAND)
-  const zoom = w <= NARROW_W ? NARROW_ZOOM : Math.max(AUTO_MIN, Math.min(AUTO_MAX, availW / b.bw, availH / b.bh))
-  const x = b.bw * zoom <= availW ? PAD + (availW - b.bw * zoom) / 2 - b.minX * zoom : PAD - b.minX * zoom
-  const y = b.bh * zoom <= availH ? PAD + (availH - b.bh * zoom) / 2 - b.minY * zoom : PAD - b.minY * zoom
+  const xs = Object.values(positions()).map((p) => p.x)
+  const zoom = pickZoom(availW, b.bw, (z) => b.minX + (w - PAD) / z, xs)
+  const x = b.bw * zoom <= availW ? (w - b.bw * zoom) / 2 - b.minX * zoom : PAD - b.minX * zoom
+  let y = b.bh * zoom <= availH ? PAD + (availH - b.bh * zoom) / 2 - b.minY * zoom : PAD - b.minY * zoom
+  if (w <= NARROW_W && b.bh * zoom > availH) {
+    // 主幹列＝最左邊（開始）那張卡所在的列
+    const start = Object.values(positions()).reduce((a, p) => (p.x < a.x ? p : a))
+    const centered = h / 2 - (start.y + CARD_H / 2) * zoom
+    y = Math.min(PAD - b.minY * zoom, Math.max(h - PAD - (b.minY + b.bh) * zoom, centered))
+  }
   apply(rf, x, y, zoom)
 }
 
@@ -184,7 +199,7 @@ function fitAll(rf: Rf, wrap: Wrap, positions: Positions) {
   if (!w || !h || !b) return
   const availW = Math.max(1, w - PAD * 2)
   const availH = Math.max(1, h - ZOOMBAR_BAND * 2)
-  const zoom = Math.max(MIN_ZOOM, Math.min(AUTO_MAX, availW / b.bw, availH / b.bh))
+  const zoom = Math.max(MIN_ZOOM, Math.min(FIT_MAX, availW / b.bw, availH / b.bh))
   apply(rf, PAD + (availW - b.bw * zoom) / 2 - b.minX * zoom, ZOOMBAR_BAND + (availH - b.bh * zoom) / 2 - b.minY * zoom, zoom)
 }
 
@@ -283,6 +298,14 @@ function MiniGate({ size, positions, panelW }: { size: Size; positions: Position
     if (l >= -0.5 && t >= -0.5 && l + b.bw * zoom <= seen + 0.5 && t + b.bh * zoom <= size.h + 0.5) return null
   }
   return <MiniMap aria-hidden="true" style={{ width: MINI.w, height: MINI.h, margin: MINI.edge }} pannable zoomable nodeStrokeWidth={2} nodeColor={MINI_FILL} nodeStrokeColor={MINI_STROKE} />
+}
+
+/** 右緣 48px 漸層：還有節點在畫面右緣之外才顯示（整張放得下、捲到底就消失） */
+function RightFade({ size, positions }: { size: Size; positions: Positions }) {
+  const [x, , zoom] = useStore((s) => s.transform)
+  const b = bounds(positions)
+  const more = !!b && size.w > 0 && x + (b.minX + b.bw) * zoom > size.w + 0.5
+  return <div className="cvfade" hidden={!more} aria-hidden="true" />
 }
 
 function ZoomBar({ wrap, positions, size }: { wrap: Wrap; positions: Positions; size: Size }) {
@@ -407,7 +430,12 @@ export function Canvas({
           type: 'link',
           selectable: false,
           focusable: false,
-          data: { back: !!a && !!b && b.x <= a.x, label },
+          data: {
+            back: !!a && !!b && b.x <= a.x,
+            label,
+            from: { x: (a?.x ?? 0) + CARD_W, y: (a?.y ?? 0) + CARD_H / 2 },
+            to: { x: b?.x ?? 0, y: (b?.y ?? 0) + CARD_H / 2 },
+          },
         })
       }
     }
@@ -440,6 +468,7 @@ export function Canvas({
         >
           <MiniGate size={size} positions={positions} panelW={panelOpen ? PANEL_FALLBACK_W : 0} />
         </ReactFlow>
+        <RightFade size={size} positions={positions} />
         <ZoomBar wrap={wrap} positions={positions} size={size} />
         <FitOnChange signature={signature} wrap={wrap} positions={positions} />
         <RevealSelected selectedId={selectedId} panelOpen={panelOpen} wrap={wrap} positions={positions} onMoved={setMoved} />

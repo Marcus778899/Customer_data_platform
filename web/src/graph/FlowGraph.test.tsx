@@ -2,7 +2,8 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { FlowGraph } from './FlowGraph'
-import { NODE_H, NODE_W, type GraphModel, type NodeState } from './model'
+import { CARD_H, CARD_H_STAT, CARD_W } from './card'
+import { type GraphModel, type NodeState } from './model'
 
 afterEach(cleanup)
 beforeAll(() => {
@@ -21,8 +22,9 @@ const model = (state: NodeState): GraphModel => ({
     },
   ],
   edges: [],
-  width: NODE_W + 32,
-  height: NODE_H + 32,
+  width: CARD_W + 32,
+  height: CARD_H + 32,
+  cardH: CARD_H,
   textOrder: ['n1'],
 })
 
@@ -45,7 +47,6 @@ describe.each([
   })
 })
 
-it('尺寸常數與排版', () => {
-  expect(NODE_W).toBeGreaterThan(0)
-  expect(NODE_H).toBeGreaterThan(0)
+it('尺寸常數：三處同一組（寬 200、高 120／144）', () => {
+  expect([CARD_W, CARD_H, CARD_H_STAT]).toEqual([200, 120, 144])
 })
