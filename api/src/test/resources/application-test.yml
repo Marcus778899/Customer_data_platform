@@ -50,6 +50,7 @@ cdp:
   security:
     ingest-api-key: test-ingest-key-0000000000000000000000
     admin-api-key: test-admin-key-00000000000000000000000
+    trusted-proxies: "-"
   # 登入限速：門檻放寬，免得共用 email 的測試互相鎖住；限速驗收自己覆蓋
   login:
     max-failures: 50
