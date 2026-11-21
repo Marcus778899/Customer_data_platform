@@ -1,6 +1,6 @@
 # 契約：旅程管理、版本與畫布（v1）
 
-<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md（v0.2.0）、DESIGN-05.md（v0.3.0）；定義格式正本見 spec 03；業務規則見 docs/domain/rules.md。§2 屬第一版（v0.2.0），§3～§5 屬第二版（v0.3.0，D-055） -->
+<!-- 前後端唯一的真相。設計取捨見 docs/design/DESIGN-03.md（v0.2.0）、DESIGN-05.md（v0.3.0）、journey-delete.md（§3.6）；定義格式正本見 spec 03；業務規則見 docs/domain/rules.md。§2 屬第一版（v0.2.0），§3～§5 屬第二版（v0.3.0，D-055） -->
 
 - 通用規則：`journey-engine.md` §1、§5；憑證與角色：`auth.md` §1、§2
 - 旅程（journey）有一個生命週期狀態；版本（version）發佈後不可變（spec 03 §1）。Enrollment 綁定建立當下的最新版本，之後發佈新版不影響（spec 02 §2）
@@ -77,13 +77,15 @@
 | POST | `/api/v1/journeys/drafts` | `{ "name" }` | `201` `{ "journey_id", "status": "DRAFT", "revision": 1 }`；草稿內容為只有 `StartNode` 的骨架 | `400` |
 | GET | `/api/v1/journeys/{journey_id}/draft` | — | `200` `Draft` | `404` `JOURNEY_NOT_FOUND`／`DRAFT_NOT_FOUND` |
 | PUT | `/api/v1/journeys/{journey_id}/draft` | `{ "revision", "definition", "layout" }` | `200` `Draft`（`revision` +1）；沒有草稿時以最新版本為底建立（`revision` 帶 `0`） | `400`（只驗結構：`definition` 是物件、`nodes` 是陣列、≤ 200 個節點、整包 ≤ 256 KB）、`404`、`409` `DRAFT_CONFLICT`（`revision` 不是目前值）、`409` `DRAFT_IN_REVIEW`（送審中，§3.2）、`409` `JOURNEY_ABORTED` |
-| DELETE | `/api/v1/journeys/{journey_id}/draft` | — | `204`（沒有也 `204`）；`DRAFT` 狀態的旅程不可刪草稿 → `409` `DRAFT_REQUIRED`；送審中 → `409` `DRAFT_IN_REVIEW` | `404` |
+| DELETE | `/api/v1/journeys/{journey_id}/draft` | — | `204`（沒有也 `204`）；`DRAFT` 狀態的旅程不可刪草稿 → `409` `DRAFT_REQUIRED`（要刪除整個未發佈的旅程用 §3.6）；送審中 → `409` `DRAFT_IN_REVIEW` | `404` |
 | POST | `/api/v1/journeys/{journey_id}/draft/validate` | — | `200` `ValidationReport`（不改資料） | `404` |
+| DELETE | `/api/v1/journeys/{journey_id}` | — | `204`；刪除從未發佈的旅程（§3.6） | `404` `JOURNEY_NOT_FOUND`（不存在或已刪除）、`409` `JOURNEY_PUBLISHED`（`status` 不是 `DRAFT`）、`409` `DRAFT_IN_REVIEW`（送審中，先撤回） |
 
 - 角色：寫入見 `auth.md` §2；讀取（`GET` 草稿、`/reviews`、§4 `field-keys`、§5 `node-stats`）同 §2 唯讀（`VIEWER` 以上）
 - 新草稿的骨架：`definition` = `{ "name": <請求的 name>, "description": null, "settings": {}, "entry_node": "start", "nodes": [ { "id": "start", "type": "StartNode", "name": null, "config": {}, "outputs": {} } ] }`、`layout` = `null`、`revision` = 1；骨架本身 `validate` 不通過（缺 Source），可照常存檔
 - 節點 `id` 由前端產生：旅程內唯一、符合 `^[a-z][a-z0-9_]*$`（spec 03 §4 的 snake_case）、≤ 64 字；不合 = `validate` 錯誤，存檔不擋；送審後 `id` 隨版本固定，§5 統計與軌跡都以它對應
 - 沒有直接發佈的 API：經 §3.2 送審、核准
+- 存檔時機（手動、自動、送審前先存）由前端決定，契約不變：每次 `PUT` 帶目前的 `revision`，別人已存過 → `409` `DRAFT_CONFLICT`（重新載入；可先 `GET` 草稿取 `updated_by`）；送審的 `revision` 用剛才 `PUT` 回傳的值；旅程已被刪除（§3.6）→ `404` `JOURNEY_NOT_FOUND`
 - `Draft`：`journey_id`、`revision` int、`definition`（`name` `description` `settings` `entry_node` `nodes`，同 `JourneyVersion` 去掉 `version` `published_at`）、`layout`、`updated_at`、`updated_by`（`UserRef`；草稿寫入只收 session，見 `auth.md` §2）、`latest_review`（`Review` \| null：這份草稿最新一筆審核紀錄，「這份草稿的審核」定義見下；`status` = `PENDING` 時草稿鎖定）
 - 這份草稿的審核：草稿建立（`POST /journeys/drafts`，或 `PUT` 在沒有草稿時建立）之後送審的 `Review`；§3.3 第 3 列的金鑰紀錄不算。草稿被 `DELETE` 或核准清除後，之前的審核不再屬於任何草稿：再建立的新草稿 `latest_review` 為 `null`、§1 `review_status`／`latest_review` 為 `null`，直到它自己送審
 - `ValidationReport`：`valid` bool、`errors` `Issue[]`、`warnings` `Issue[]`；規則 = spec 03 §6 中本版支援者（§4）＋ journey-engine §3.1 規則（「無迴圈」改為 spec 03 §6 規則 7）
@@ -132,8 +134,16 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 
 ### §3.5 停止 `POST /api/v1/journeys/{journey_id}/stop`
 
-- Request：`{ "reason" }`（1–200 字）；成功 `200` `JourneyDetail`（`status` = `ABORTED`、`stopped_by` = 呼叫者）；已停止再停 → `200`（不改原因）；`DRAFT` → `409` `JOURNEY_NOT_PUBLISHED`；是否需審核見 §3.3 第 2 列
+- Request：`{ "reason" }`（1–200 字）；成功 `200` `JourneyDetail`（`status` = `ABORTED`、`stopped_by` = 呼叫者）；已停止再停 → `200`（不改原因）；`DRAFT` → `409` `JOURNEY_NOT_PUBLISHED`（要移除未發佈的旅程用 §3.6 刪除）；是否需審核見 §3.3 第 2 列
 - 效果（spec 05 §5 旅程層）：立即不再接受新進入；未推送的發送與已推送未送出的發送都取消（`DeliveryStatus` = `CANCELLED`、`cancel_reason` = `JOURNEY_STOPPED`），每則在該 Enrollment 的發送紀錄（`journey-engine.md` §4 `delivery_history`、`/deliveries`）留一筆，含停止前已走完、訊息仍待送的 Enrollment；進行中的 Enrollment 由背景轉 `ABORTED`（`termination_reason` 含停止原因），完成時間取決於數量，不同步等待；不可恢復
+
+### §3.6 刪除旅程 `DELETE /api/v1/journeys/{journey_id}`（#276）
+
+- 只限從未發佈（`status` = `DRAFT`）的旅程；已發佈過的（`ACTIVE`／`ABORTED`）不可刪，只能捨棄草稿（§3）、停止（§3.5）。角色見 `auth.md` §2（`EDITOR` 以上、只收 session；不限建立者）；不經審核
+- 檢查順序（同一交易、先鎖旅程列）：不存在或已刪除 → `404` `JOURNEY_NOT_FOUND`；`status` ≠ `DRAFT` → `409` `JOURNEY_PUBLISHED`；有 `PENDING` 審核 → `409` `DRAFT_IN_REVIEW`（被退回、已撤回的審核不擋）
+- 效果：旅程連同草稿與畫布座標從此不可見：列表（含 `?review_status=`）不再出現；`GET` 旅程、草稿、`/reviews` 與其他 `/journeys/{journey_id}/…` 端點（含寫入、journey-engine §3.1 帶此 `journey_id`）一律 `404`（審核動作 `REVIEW_NOT_FOUND`，其餘 `JOURNEY_NOT_FOUND`）；再刪一次也是 `404`。沒有復原 API
+- 紀錄：後端記下刪除者與時間（不在 API 回應中）；既有審核紀錄保留不刪（§3.2「不可修改或刪除」），只是不再能經 API 讀到；不新增 `Review`（`action` 仍只有 `PUBLISH`）
+- 併發：與草稿存檔、送審、核准、§3.1 同步、停止都以同一旅程列的鎖排隊，後到者看到前者的結果（例：先刪後存草稿 → `404`；先送審後刪 → `409` `DRAFT_IN_REVIEW`；金鑰先建立版本後刪 → `409` `JOURNEY_PUBLISHED`）；刪除不帶 `revision`，別人剛存的草稿一併刪除
 
 ## §4 第二版支援的節點與條件
 
@@ -162,6 +172,38 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
 - 條件欄位建議清單 `GET /api/v1/journeys/field-keys?event_name=<名稱>`（選填；角色同 §2）→ `200` `{ "profile_attributes": string[], "event_properties": string[], "as_of" }`：`profile_attributes` = 任取 1000 位客戶的 `attributes` 鍵聯集；`event_properties` = 帶 `event_name` 時該事件最近 1000 筆 `properties` 的鍵聯集（`ix_event_name_time`），未帶為 `[]`；皆字母序。只是建議、不保證完整：前端仍允許手動輸入符合 `^[a-z][a-z0-9_]*$` 的鍵；`event_properties` 的鍵在 `event_filter` 寫成 `properties.<鍵>`、在條件節點寫成 `trigger.properties.<鍵>`（見上「條件欄位的根」）；正式欄位字典屬 spec 06（未排期）
 - 迴圈：允許，但每個強連通分量須含 `WaitDelayNode` 或 `WaitForEventNode`（spec 03 §6 規則 7）
 - `EnrollmentStatus` 本版會出現 `GOAL_MET` `EXITED` `ABORTED`；`TraceEntry.out_port` 會出現各節點的出口名
+
+### §4.1 比較語意的測試向量（前後端共用）
+
+上方「比較語意」的範例，引擎（`ConditionEvaluator`）與前端條件試算（只在瀏覽器判斷、不呼叫 API）都要得到同一結果；單一葉節點，`actual` 為欄位實際的 JSON 值，「—」= 欄位不存在。試算的樣本輸入怎麼轉成 JSON 型別由前端決定（同上「前端依欄位與比較推斷」），本表只定轉換後的判斷。
+
+| # | `actual` | `operator` | `value` | 結果 | 說明 |
+|---|---|---|---|---|---|
+| 1 | `600` | `GT` | `500` | 成立 | |
+| 2 | `500` | `GT` | `500` | 不成立 | 剛好等於不算大於 |
+| 3 | `500` | `GTE` | `500` | 成立 | |
+| 4 | `400` | `LT` | `500` | 成立 | |
+| 5 | `500.0` | `EQ` | `500` | 成立 | 數字依數值比較 |
+| 6 | `"600"` | `GT` | `500` | 不成立 | 字串不比大小 |
+| 7 | `600` | `GT` | `"500"` | 不成立 | 同上 |
+| 8 | `"500"` | `EQ` | `500` | 不成立 | 型別不同即不相等 |
+| 9 | `"500"` | `NEQ` | `500` | 成立 | 同上 |
+| 10 | `"Gold"` | `EQ` | `"gold"` | 不成立 | 分大小寫、不去空白 |
+| 11 | `"gold"` | `IN` | `["gold", "vip"]` | 成立 | |
+| 12 | `500` | `IN` | `["500"]` | 不成立 | 逐項依 `EQ` 規則 |
+| 13 | `"silver"` | `NOT_IN` | `["gold", "vip"]` | 成立 | |
+| 14 | `"hello world"` | `CONTAINS` | `"world"` | 成立 | 字串包含，分大小寫 |
+| 15 | `["a", "b"]` | `CONTAINS` | `"a"` | 成立 | 陣列含此值 |
+| 16 | `600` | `CONTAINS` | `"6"` | 不成立 | 數字不做包含 |
+| 17 | `true` | `EQ` | `"true"` | 不成立 | 布林與字串不同 |
+| 18 | — | `IS_NULL` | — | 成立 | |
+| 19 | `null` | `IS_NULL` | — | 成立 | |
+| 20 | `""` | `IS_NULL` | — | 不成立 | 空字串不是空值 |
+| 21 | — | `IS_NOT_NULL` | — | 不成立 | |
+| 22 | — | `NEQ` | `"gold"` | 不成立 | 缺值時只有 `IS_NULL` 成立 |
+| 23 | — | `NOT_IN` | `["gold"]` | 不成立 | 同上 |
+| 24 | — | `GT` | `500` | 不成立 | 同上 |
+| 25 | — | `NOT` 群組包 `EQ` | `"gold"` | 成立 | 內層不成立，`NOT` 翻成成立（與 #22 不同） |
 
 ## §5 節點統計（第二版） `GET /api/v1/journeys/{journey_id}/versions/{version}/node-stats`
 
@@ -214,6 +256,8 @@ journey-engine §3.1 `POST /api/v1/journeys` 第二版仍可用（金鑰、demo-
   "updated_at": "2026-11-02T02:50:00Z", "updated_by": { "user_id": "01JD0USER0000000000000001", "display_name": "營運小組" },
   "latest_review": null }
 ```
+
+`DELETE /api/v1/journeys/01JCXYZJOURNEY0000000001`（`status` = `ACTIVE`）→ `409` `JOURNEY_PUBLISHED`
 
 `POST /api/v1/journeys/01JCXYZJOURNEY0000000001/draft/validate` → `200`
 

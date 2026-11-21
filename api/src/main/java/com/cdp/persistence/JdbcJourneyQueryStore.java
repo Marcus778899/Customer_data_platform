@@ -51,7 +51,8 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
                     + " and (j.draft_created_at is null or r.submitted_at >= j.draft_created_at)"
                     + " order by (r.status = 'PENDING') desc, r.submitted_at desc, r.seq desc limit 1) lr on true"
                     + " left join app_user sb on sb.user_id = lr.submitted_by"
-                    + " left join app_user db on db.user_id = lr.decided_by";
+                    + " left join app_user db on db.user_id = lr.decided_by"
+                    + " where j.deleted_at is null";
 
     private final JdbcClient jdbc;
 
@@ -95,7 +96,7 @@ public class JdbcJourneyQueryStore implements JourneyQueryStore {
     @Override
     public Optional<JourneyDetail> detail(String journeyId) {
         Optional<JourneyDetail> found =
-                jdbc.sql(BASE + " where j.journey_id = :id")
+                jdbc.sql(BASE + " and j.journey_id = :id")
                         .param("id", journeyId)
                         .query((rs, n) -> detailRow(rs))
                         .optional();
