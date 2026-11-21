@@ -31,6 +31,9 @@
 <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
 <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.31"/><path d="M14 9.3V2"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/></symbol>
 <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
 </defs></svg>
 
@@ -62,7 +65,7 @@
         <div class="sizer" id="sizer"></div>
         <div class="world" id="world"><svg class="es" id="es"></svg><div id="elabs"></div></div>
         <div class="zbar" role="group" aria-label="縮放"><button type="button" id="zout" aria-label="縮小"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button><span id="zp">75%</span><button type="button" id="zin" aria-label="放大"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button><button type="button" class="fit" id="zfit"><svg class="ico" aria-hidden="true"><use href="#i-fit"/></svg>看全圖</button></div>
-        <div class="coach" id="coach"><svg class="ico" aria-hidden="true" style="margin-top:2px"><use href="#i-info"/></svg><span>從節點右邊的圓點按住、拉到下一個節點就連好了。連錯了？點那條線，按「移除連線」。</span><button type="button" id="coachx">知道了</button></div>
+        <div class="coach" id="coach"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span>從節點右邊的圓點按住、拉到下一個節點就連好了。連錯了？點那條線，按「移除連線」。</span><button type="button" id="coachx">知道了</button></div>
       </div>
       <aside class="insp" id="side" aria-label="節點設定" hidden></aside>
       <div class="dropmsg">放開就新增在這裡</div>
@@ -71,12 +74,7 @@
   </div>
   <p class="muted" id="toast" aria-hidden="true" style="min-height:1.6em;margin:var(--space-2) 0 0"></p>
   <h3 style="margin-top:var(--space-5);font-size:var(--text-md)">連接點的狀態</h3>
-  <div class="hs" aria-label="連接點狀態圖例">
-    <figure><div class="dot"><span class="hd out"></span></div>平常：藍色實心圓點（選取或游標移上節點才出現，鍵盤聚焦也會出現）</figure>
-    <figure><div class="dot"><span class="hd out free"></span></div>還沒接下一步：橘色虛線圓點，游標移上顯示「拉線接下一步」</figure>
-    <figure><div class="dot"><span class="hd out" style="--handle:22px"></span></div>游標移上：放大，游標變十字</figure>
-    <figure><div class="dot" style="border-right-color:var(--color-success-fg);box-shadow:0 0 0 4px var(--color-success-fg)"></div>拉線中，游標在可接的節點上：綠色外框；自己或「進入條件」變淡、不能接</figure>
-  </div>
+  <div class="hs" id="hs" aria-label="連接點狀態圖例"></div>
   <dl class="keys">
     <dt>不用滑鼠（鍵盤與讀屏）</dt>
     <dd>Tab 到節點庫的項目按 <kbd>Enter</kbd> 新增；Tab 到節點按 <kbd>Enter</kbd> 開面板，用「下一步」下拉選接誰、選「（還沒接）」就是移除連線；節點上的出口圓點也能 Tab 聚焦（<kbd>Enter</kbd> 會把焦點移到面板的下一步下拉）；節點選取後按 <kbd>Delete</kbd> 刪除節點。</dd>
@@ -88,20 +86,29 @@
 <!-- ============ 2 ============ -->
 <section class="sec" id="nc">
   <h2>2 統一節點卡：編輯、旅程頁、軌跡同一張卡<span class="id">nc-spec</span></h2>
-  <p class="lead">舊的唯讀卡是 148×72，裡面三到四行字加上下留白超過 72px，被 overflow 裁掉（左）。新的卡寬都是 200px，字級一致，高度只看有沒有「統計／狀態列」：沒有 112px，有 136px。</p>
+  <p class="lead">舊的唯讀卡是 148×72，裡面三到四行字加上下留白超過 72px，被 overflow 裁掉。新的卡寬都是 200px，三處字級一致：名稱 20px 粗體（最多兩行）、類別 16px 灰字、摘要 16px 正文色，用字級與顏色拉開三行。高度只看有沒有「統計／狀態列」：沒有 120px，有 144px，名稱兩行也放得下。</p>
+  <h3 class="subh first">舊卡與新卡<small>舊卡被裁；新卡在編輯、旅程頁、軌跡三處同一張</small></h3>
   <div class="three">
-    <figure><div class="stack" id="f-old" style="flex-direction:row;flex-wrap:wrap"></div><figcaption><b>舊：148×72，字被裁</b>旅程頁、軌跡圖現況（issue #276 第 2 項）</figcaption></figure>
-    <figure><div class="stack" id="f-edit"></div><figcaption><b>編輯畫布：200×112</b>類別、名稱、摘要三行</figcaption></figure>
-    <figure><div class="stack" id="f-view"></div><figcaption><b>旅程頁：200×136</b>多一行「人數｜目前」</figcaption></figure>
-    <figure><div class="stack" id="f-trace"></div><figcaption><b>軌跡圖：200×136</b>多一行狀態（目前在此、已走過、還沒走到）</figcaption></figure>
-    <figure><div class="stack" id="f-names"></div><figcaption><b>長名稱</b>名稱最多兩行，再長尾端「…」，游標移上顯示全名；摘要一行，值寫在前面不被截掉</figcaption></figure>
+    <figure><div id="f-old1"></div><figcaption><b>舊：148×72，人數列被裁</b>旅程頁現況（issue #276 第 2 項）</figcaption></figure>
+    <figure><div id="f-old2"></div><figcaption><b>舊：長名稱與副標被裁</b>軌跡圖「查看流程圖」現況</figcaption></figure>
+    <figure><div id="f-edit"></div><figcaption><b>新・編輯畫布：200×120</b>類別、名稱、摘要三行</figcaption></figure>
+    <figure><div id="f-view"></div><figcaption><b>新・旅程頁：200×144</b>多一行「人數｜目前」，數字等寬</figcaption></figure>
+    <figure><div id="f-entry"></div><figcaption><b>新・進入條件</b>摘要把比較與值寫在前面，截斷時值不會被切掉</figcaption></figure>
+  </div>
+  <h3 class="subh">軌跡狀態與極端內容<small>同尺寸，只換邊框與狀態列</small></h3>
+  <div class="three">
+    <figure><div id="f-cur"></div><figcaption><b>軌跡・目前在此</b>3px 橘框、淡橘底</figcaption></figure>
+    <figure><div id="f-vis"></div><figcaption><b>軌跡・已走過</b>2px 綠框</figcaption></figure>
+    <figure><div id="f-unv"></div><figcaption><b>軌跡・還沒走到</b>灰色虛線框</figcaption></figure>
+    <figure><div id="f-long"></div><figcaption><b>長名稱</b>名稱最多兩行，再長尾端「…」，游標移上顯示全名</figcaption></figure>
+    <figure><div id="f-mid"></div><figcaption><b>中英混排</b>兩行剛好放得下，不截</figcaption></figure>
   </div>
   <div class="scroll"><table class="spec">
     <thead><tr><th>項目</th><th>規格（邏輯 px，三處相同）</th></tr></thead>
     <tbody>
-      <tr><td>卡片尺寸</td><td>寬 200；高 112（無統計／狀態列）或 136（有）。同一張圖內不混用（旅程頁與軌跡整張 136）；dagre 排版用同一組常數</td></tr>
-      <tr><td>字級</td><td>名稱 17px／600／行高 1.25；類別、摘要、人數、狀態 16px／行高 1.3；人數數字用等寬字、加粗</td></tr>
-      <tr><td>縮放下限</td><td>75%（舊 70%）：名稱實際 12.75px、其他 12px，達到「實際 ≥ 12px」；編輯、旅程頁、軌跡共用同一下限</td></tr>
+      <tr><td>卡片尺寸</td><td>寬 200；高 120（無統計／狀態列）或 144（有）。同一張圖內不混用（旅程頁與軌跡整張 144）；dagre 排版用同一組常數；欄距 72（欄寬 272）</td></tr>
+      <tr><td>字級</td><td>名稱 <code>--text-lg</code> 20px／600／行高 1.25；類別 <code>--text-md</code> 16px 灰字（<code>--color-text-muted</code>）；摘要、人數、狀態 16px 正文色／行高 1.3；人數數字等寬、加粗；連線標籤 16px／600</td></tr>
+      <tr><td>縮放</td><td>下限 75%（舊 70%）：名稱實際 15px、其他 12px，達到「實際 ≥ 12px」。初始縮放三處同一條規則：整張放得下就 100%（置中）；放不下就縮到放得下，但不低於 75%；唯讀圖再微調讓右緣只露出下一張卡的色條，不切到卡片文字</td></tr>
       <tr><td>截斷</td><td>名稱 2 行後「…」＋ <code>title</code>；摘要 1 行「…」；事件篩選摘要寫成「大於 500・購物車金額」（比較與值在前），2 項以上「符合 N 項條件」</td></tr>
       <tr><td>內距</td><td>上下 10、右 12、左 14（外加 6px 類別色條）；行距 3</td></tr>
     </tbody></table></div>
@@ -110,8 +117,12 @@
 <!-- ============ 3 ============ -->
 <section class="sec" id="ro-sec">
   <h2>3 旅程頁節點圖：1440 寬看得到全部、看得出還有後面<span class="id">ro-view</span></h2>
-  <p class="lead">8 個節點、寬約 1.9k px。預設 75% 從「開始」靠左；右緣有漸層與「還有節點在右邊」提示，可拖曳、捲動或按「看全圖」（縮到能整張放進，低於 70% 時比例變警告色）。和編輯畫布同一組縮放列。到最右邊提示自動消失。</p>
-  <div class="ro" id="ro" tabindex="-1" aria-label="旅程節點圖示意"></div>
+  <p class="lead">8 個節點、7 欄。下面的外框就是 1440 寬螢幕上真實的內容寬（1440 − 側欄 232 − 左右內距 48 = 1160）。預設縮放挑 75%～100% 之間最大、讓右緣只露出下一張卡色條（6～14px）的值：前面的卡完整，不會切在卡片文字中間；露出的色條加 48px 漸層，讀起來是「還有」而不是破圖，提示放在縮放列同一排右邊，不蓋在圖上。拖曳、捲動或按「看全圖」可看到全部節點；捲到底提示改成「已看到全部節點」。</p>
+  <div class="roframe">
+    <p class="framecap"><span>旅程頁內容區・實際寬 <b id="rowidth">1160</b>px</span><span>預設縮放 <b id="rozoom">—</b></span></p>
+    <div class="robar" id="robar"></div>
+    <div class="ro" id="ro" tabindex="-1" aria-label="旅程節點圖示意"></div>
+  </div>
   <div class="legend"><span>卡片：進入條件 → 等待 → 條件 →（是）訊息／（否）等事件 → 合流 → 達標 → 結束</span></div>
 </section>
 
@@ -141,12 +152,12 @@
   <h2>5 旅程頁標頭：不適用的不顯示，原因只說一次<span class="id">jh-header</span></h2>
   <p class="lead">舊版把「捨棄草稿」「停止旅程」停用鈕全留著，每顆下面各附一句原因，句子把按鈕撐高、字跑出按鈕群組。新版：因旅程狀態不適用的動作直接不出現（未發佈的旅程本來就不能停止、不能捨棄草稿）；因角色或送審鎖定而暫時不能做的動作保留停用，原因整個標頭只寫一行，放在標題列下方、靠左、不在按鈕裡。次要導覽（節點圖、旅程進度、審核紀錄）改成分頁列，動作區只剩 1～2 顆主要按鈕加「⋯ 更多」。</p>
   <p class="var">A　草稿（從未發佈）、編輯者，1580 寬；已展開「⋯」</p>
-  <div class="jhx" style="padding-bottom:0;min-height:300px">
+  <div class="jhx" style="padding-bottom:0;min-height:208px">
     <p class="crumb"><a href="#jh">旅程</a> / 生日禮提醒（2026 秋季檔期）</p>
-    <div class="top">
+    <div class="jh-top">
       <div class="ttl"><h1>生日禮提醒（2026 秋季檔期）</h1><div class="meta"><span class="badge b-neutral">草稿</span><span>尚未發佈</span><span>最後更新 今天 10:20・王大明</span></div></div>
       <div class="acts">
-        <a class="btn" href="#jh"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg>編輯草稿</a>
+        <a class="btn" href="#jh"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>編輯草稿</a>
         <button class="btn secondary" type="button">送審</button>
         <button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button>
         <div class="pm" role="menu"><button class="it danger" role="menuitem" type="button"><span class="l"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</span><small>刪掉整個旅程，無法復原</small></button></div>
@@ -157,11 +168,11 @@
   <p class="var">B　草稿送審中（送審者本人）：鎖定原因只說一次</p>
   <div class="jhx">
     <p class="crumb"><a href="#jh">旅程</a> / 生日禮提醒（2026 秋季檔期）</p>
-    <div class="top">
+    <div class="jh-top">
       <div class="ttl"><h1>生日禮提醒（2026 秋季檔期）</h1><div class="meta"><span class="badge b-warning">審核中</span><span>尚未發佈</span><span>你在 2 天前送審</span></div></div>
       <div class="acts">
         <button class="btn" type="button">撤回送審</button>
-        <button class="btn secondary" type="button" aria-disabled="true" aria-describedby="why-b" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong);cursor:not-allowed">編輯草稿</button>
+        <button class="btn secondary" type="button" aria-disabled="true" aria-describedby="why-b" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong);cursor:not-allowed"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>編輯草稿</button>
         <button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button>
       </div>
     </div>
@@ -171,9 +182,9 @@
   <p class="var">C　進行中、檢視者：唯一的停用動作，原因一行</p>
   <div class="jhx">
     <p class="crumb"><a href="#jh">旅程</a> / 棄單挽回</p>
-    <div class="top">
+    <div class="jh-top">
       <div class="ttl"><h1>棄單挽回</h1><div class="meta"><span class="badge b-success">進行中</span><span>v3</span><span>最後更新 今天 09:41</span></div></div>
-      <div class="acts"><button class="btn secondary" type="button" aria-disabled="true" aria-describedby="why-c" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong);cursor:not-allowed">編輯</button></div>
+      <div class="acts"><button class="btn secondary" type="button" aria-disabled="true" aria-describedby="why-c" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong);cursor:not-allowed"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>編輯</button></div>
     </div>
     <p class="why" id="why-c"><svg class="ico" aria-hidden="true" style="margin-top:2px"><use href="#i-info"/></svg>你的角色是檢視者，只能查看。要編輯或停止旅程，請聯絡編輯者或管理員。</p>
     <div class="tabs" role="navigation" aria-label="旅程頁分頁"><a href="#jh" aria-current="page">節點圖</a><a href="#jh">旅程進度</a><a href="#jh">審核紀錄</a></div>
@@ -181,9 +192,9 @@
   <p class="var">D　375 寬（草稿、編輯者）：主要按鈕與「⋯」同一列，標題換行</p>
   <div class="w375"><div class="jhx">
     <p class="crumb"><a href="#jh">旅程</a> / 生日禮提醒…</p>
-    <div class="top">
+    <div class="jh-top">
       <div class="ttl"><h1>生日禮提醒（2026 秋季檔期）</h1><div class="meta"><span class="badge b-neutral">草稿</span><span>尚未發佈</span><span>今天 10:20 更新</span></div></div>
-      <div class="acts"><a class="btn" href="#jh">編輯草稿</a><button class="btn secondary" type="button">送審</button><button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+      <div class="acts"><a class="btn" href="#jh"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>編輯草稿</a><button class="btn secondary" type="button">送審</button><button class="btn secondary icon" type="button" aria-label="更多動作" aria-haspopup="menu" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button></div>
     </div>
     <div class="tabs" role="navigation" aria-label="旅程頁分頁"><a href="#jh" aria-current="page">節點圖</a><a href="#jh">旅程進度</a><a href="#jh">審核紀錄</a></div>
   </div></div>
@@ -193,15 +204,19 @@
 <section class="sec" id="sv">
   <h2>6 儲存：手動儲存、儲存狀態、離開提醒<span class="id">sv-save</span></h2>
   <p class="lead">改成手動儲存（不再靜默自動存）：編輯頁標頭右側固定一顆「儲存草稿」與一個狀態字，快速鍵 Ctrl／Cmd＋S。狀態一律圖示加文字，不只靠顏色。有未儲存的變更時，點返回、麵包屑、側欄連結都先跳「要儲存嗎？」；關閉分頁、重新整理用瀏覽器內建提醒（文字無法自訂）。</p>
-  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>已儲存（10:42）</span><button class="btn secondary" type="button" aria-disabled="true">儲存草稿</button></div>
-  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv dirty"><span class="dot" aria-hidden="true"></span>有未儲存的變更</span><button class="btn" type="button">儲存草稿<kbd style="color:var(--color-text)">Ctrl S</kbd></button></div>
-  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv busy" role="status"><span class="spin" aria-hidden="true"></span>儲存中…</span><button class="btn" type="button" aria-disabled="true" style="background:var(--color-neutral-bg);color:var(--color-neutral-fg);border-color:var(--color-border-strong)">儲存草稿</button></div>
-  <div class="eh"><span class="nm">生日禮提醒（2026 秋季檔期）</span><span class="sv err" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>儲存失敗：網路不穩，內容還在這個畫面上</span><button class="btn" type="button">重試儲存</button></div>
+  <p class="var">已儲存：「儲存草稿」停用，「送審」是唯一的主要按鈕</p>
+  <div class="eh"><button class="btn secondary back" type="button" aria-label="返回旅程頁"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="nm"><b>生日禮提醒（2026 秋季檔期）</b><small>編輯草稿・6 個節點</small></span><div class="acts2"><span class="sv ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>已儲存（10:42）</span><button class="btn secondary" type="button" aria-disabled="true">儲存草稿</button><button class="btn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg>送審</button></div></div>
+  <p class="var">有未儲存的變更：「儲存草稿」換成 2px 藍色外框提醒，「送審」仍是實心主要鈕（同一列不出現兩顆實心藍鈕）</p>
+  <div class="eh"><button class="btn secondary back" type="button" aria-label="返回旅程頁"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="nm"><b>生日禮提醒（2026 秋季檔期）</b><small>編輯草稿・6 個節點</small></span><div class="acts2"><span class="sv dirty"><span class="dot" aria-hidden="true"></span>有未儲存的變更</span><button class="btn secondary save-dirty" type="button">儲存草稿<kbd>Ctrl S</kbd></button><button class="btn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg>送審</button></div></div>
+  <p class="var">儲存中：兩顆都停用，不能離開</p>
+  <div class="eh"><button class="btn secondary back" type="button" aria-label="返回旅程頁"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="nm"><b>生日禮提醒（2026 秋季檔期）</b><small>編輯草稿・6 個節點</small></span><div class="acts2"><span class="sv busy" role="status"><span class="spin" aria-hidden="true"></span>儲存中…</span><button class="btn secondary" type="button" aria-disabled="true">儲存草稿</button><button class="btn" type="button" aria-disabled="true"><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg>送審</button></div></div>
+  <p class="var">儲存失敗：內容保留，按鈕變「重試儲存」（外框強調）；按「送審」會先重試儲存，失敗就不送</p>
+  <div class="eh"><button class="btn secondary back" type="button" aria-label="返回旅程頁"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button><span class="nm"><b>生日禮提醒（2026 秋季檔期）</b><small>編輯草稿・6 個節點</small></span><div class="acts2"><span class="sv err" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>儲存失敗：網路不穩，內容還在這個畫面上</span><button class="btn secondary save-dirty" type="button">重試儲存</button><button class="btn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg>送審</button></div></div>
   <p class="muted">四個狀態：已儲存（按鈕停用，顯示最後儲存時間）、有未儲存的變更（按鈕強調）、儲存中（按鈕停用、不可離開）、儲存失敗（保留編輯內容、重試）。版本衝突（DRAFT_CONFLICT）與送審鎖定沿用 <code>ed-banners</code>；送審中儲存鈕停用並附原因。送審前若有未儲存的變更，先自動儲存再送審，失敗就不送。</p>
   <h3 style="margin-top:var(--space-5);font-size:var(--text-md)">離開提醒（有未儲存變更時）</h3>
   <div class="dlgs">
-    <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lv-t"><h3 id="lv-t">要把修改存成草稿嗎？</h3><p>你有 3 項修改還沒儲存。現在離開，這些修改會不見。</p><div class="foot"><button class="btn ghost" type="button">繼續編輯</button><button class="btn secondary" type="button">不儲存，直接離開</button><button class="btn" type="button">儲存並離開</button></div></div></div>
-    <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lv-t2"><h3 id="lv-t2">儲存失敗，還不能離開</h3><p class="errmsg"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>網路不穩，草稿沒有存成功。</p><div class="foot"><button class="btn secondary" type="button">不儲存，直接離開</button><button class="btn" type="button">重試儲存</button></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lv-t"><h3 id="lv-t">要把修改存成草稿嗎？</h3><p>你有 3 項修改還沒儲存。現在離開，這些修改會不見。</p><div class="foot"><button class="btn secondary fr" type="button" autofocus>繼續編輯</button><button class="btn danger secondary" type="button">不儲存，直接離開</button><button class="btn" type="button">儲存並離開</button></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lv-t2"><h3 id="lv-t2">儲存失敗，還不能離開</h3><p class="errmsg"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>網路不穩，草稿沒有存成功。</p><div class="foot"><button class="btn danger secondary" type="button">不儲存，直接離開</button><button class="btn" type="button">重試儲存</button></div></div></div>
   </div>
   <p class="muted" style="margin-top:var(--space-2)">焦點進入「繼續編輯」（最安全的選項），Esc 等於繼續編輯；「儲存並離開」成功後才導頁。驗證有錯誤仍可儲存（草稿只驗結構，契約 §3）。</p>
 </section>
@@ -211,7 +226,7 @@
   <h2>7 刪除未發佈的旅程<span class="id">dl-delete</span></h2>
   <p class="lead">入口只有旅程頁標頭「⋯ 更多」裡的「刪除旅程」（紅字），只在從未發佈（草稿狀態）的旅程出現；已發佈的旅程維持「停止」。送審中停用並說明「請先撤回送審」。確認對話框不要求輸入名稱（尚無客戶在旅程中，風險低於停止），但預設焦點在「取消」，紅色按鈕寫明「刪除旅程」。成功後導回旅程列表並顯示「已刪除『…』」提示，不提供復原。API 與角色依 architect 的 journey-delete-design。</p>
   <div class="dlgs">
-    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t" aria-describedby="dl-d"><h3 id="dl-t">刪除「生日禮提醒（2026 秋季檔期）」？</h3><div id="dl-d"><p>刪除後無法復原。</p><ul class="facts" style="margin:0;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4)"><li>旅程和裡面的 6 個節點會一起刪除</li><li>這個旅程還沒發佈，沒有客戶在旅程中</li><li>送審紀錄的處理依後端規則（待 journey-delete-design）</li></ul></div><div class="foot"><button class="btn secondary" type="button" autofocus>取消</button><button class="btn danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</button></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t" aria-describedby="dl-d"><h3 id="dl-t">刪除「生日禮提醒（2026 秋季檔期）」？</h3><div id="dl-d"><p>刪除後無法復原。</p><ul class="facts" style="margin:0;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4)"><li>旅程和裡面的 6 個節點會一起刪除</li><li>這個旅程還沒發佈，沒有客戶在旅程中</li><li>送審紀錄的處理依後端規則（待 journey-delete-design）</li></ul></div><div class="foot"><button class="btn secondary fr" type="button" autofocus>取消</button><button class="btn danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</button></div></div></div>
     <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t2"><h3 id="dl-t2">刪除失敗</h3><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>這個旅程剛被送審，目前不能刪除。請先撤回送審再試一次。<br><span style="font-size:var(--text-xs)">請求編號 req-7f3a91</span></span></p><div class="foot"><button class="btn secondary" type="button">關閉</button><button class="btn" type="button">重新載入旅程</button></div></div></div>
   </div>
   <p class="muted" style="margin-top:var(--space-2)">刪除中：紅色鈕換成「刪除中…」＋旋轉圖示並停用，取消也停用。成功：導向「旅程」列表，頂端綠色提示「已刪除『生日禮提醒（2026 秋季檔期）』」，6 秒自動消失，可手動關閉。錯誤文案依錯誤碼：送審中（DRAFT_IN_REVIEW）、已發佈（旅程已有版本）、找不到（已被刪除，直接導回列表）、5xx 重試。</p>
@@ -220,7 +235,7 @@
 <script>
 /* 設計稿示範用：只負責「能操作的樣子」，不是產品邏輯。 */
 const NS = 'http://www.w3.org/2000/svg';
-const NW = 200, NH = 112, NHS = 136;
+const NW = 200, NH = 120, NHS = 144;
 const $ = (s, r = document) => r.querySelector(s);
 const icon = (id) => `<svg class="ico" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -248,13 +263,35 @@ function card(o) {
 
 const bez = (x1, y1, x2, y2) => { const dx = Math.max(60, Math.abs(x2 - x1) / 2); return `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2 - 2},${y2}`; };
 const mid = (x1, y1, x2, y2) => { const dx = Math.max(60, Math.abs(x2 - x1) / 2); return [(x1 + 3 * (x1 + dx) + 3 * (x2 - dx) + x2) / 8, (y1 + 3 * y1 + 3 * y2 + y2) / 8]; };
-const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH / 2 : [32, 80][i]; };
+const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH / 2 : [36, 84][i]; };
+/* 圓角折線（smoothstep 的樣子） */
+function rounded(p, r) {
+  let d = `M${p[0][0]},${p[0][1]}`;
+  for (let i = 1; i < p.length - 1; i++) {
+    const [x0, y0] = p[i - 1], [x, y] = p[i], [x2, y2] = p[i + 1];
+    const r1 = Math.min(r, Math.hypot(x - x0, y - y0) / 2, Math.hypot(x2 - x, y2 - y) / 2);
+    d += ` L${x - Math.sign(x - x0) * r1},${y - Math.sign(y - y0) * r1} Q${x},${y} ${x + Math.sign(x2 - x) * r1},${y + Math.sign(y2 - y) * r1}`;
+  }
+  const l = p[p.length - 1]; return d + ` L${l[0] - 2},${l[1]}`;
+}
+/* 連線路徑：目標在來源右邊用曲線；目標在左邊或同一欄（往回、往上下）用 smoothstep 繞行，offset 24，不穿過卡片 */
+function route(a, b, x1, y1, x2, y2) {
+  if (x2 >= x1 + 32) {
+    let len = 0, px = x1, py = y1; const dx = Math.max(60, Math.abs(x2 - x1) / 2);
+    for (let k = 1; k <= 16; k++) { const t = k / 16, u = 1 - t; const x = u * u * u * x1 + 3 * u * u * t * (x1 + dx) + 3 * u * t * t * (x2 - dx) + t * t * t * x2, y = u * u * u * y1 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y2; len += Math.hypot(x - px, y - py); px = x; py = y; }
+    return { d: bez(x1, y1, x2, y2), mid: mid(x1, y1, x2, y2), len };
+  }
+  const o = 24; let yr;
+  if (b.y + b.h + o <= a.y) yr = a.y - o; else if (b.y >= a.y + a.h + o) yr = a.y + a.h + o; else yr = Math.max(a.y + a.h, b.y + b.h) + o;
+  const pts = [[x1, y1], [x1 + o, y1], [x1 + o, yr], [x2 - o, yr], [x2 - o, y2], [x2, y2]];
+  return { d: rounded(pts, 10), mid: [(x1 + x2) / 2, yr], len: Math.abs(x1 - x2) + 2 * o };
+}
 
 /* ================= 可操作的編輯畫布 ================= */
 (function editor() {
   const cv = $('#cv'); if (!cv) return;
   const cvw = $('#cvw'), world = $('#world'), svg = $('#es'), labs = $('#elabs'), side = $('#side'), live = $('#live'), sizer = $('#sizer');
-  let quiet = 0, Z = 0.75, nodes = [], edges = [], sel = null, cnt = {}, linking = null, menuEl = null, suppress = false, eid = 0;
+  let quiet = 0, Z = 1, offX = 0, nodes = [], edges = [], sel = null, cnt = {}, linking = null, menuEl = null, menuTmp = null, suppress = false, eid = 0, lastPt = null;
   const say = (m) => { live.textContent = ''; setTimeout(() => (live.textContent = m), 30); $('#toast').textContent = m; };
   const nodeById = (id) => nodes.find((n) => n.id === id);
   const small = () => matchMedia('(max-width:640px)').matches;
@@ -262,13 +299,21 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
   function setZoom(z) {
     Z = Math.max(0.4, Math.min(1.25, z));
     cv.style.setProperty('--zoom', Z);
-    sizer.style.width = 1130 * Z + 'px'; sizer.style.height = 580 * Z + 'px';
+    const b = bbox(); world.style.left = offX + 'px';
+    sizer.style.width = offX + (b.w + 280) * Z + 'px'; sizer.style.height = (b.h + 120) * Z + 'px';
     const p = $('#zp'); p.textContent = Math.round(Z * 100) + '%';
     p.style.color = Z < 0.7 ? 'var(--color-warning-fg)' : ''; p.style.background = Z < 0.7 ? 'var(--color-warning-bg)' : '';
   }
-  const toWorld = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left + cv.scrollLeft) / Z, y: (e.clientY - r.top + cv.scrollTop) / Z }; };
+  const toWorld = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left + cv.scrollLeft - offX) / Z, y: (e.clientY - r.top + cv.scrollTop) / Z }; };
+  const bbox = () => nodes.length ? { w: Math.max(...nodes.map((n) => n.x + NW)) + 24, h: Math.max(...nodes.map((n) => n.y + NH)) + 24 } : { w: 600, h: 400 };
+  /* 初始縮放＝唯讀圖同一條規則：整張放得下就 100% 置中；放不下就看全圖，但不低於 75%（放不下的部分捲動） */
+  function fitView() {
+    const b = bbox(), cw = cv.clientWidth, ch = cv.clientHeight;
+    const z = b.w <= cw && b.h <= ch ? 1 : Math.max(0.75, Math.min(1, cw / b.w, ch / b.h));
+    offX = Math.max(0, Math.round((cw - b.w * z) / 2)); setZoom(z); cv.scrollTo(0, 0);
+  }
   const overlap = (x, y, ignore) => nodes.some((m) => m !== ignore && Math.abs(m.x - x) < NW + 24 && Math.abs(m.y - y) < NH + 24);
-  const freeSpot = (x, y) => { let k = 0; while (overlap(x, y) && k++ < 40) y += 136, k % 4 === 0 && (x += 272, y = 24); return { x, y: Math.max(16, y) }; };
+  const freeSpot = (x, y) => { let k = 0; while (overlap(x, y) && k++ < 40) y += 144, k % 4 === 0 && (x += 272, y = 24); return { x, y: Math.max(16, y) }; };
 
   function mk(type, x, y, name) {
     const t = T[type]; cnt[type] = (cnt[type] || 0) + 1;
@@ -290,21 +335,24 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
 
   /* 邊 */
   function drawEdges() {
-    svg.innerHTML = ''; labs.innerHTML = '';
+    svg.innerHTML = ''; labs.innerHTML = ''; if (menuTmp) svg.appendChild(menuTmp);
     edges.forEach((ed) => {
       const a = nodeById(ed.from), b = nodeById(ed.to); if (!a || !b) return;
       const x1 = a.x + NW, y1 = a.y + portY(a, ed.pi), x2 = b.x, y2 = b.y + NH / 2;
       const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'edge' + (sel && sel.k === 'edge' && sel.id === ed.id ? ' sel' : ''));
-      const d = bez(x1, y1, x2, y2);
+      const rt = route({ x: a.x, y: a.y, h: NH }, { x: b.x, y: b.y, h: NH }, x1, y1, x2, y2); const d = rt.d;
       const p = document.createElementNS(NS, 'path'); p.setAttribute('class', 'e'); p.setAttribute('d', d); p.setAttribute('marker-end', 'url(#ah)');
       const h = document.createElementNS(NS, 'path'); h.setAttribute('class', 'hit'); h.setAttribute('d', d);
       h.addEventListener('click', (e) => { e.stopPropagation(); select({ k: 'edge', id: ed.id }); });
       g.append(p, h); svg.appendChild(g);
-      const [mx, my] = mid(x1, y1, x2, y2); const lab = T[a.type].ports[ed.pi];
+      const [mx, my] = rt.mid; const lab = T[a.type].ports[ed.pi];
       if (lab && !(sel && sel.k === 'edge' && sel.id === ed.id)) { const l = document.createElement('div'); l.className = 'elab'; l.textContent = lab; l.style.left = mx + 'px'; l.style.top = my + 'px'; labs.appendChild(l); }
       if (sel && sel.k === 'edge' && sel.id === ed.id) {
-        const b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'edel'; b2.style.left = mx + 'px'; b2.style.top = my + 'px';
-        b2.innerHTML = `${icon('trash')}移除連線`; b2.setAttribute('aria-label', `移除連線：${a.name}${lab ? '（' + lab + '）' : ''} 到 ${b.name}`);
+        /* 線夠長（畫面上 ≥ 160px）：「移除連線」膠囊鈕放在線中點上方 28px；線短（相鄰兩欄之間）：44px 圓鈕放在線中點，只佔兩卡之間的空隙 */
+        const long = rt.len * Z >= 160;
+        const b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'edel' + (long ? '' : ' round'); b2.style.left = mx + 'px'; b2.style.top = (long ? my - 28 / Z : my) + 'px';
+        b2.innerHTML = long ? `${icon('trash')}移除連線` : icon('trash'); if (!long) b2.title = '移除連線';
+        b2.setAttribute('aria-label', `移除連線：${a.name}${lab ? '（' + lab + '）' : ''} 到 ${b.name}`);
         b2.addEventListener('click', () => removeEdge(ed.id)); labs.appendChild(b2); if (!b2.dataset.f) setTimeout(() => b2.focus({ preventScroll: true }), 0);
       }
     });
@@ -331,14 +379,16 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
     edges = edges.filter((e) => e.from !== id && e.to !== id); nodes = nodes.filter((m) => m !== n); n.el.remove(); sel = null; drawEdges(); fillSide(); say(`已刪除「${n.name}」和它的連線`);
   }
 
+  /* 拉線、拖曳中只標示來源節點，不開面板 */
+  function mark(n) { nodes.forEach((m) => { m.el.classList.toggle('sel', m === n); m.el.querySelector('.nc').classList.toggle('sel', m === n); m.el.style.zIndex = m === n ? 2 : ''; }); }
   /* 選取與右側面板（下一步下拉＝鍵盤與無障礙替代） */
   function select(s) {
     sel = s; nodes.forEach((n) => { const on = s && s.k === 'node' && s.id === n.id; n.el.classList.toggle('sel', on); n.el.querySelector('.nc').classList.toggle('sel', on); n.el.style.zIndex = on ? 2 : ''; });
     drawEdges(); fillSide();
   }
   function fillSide() {
-    if (!sel || sel.k !== 'node') { side.hidden = true; return; }
-    const n = nodeById(sel.id); if (!n) { side.hidden = true; return; } const t = T[n.type]; side.hidden = false;
+    if (!sel || sel.k !== 'node') { side.hidden = true; cvw.classList.remove('has-side'); return; }
+    const n = nodeById(sel.id); if (!n) { side.hidden = true; cvw.classList.remove('has-side'); return; } const t = T[n.type]; side.hidden = false; cvw.classList.add('has-side');
     const others = nodes.filter((m) => m !== n && m.type !== 'start');
     side.innerHTML = `<header>${icon(t.ico)}<h3></h3><button type="button" class="x" aria-label="關閉面板">${icon('x')}</button></header>
       <div class="field"><label for="nm">名稱</label><input id="nm" value="${esc(n.name)}" maxlength="40"></div>
@@ -353,22 +403,23 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
 
   /* 移動節點 */
   function nodeDown(e, n) {
-    if (e.button > 0) return; closeMenu(); select({ k: 'node', id: n.id });
+    if (e.button > 0) return; closeMenu(); mark(n);
     const sx = e.clientX, sy = e.clientY, ox = n.x, oy = n.y; let moved = false;
     const mv = (ev) => { const dx = ev.clientX - sx, dy = ev.clientY - sy; if (!moved && Math.hypot(dx, dy) < 5) return; moved = true; n.x = Math.max(0, Math.round(ox + dx / Z)); n.y = Math.max(0, Math.round(oy + dy / Z)); n.el.style.left = n.x + 'px'; n.el.style.top = n.y + 'px'; drawEdges(); };
-    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); if (moved) quiet = Date.now(); };
+    /* 放開才開面板（拖曳移動時不開，避免畫布在拖曳中變窄） */
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); if (moved) { quiet = Date.now(); setZoom(Z); } select({ k: 'node', id: n.id }); };
     addEventListener('pointermove', mv); addEventListener('pointerup', up);
   }
 
   /* 從連接點拉線 */
   function linkDown(e, n, pi) {
-    e.preventDefault(); e.stopPropagation(); closeMenu(); select({ k: 'node', id: n.id });
+    e.preventDefault(); e.stopPropagation(); closeMenu(); mark(n);
     linking = { n, pi }; cv.classList.add('linking');
     const tmp = document.createElementNS(NS, 'path'); tmp.setAttribute('class', 'tmp'); svg.appendChild(tmp);
     const x1 = n.x + NW, y1 = n.y + portY(n, pi);
     const target = (ev) => { const w = document.elementFromPoint(ev.clientX, ev.clientY); const el = w && w.closest ? w.closest('.nw') : null; return el ? nodeById(el.dataset.id) : null; };
     const mv = (ev) => {
-      const p = toWorld(ev); const t = target(ev); tmp.setAttribute('d', bez(x1, y1, t && t.id !== n.id && t.type !== 'start' ? t.x : p.x, t && t.id !== n.id && t.type !== 'start' ? t.y + NH / 2 : p.y));
+      const p = toWorld(ev); lastPt = p; const t = target(ev); tmp.setAttribute('d', bez(x1, y1, t && t.id !== n.id && t.type !== 'start' ? t.x : p.x, t && t.id !== n.id && t.type !== 'start' ? t.y + NH / 2 : p.y));
       nodes.forEach((m) => { const c = m.el.querySelector('.nc'); c.classList.toggle('tgt-ok', t === m && m !== n && m.type !== 'start'); c.classList.toggle('tgt-no', (t === m && (m === n || m.type === 'start'))); });
     };
     const up = (ev) => {
@@ -377,30 +428,37 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
       const t = target(ev);
       if (t && t.id !== n.id && t.type !== 'start') connect(n, pi, t.id);
       else if (t) say(t === n ? '不能接回自己；要重複走請接到前面的節點' : '「進入條件」是入口，不能當下一步');
-      else if (cv.contains(document.elementFromPoint(ev.clientX, ev.clientY)) && Math.hypot(ev.clientX - (cv.getBoundingClientRect().left + (x1 * Z - cv.scrollLeft)), ev.clientY - (cv.getBoundingClientRect().top + (y1 * Z - cv.scrollTop))) > 24) openMenu(ev, n, pi);
+      else if (cv.contains(document.elementFromPoint(ev.clientX, ev.clientY)) && Math.hypot(ev.clientX - (cv.getBoundingClientRect().left + (offX + x1 * Z - cv.scrollLeft)), ev.clientY - (cv.getBoundingClientRect().top + (y1 * Z - cv.scrollTop))) > 24) openMenu(ev, n, pi);
     };
     addEventListener('pointermove', mv); addEventListener('pointerup', up);
   }
   /* 放開在空白處：跳出「接上新節點」選單 */
   function openMenu(ev, n, pi) {
     const r = cv.getBoundingClientRect(); const p = toWorld(ev); const px = ev.clientX - r.left + cv.scrollLeft, py = ev.clientY - r.top + cv.scrollTop;
-    menuEl = document.createElement('div'); menuEl.className = 'menu'; menuEl.setAttribute('role', 'menu'); menuEl.setAttribute('aria-label', '接上新節點');
-    menuEl.style.left = Math.min(px, cv.scrollLeft + cv.clientWidth - 250) + 'px'; menuEl.style.top = py + 'px';
+    menuEl = document.createElement('div'); menuEl.className = 'cmenu'; menuEl.setAttribute('role', 'menu'); menuEl.setAttribute('aria-label', '接上新節點');
+    /* 放開點右側 16px；右邊放不下就放左側；不蓋住來源出口（出口在選單範圍內就往下移） */
+    const hx = offX + (n.x + NW) * Z, hy = (n.y + portY(n, pi)) * Z;
+    let left = px + 16; if (left + 240 > cv.scrollLeft + cv.clientWidth - 8) left = px - 16 - 240;
+    if (hx > left - 24 && hx < left + 264 && left < px) left = Math.min(px + 16, hx + 32);
+    menuEl.style.left = Math.max(cv.scrollLeft + 8, left) + 'px'; menuEl.style.top = py + 'px';
+    menuTmp = document.createElementNS(NS, 'path'); menuTmp.setAttribute('class', 'tmp'); menuTmp.setAttribute('d', bez(n.x + NW, n.y + portY(n, pi), p.x, p.y)); svg.appendChild(menuTmp); cv.classList.add('menuopen');
     menuEl.innerHTML = `<h4>接上新節點</h4>` + PAL.map((k) => `<button type="button" role="menuitem" class="m cat-${T[k].cat}" data-k="${k}">${icon(T[k].ico)}${T[k].label}</button>`).join('') + `<button type="button" class="m cancel" data-k="">取消（Esc）</button>`;
-    cv.appendChild(menuEl); menuEl.style.top = Math.max(cv.scrollTop + 8, Math.min(py, cv.scrollTop + cv.clientHeight - menuEl.offsetHeight - 8)) + 'px';
-    menuEl.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k; closeMenu(); if (!k) return; const s = freeSpot(Math.max(0, Math.round(p.x + 20)), Math.max(16, Math.round(p.y - NH / 2))); const m = mk(k, s.x, s.y); connect(n, pi, m.id); select({ k: 'node', id: m.id }); });
+    cv.appendChild(menuEl); let top = Math.max(cv.scrollTop + 8, Math.min(py - 24, cv.scrollTop + cv.clientHeight - menuEl.offsetHeight - 8));
+    const ml = parseFloat(menuEl.style.left); if (hx > ml - 16 && hx < ml + 256 && hy > top - 16 && hy < top + menuEl.offsetHeight + 16) top = hy + 40;
+    menuEl.style.top = top + 'px';
+    menuEl.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k; closeMenu(); if (!k) return; const s = freeSpot(Math.max(0, Math.round(p.x + 20)), Math.max(16, Math.round(p.y - NH / 2))); const m = mk(k, s.x, s.y); setZoom(Z); connect(n, pi, m.id); select({ k: 'node', id: m.id }); });
     menuEl.querySelector('button').focus();
   }
-  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } if (menuTmp) { menuTmp.remove(); menuTmp = null; } cv.classList.remove('menuopen'); }
 
   $('#palette').innerHTML = ['發送', '等待', '分支', '結果'].map((g) => `<div class="grp">${g}</div>` + PAL.filter((k) => T[k].grp === g).map((k) => `<button type="button" class="pi cat-${T[k].cat}" data-k="${k}" title="${T[k].label}：${T[k].desc}（拖到畫布，或按一下）">${icon(T[k].ico)}<span class="tx"><b>${T[k].label}</b><small>${T[k].desc}</small></span><span class="grip">${icon('grip')}</span></button>`).join('')).join('');
   /* 工具列拖進畫布，或點一下（Enter）新增 */
   function addByClick(k) {
     const s = sel && sel.k === 'node' ? nodeById(sel.id) : null; let from = null;
     if (s) { const pi = T[s.type].ports.findIndex((_, i) => !edges.some((e) => e.from === s.id && e.pi === i)); if (pi >= 0) from = { s, pi }; }
-    const spot = from ? freeSpot(from.s.x + 272, from.s.y + (from.pi ? 136 : 0)) : freeSpot(24 + (nodes.length % 4) * 272, 24 + Math.floor(nodes.length / 4) * 136 + 150);
+    const spot = from ? freeSpot(from.s.x + 272, from.s.y + (from.pi ? 144 : 0)) : freeSpot(24 + (nodes.length % 4) * 272, 24 + Math.floor(nodes.length / 4) * 144 + 150);
     const m = mk(k, spot.x, spot.y); if (from) connect(from.s, from.pi, m.id); else say(`已新增「${m.name}」，從它右邊的圓點拉線接下一步`);
-    select({ k: 'node', id: m.id }); cv.scrollTo({ left: Math.max(0, (m.x + NW) * Z - cv.clientWidth + 60), behavior: 'smooth' });
+    select({ k: 'node', id: m.id }); setZoom(Z); cv.scrollTo({ left: Math.max(0, offX + (m.x + NW) * Z - cv.clientWidth + 60), behavior: 'smooth' });
   }
   document.querySelectorAll('.pi').forEach((b) => {
     b.addEventListener('click', () => { if (suppress) { suppress = false; return; } addByClick(b.dataset.k); });
@@ -414,7 +472,7 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
         removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
         if (!ghost) return; quiet = Date.now(); ghost.remove(); suppress = true; setTimeout(() => (suppress = false), 50);
         const r = cv.getBoundingClientRect(); const inside = cvw.classList.contains('dragover'); cvw.classList.remove('dragover');
-        if (inside && !(ev.clientX > r.right - 340 && !side.hidden && matchMedia('(min-width:1101px)').matches)) { const p = toWorld(ev); const s = freeSpot(Math.max(0, Math.round(p.x - NW / 2)), Math.max(16, Math.round(p.y - NH / 2))); const m = mk(b.dataset.k, s.x, s.y); select({ k: 'node', id: m.id }); say(`已新增「${m.name}」，從它右邊的圓點拉線接下一步`); }
+        if (inside) { const p = toWorld(ev); const s = freeSpot(Math.max(0, Math.round(p.x - NW / 2)), Math.max(16, Math.round(p.y - NH / 2))); const m = mk(b.dataset.k, s.x, s.y); setZoom(Z); select({ k: 'node', id: m.id }); say(`已新增「${m.name}」，從它右邊的圓點拉線接下一步`); }
       };
       addEventListener('pointermove', mv); addEventListener('pointerup', up);
     });
@@ -426,60 +484,91 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); sel.k === 'edge' ? removeEdge(sel.id) : removeNode(sel.id); }
   });
   $('#zin').onclick = () => setZoom(Z + 0.1); $('#zout').onclick = () => setZoom(Z - 0.1);
-  $('#zfit').onclick = () => { const bw = Math.max(...nodes.map((n) => n.x + NW)) + 40, bh = Math.max(...nodes.map((n) => n.y + NH)) + 40; setZoom(Math.min(cv.clientWidth / bw, cv.clientHeight / bh, 1)); cv.scrollTo(0, 0); };
+  $('#zfit').onclick = () => { const b = bbox(); const z = Math.min(cv.clientWidth / b.w, cv.clientHeight / b.h, 1); offX = Math.max(0, Math.round((cv.clientWidth - b.w * z) / 2)); setZoom(z); cv.scrollTo(0, 0); };
   $('#coachx').onclick = () => ($('#coach').hidden = true);
   $('#reset').onclick = () => { nodes.forEach((n) => n.el.remove()); nodes = []; edges = []; cnt = {}; sel = null; seed(); $('#coach').hidden = false; };
 
   function seed() {
-    const s = mk('start', 24, 150, '開始'); const w = mk('wait', 296, 150, '等待 1 小時'); const c = mk('cond', 568, 150, '已下單？');
-    const m = mk('msg', 840, 360, '提醒 1'); const e = mk('end', 840, 24, '結束');
+    const s = mk('start', 24, 168, '開始'); const w = mk('wait', 296, 168, '等待 1 小時'); const c = mk('cond', 568, 168, '已下單？');
+    const m = mk('msg', 840, 336, '提醒 1'); const e = mk('end', 840, 24, '結束');
     edges = [{ id: 'e0', from: s.id, pi: 0, to: w.id }, { id: 'e1', from: w.id, pi: 0, to: c.id }, { id: 'e2', from: c.id, pi: 0, to: e.id }, { id: 'e3', from: c.id, pi: 1, to: m.id }]; eid = 3;
     m.el.querySelector('.s').textContent = '歡迎回來，還在考慮嗎？'; m.el.querySelector('.s').classList.remove('warn'); c.el.querySelector('.s').textContent = '客戶已下單'; c.el.querySelector('.s').classList.remove('warn');
-    setZoom(0.75); drawEdges(); fillSide();
+    fitView(); drawEdges(); fillSide();
   }
   seed();
-  /* 取消 mk 時多餘的 tag 函式警告 */ void tag;
+  void tag; void lastPt;
 })();
 
 /* ================= 唯讀圖（旅程頁）================= */
 (function readonlyGraph() {
   const host = $('#ro'); if (!host) return;
   const N = [
-    { id: 'a', type: 'start', c: 0, y: 140, name: '開始', sub: '進入旅程', stats: [128, 0], catLabel: '進入條件' },
-    { id: 'b', type: 'wait', c: 1, y: 140, name: '等待 1 小時', sub: '1 小時', stats: [128, 9] },
-    { id: 'c', type: 'cond', c: 2, y: 140, name: 'Entry event', sub: '大於 500・購物車金額', stats: [128, 4] },
-    { id: 'd', type: 'msg', c: 3, y: 20, name: 'Reminder', sub: 'LINE・提醒 1', stats: [87, 12] },
-    { id: 'e', type: 'wev', c: 3, y: 300, name: 'Wait for order (24 hours)', sub: '24 小時・符合 2 項條件', stats: [41, 7] },
-    { id: 'f', type: 'merge', c: 4, y: 140, name: '分支合流', sub: '多條路合成一條', stats: [128, 3] },
-    { id: 'g', type: 'goal', c: 5, y: 140, name: 'Ordered', sub: '客戶達成目標', stats: [64, 0] },
-    { id: 'h', type: 'end', c: 6, y: 140, name: '結束', sub: '旅程到此結束', stats: [64, 0] },
+    { id: 'a', type: 'start', c: 0, y: 170, name: '開始', sub: '進入旅程', stats: [128, 0], catLabel: '進入條件' },
+    { id: 'b', type: 'wait', c: 1, y: 170, name: '等待 1 小時', sub: '1 小時', stats: [128, 9] },
+    { id: 'c', type: 'cond', c: 2, y: 170, name: 'Entry event', sub: '大於 500・購物車金額', stats: [128, 4] },
+    { id: 'd', type: 'msg', c: 3, y: 10, name: 'Reminder', sub: 'LINE・提醒 1', stats: [87, 12] },
+    { id: 'e', type: 'wev', c: 3, y: 330, name: 'Wait for order (24 hours)', sub: '24 小時・符合 2 項條件', stats: [41, 7] },
+    { id: 'f', type: 'merge', c: 4, y: 170, name: '分支合流', sub: '多條路合成一條', stats: [128, 3] },
+    { id: 'g', type: 'goal', c: 5, y: 170, name: 'Ordered', sub: '客戶達成目標', stats: [64, 0] },
+    { id: 'h', type: 'end', c: 6, y: 170, name: '結束', sub: '旅程到此結束', stats: [64, 0] },
   ];
   const E = [['a', 'b'], ['b', 'c'], ['c', 'd', '是'], ['c', 'e', '否'], ['d', 'f'], ['e', 'f'], ['f', 'g'], ['g', 'h']];
-  const W = 6 * 272 + NW + 48, H = 300 + NHS + 24; let Z = 0.75;
-  host.innerHTML = `<div class="scroller" id="roscroll"><div class="box" id="robox"><div class="world" id="roworld" style="width:${W}px;height:${H}px"><svg id="rosvg" width="${W}" height="${H}"></svg></div></div></div><div class="fade"></div>
-    <div class="zbar" role="group" aria-label="縮放"><button type="button" id="rzo" aria-label="縮小">${icon('minus')}</button><span id="rzp">75%</span><button type="button" id="rzi" aria-label="放大">${icon('plus')}</button><button type="button" class="fit" id="rfit">${icon('fit')}看全圖</button></div>
-    <div class="more" role="status">${icon('info')}<span id="romsg">還有節點在右邊：左右拖曳或捲動，或按「看全圖」</span><button type="button" class="btn secondary sm" id="rfit2">看全圖</button></div>`;
+  const PITCH = 272, X0 = 24, W = 6 * PITCH + NW + 2 * X0, H = 330 + NHS + 24; let Z = 1;
+  $('#robar').innerHTML = `<div class="zbar" role="group" aria-label="縮放"><button type="button" id="rzo" aria-label="縮小">${icon('minus')}</button><span id="rzp">100%</span><button type="button" id="rzi" aria-label="放大">${icon('plus')}</button><button type="button" class="fit" id="rfit">${icon('fit')}看全圖</button></div>
+    <p class="more" role="status" id="romore"></p>`;
+  host.innerHTML = `<div class="scroller" id="roscroll"><div class="box" id="robox"><div class="world" id="roworld" style="width:${W}px;height:${H}px"><svg id="rosvg" width="${W}" height="${H}"></svg></div></div></div><div class="fade"></div>`;
   const world = $('#roworld'), svg = $('#rosvg');
-  N.forEach((n) => { const d = document.createElement('div'); d.style.cssText = `position:absolute;left:${24 + n.c * 272}px;top:${n.y}px`; d.innerHTML = card({ ...n }).replace('nc static', 'nc'); const c = d.firstElementChild; c.style.position = 'relative'; c.setAttribute('tabindex', '0'); world.appendChild(d); n.x = 24 + n.c * 272; });
-  svg.innerHTML = '<defs></defs>' + E.map(([f, t, l]) => { const a = N.find((n) => n.id === f), b = N.find((n) => n.id === t); const x1 = a.x + NW, y1 = a.y + NHS / 2, x2 = b.x, y2 = b.y + NHS / 2; const [mx, my] = mid(x1, y1, x2, y2); return `<path class="e" d="${bez(x1, y1, x2, y2)}" marker-end="url(#ah)"/>` + (l ? `<text x="${mx}" y="${my + 6}" text-anchor="middle" font-size="17" font-weight="600" fill="#57606a" paint-order="stroke" stroke="#f6f8fa" stroke-width="5">${l}</text>` : ''); }).join('');
-  const sc = $('#roscroll');
+  N.forEach((n) => { n.x = X0 + n.c * PITCH; const d = document.createElement('div'); d.style.cssText = `position:absolute;left:${n.x}px;top:${n.y}px`; d.innerHTML = card({ ...n }).replace('nc static', 'nc'); const c = d.firstElementChild; c.style.position = 'relative'; c.setAttribute('tabindex', '0'); world.appendChild(d); });
+  svg.innerHTML = E.map(([f, t, l]) => { const a = N.find((n) => n.id === f), b = N.find((n) => n.id === t); const x1 = a.x + NW, y1 = a.y + NHS / 2, x2 = b.x, y2 = b.y + NHS / 2; const [mx, my] = mid(x1, y1, x2, y2); return `<path class="e" d="${bez(x1, y1, x2, y2)}" marker-end="url(#ah)"/>` + (l ? `<text x="${mx}" y="${my + 6}" text-anchor="middle" font-size="16" font-weight="600" fill="#57606a" paint-order="stroke" stroke="#f6f8fa" stroke-width="5">${l}</text>` : ''); }).join('');
+  const sc = $('#roscroll'), bar = $('#robar');
+  const sync = () => {
+    const end = sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 4; host.classList.toggle('end', end); bar.classList.toggle('end', end);
+    const right = (sc.scrollLeft + sc.clientWidth) / Z; const left = sc.scrollLeft / Z;
+    const hidR = N.filter((n) => n.x + NW > right + 1).length, hidL = N.filter((n) => n.x < left - 1).length;
+    $('#romore').innerHTML = end && !hidL ? `${icon('check')}<span>已看到全部 ${N.length} 個節點</span>` : hidR ? `${icon('fit')}<span>右邊還有 <b>${hidR}</b> 個節點：左右拖曳、捲動，或按「看全圖」</span>` : `${icon('check')}<span>已捲到最右邊；左邊還有 <b>${hidL}</b> 個節點</span>`;
+    $('#rowidth').textContent = sc.clientWidth;
+  };
   const apply = () => { host.style.setProperty('--zoom', Z); $('#robox').style.cssText = `width:${W * Z}px;height:${H * Z}px`; $('#rzp').textContent = Math.round(Z * 100) + '%'; $('#rzp').style.color = Z < 0.7 ? 'var(--color-warning-fg)' : ''; sync(); };
-  const sync = () => host.classList.toggle('end', sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 4);
   sc.addEventListener('scroll', sync);
-  const fit = () => { Z = Math.min(1, (sc.clientWidth - 8) / W); apply(); sc.scrollLeft = 0; $('#romsg').textContent = Z < 0.7 ? '縮小檢視中，文字偏小' : '已顯示全圖'; };
-  $('#rfit').onclick = fit; $('#rfit2').onclick = fit; $('#rzi').onclick = () => { Z = Math.min(1.25, Z + 0.1); apply(); }; $('#rzo').onclick = () => { Z = Math.max(0.4, Z - 0.1); apply(); };
+  /* 預設縮放：整張放得下就 ≤100% 全顯示；否則在 75%～100% 找最大的值，讓右緣只露出下一張卡的色條（6～14px）；找不到才退而讓右緣落在欄距空隙 */
+  const initialZoom = () => {
+    const cw = sc.clientWidth; if (W * 0.75 <= cw) return Math.min(1, cw / W);
+    /* r＝右緣離「被切的那張卡」左邊多遠（畫面 px）：只露出 6～14px 的色條與邊框（卡內文字從 17px 起），前一張卡完整 */
+    const peek = (z) => { const r = ((((cw / z) - X0) % PITCH + PITCH) % PITCH) * z; return r >= 6 && r <= 14; };
+    const gap = (z) => { const r = (((cw / z) - X0) % PITCH + PITCH) % PITCH; return r >= NW + 8; };
+    for (let z = 1; z >= 0.749; z -= 0.0025) if (peek(z)) return z;
+    for (let z = 1; z >= 0.749; z -= 0.0025) if (gap(z)) return z;
+    /* 手機：75%～100% 都會切到第二張卡的字，改為放大（上限 125%）只顯示第一張＋下一張色條 */
+    for (let z = 1; z <= 1.25; z += 0.0025) if (peek(z)) return z;
+    return 0.75;
+  };
+  const reset = () => { Z = initialZoom(); apply(); sc.scrollLeft = 0; $('#rozoom').textContent = Math.round(Z * 100) + '%'; };
+  const fit = () => { Z = Math.min(1, (sc.clientWidth - 8) / W); apply(); sc.scrollLeft = 0; };
+  $('#rfit').onclick = fit; $('#rzi').onclick = () => { Z = Math.min(1.25, Z + 0.1); apply(); }; $('#rzo').onclick = () => { Z = Math.max(0.4, Z - 0.1); apply(); };
   let drag = null; sc.addEventListener('pointerdown', (e) => { if (e.target.closest('.nc')) return; drag = { x: e.clientX, l: sc.scrollLeft }; }); addEventListener('pointermove', (e) => { if (drag) sc.scrollLeft = drag.l - (e.clientX - drag.x); }); addEventListener('pointerup', () => (drag = null));
-  apply(); addEventListener('resize', sync);
+  reset(); addEventListener('resize', reset);
 })();
 
 /* ================= 規格圖：同一張卡在三處 ================= */
 (function specs() {
   const put = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  put('f-old1', card({ type: 'msg', name: 'Reminder', sub: '歡迎回來，還在考慮嗎？', stats: [87, 12], cls: 'old' }));
+  put('f-old2', card({ type: 'wev', name: 'Wait for order (24 hours)', sub: '24 小時', stats: [41, 7], cls: 'old' }));
   put('f-edit', card({ type: 'msg', name: 'Reminder', sub: '歡迎回來，還在考慮嗎？' }));
   put('f-view', card({ type: 'msg', name: 'Reminder', sub: '歡迎回來，還在考慮嗎？', stats: [87, 12] }));
-  put('f-trace', card({ type: 'msg', name: 'Reminder', sub: '歡迎回來，還在考慮嗎？', state: '目前在此', cls: 'current' }) + card({ type: 'wait', name: '等待 1 小時', sub: '1 小時', state: '已走過', cls: 'visited' }) + card({ type: 'end', name: '結束', sub: '旅程到此結束', state: '還沒走到', cls: 'unvisited' }));
-  put('f-names', card({ type: 'wev', name: 'Wait for order (24 hours)', sub: '24 小時・符合 2 項條件', title: 'Wait for order (24 hours)' }) + card({ type: 'msg', name: 'Black Friday early-access reminder for returning VIP members', sub: 'LINE・提醒 1', title: 'Black Friday early-access reminder for returning VIP members' }) + card({ type: 'start', name: '開始', sub: '大於 500・購物車金額', catLabel: '進入條件' }));
-  put('f-old', card({ type: 'msg', name: 'Reminder', sub: '歡迎回來，還在考慮嗎？', stats: [87, 12], cls: 'old' }) + card({ type: 'wev', name: 'Wait for order (24 hours)', sub: '24 小時', stats: [41, 7], cls: 'old' }));
+  put('f-cur', card({ type: 'msg', name: 'Reminder', sub: '歡迎回來，還在考慮嗎？', state: '目前在此', cls: 'current' }));
+  put('f-vis', card({ type: 'wait', name: '等待 1 小時', sub: '1 小時', state: '已走過', cls: 'visited' }));
+  put('f-unv', card({ type: 'end', name: '結束', sub: '旅程到此結束', state: '還沒走到', cls: 'unvisited' }));
+  put('f-long', card({ type: 'msg', name: 'Black Friday early-access reminder for returning VIP members', sub: 'LINE・提醒 1', title: 'Black Friday early-access reminder for returning VIP members' }));
+  put('f-mid', card({ type: 'wev', name: '等待下單（24 hours）', sub: '24 小時・符合 2 項條件' }));
+  put('f-entry', card({ type: 'start', name: '開始', sub: '大於 500・購物車金額', catLabel: '進入條件', title: '只限：購物車金額大於 500' }));
+  const mini = (opt) => `<div class="mini ${opt.cls || ''}">${card({ type: 'msg', name: '提醒 1', sub: '歡迎回來，還在考慮嗎？', cls: opt.card || '' })}${opt.h === false ? '' : `<span class="hd out ${opt.h || ''}"><span class="tag">拉線接下一步</span></span>`}</div>`;
+  put('hs', [
+    [mini({}), '平常', '藍色實心圓點。游標移上節點、選取或鍵盤聚焦時才出現'],
+    [mini({ h: 'free' }), '還沒接下一步', '橘色虛線圓點；游標移上顯示「拉線接下一步」'],
+    [mini({ h: 'big' }), '游標移上圓點', '圓點放大、游標變十字，按住就開始拉線'],
+    [mini({ card: 'tgt-ok', h: false }), '拉線中、停在可接的節點', '綠色外框；自己與「進入條件」變淡、不能接'],
+  ].map(([m, t, d]) => `<figure>${m}<figcaption><b>${t}</b>${d}</figcaption></figure>`).join(''));
 })();
 
 /* ================= 比較選單與條件試算 ================= */
@@ -500,15 +589,30 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
     const list = String(c.val).split(/[，,]/).map((s) => s.trim());
     return c.op === 'EQ' ? v === String(c.val).trim() : c.op === 'NEQ' ? v !== String(c.val).trim() : c.op === 'CONTAINS' ? v.includes(String(c.val).trim()) : c.op === 'IN' ? list.includes(v) : !list.includes(v); };
   const frag = (c) => ['NN', 'NULL'].includes(c.op) ? `${W[c.op]}` : `${W[c.op]} ${c.val || '…'}`;
-  const examples = (c) => { const n = +c.val, ok = [], no = [];
-    if (['GT', 'GTE', 'LT', 'LTE'].includes(c.op) && isNum(c.val)) { const big = n + Math.max(1, Math.round(Math.abs(n) * 0.2)), small = n - Math.max(1, Math.round(Math.abs(n) * 0.2));
-      if (c.op === 'GT') { ok.push(big); no.push(`${n}（剛好等於不算）`, small); } if (c.op === 'GTE') { ok.push(`${n}（剛好等於也算）`, big); no.push(small); }
-      if (c.op === 'LT') { ok.push(small); no.push(`${n}（剛好等於不算）`, big); } if (c.op === 'LTE') { ok.push(`${n}（剛好等於也算）`, small); no.push(big); }
-      no.push('沒填'); }
-    else if (c.op === 'EQ') { ok.push(c.val); no.push('其他任何值', '沒填'); } else if (c.op === 'NEQ') { ok.push('其他任何值'); no.push(c.val, '沒填'); }
-    else if (c.op === 'CONTAINS') { ok.push(`含「${c.val}」的內容`); no.push('不含的內容', '沒填'); } else if (c.op === 'IN') { ok.push(...String(c.val).split(/[，,]/).map((s) => s.trim()).slice(0, 2)); no.push('清單以外的值', '沒填'); }
-    else if (c.op === 'NN') { ok.push('任何有填的值'); no.push('沒填'); } else if (c.op === 'NULL') { ok.push('沒填'); no.push('任何有填的值'); } else { no.push('請先填完條件'); }
-    return { ok, no }; };
+  /* 依條件產生一個「會符合」與一個「不會符合」的值（附說明） */
+  const TIERS = ['gold', 'silver', 'bronze'];
+  const alt = (v) => TIERS.find((t) => t !== String(v).trim()) || '其他值';
+  const sampleFor = (c, ok) => {
+    const n = +c.val, step = Math.max(1, Math.round(Math.abs(n) * 0.2)), first = String(c.val).split(/[，,]/)[0].trim();
+    if (['GT', 'GTE', 'LT', 'LTE'].includes(c.op)) {
+      if (!isNum(c.val)) return { v: '—', note: '請先填數字' };
+      const m = { GT: [[n + step], [n, '剛好等於不算']], GTE: [[n, '剛好等於也算'], [n - step]], LT: [[n - step], [n, '剛好等於不算']], LTE: [[n, '剛好等於也算'], [n + step]] }[c.op][ok ? 0 : 1];
+      return { v: String(m[0]), note: m[1] || '' };
+    }
+    if (c.op === 'EQ') return ok ? { v: c.val } : { v: alt(c.val) };
+    if (c.op === 'NEQ') return ok ? { v: alt(c.val) } : { v: c.val };
+    if (c.op === 'CONTAINS') return ok ? { v: `${c.val}_plus` } : { v: alt(c.val) };
+    if (c.op === 'IN') return ok ? { v: first } : { v: '清單以外的值' };
+    if (c.op === 'NOTIN') return ok ? { v: '清單以外的值' } : { v: first };
+    if (c.op === 'NN') return ok ? { v: c.sample || 'gold' } : { v: '沒填' };
+    return ok ? { v: '沒填' } : { v: c.sample || 'gold' };
+  };
+  const exampleHtml = () => {
+    const okRows = state.map((c) => { const x = sampleFor(c, true); return `<dt>${esc(c.name)}</dt><dd class="ok">${icon('check')}${esc(x.v)}${x.note ? `<span class="why2">${esc(x.note)}</span>` : ''}</dd>`; }).join('');
+    const noRows = state.map((c, i) => { const bad = i === last; const x = sampleFor(c, !bad);
+      return bad ? `<dt>${esc(c.name)}</dt><dd class="fail">${icon('x')}${esc(x.v)}<span class="why2">不合：要${esc(frag(c))}${x.note ? `（${esc(x.note)}）` : ''}</span></dd>` : `<dt>${esc(c.name)}</dt><dd class="ok">${icon('check')}${esc(x.v)}</dd>`; }).join('');
+    return `<div class="y"><p class="hd2">${icon('check')}一位會符合的客戶</p><dl>${okRows}</dl></div><div class="n"><p class="hd2">${icon('x')}一位不會符合的客戶</p><dl>${noRows}</dl></div>`;
+  };
   let last = 0; const state = C.map((c) => ({ ...c }));
   const render = () => {
     host.innerHTML = `<p class="sentence" aria-live="polite">客戶要<b>全部符合</b>：${state.map((c) => `<q>${esc(c.name)}</q>${esc(frag(c))}`).join('；')}。</p>` +
@@ -516,17 +620,17 @@ const portY = (n, i) => { const k = T[n.type].ports.length; return k === 1 ? NH 
         <div class="r2"><select class="cmp" data-i="${i}" aria-label="比較方式">${G[c.t].map(([g, ops]) => `<optgroup label="${g}">${ops.map((o) => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${L[o]}</option>`).join('')}</optgroup>`).join('')}</select>${['NN', 'NULL'].includes(c.op) ? '' : `<input class="val" data-i="${i}" value="${esc(c.val)}" inputmode="${['GT', 'GTE', 'LT', 'LTE'].includes(c.op) ? 'decimal' : 'text'}" aria-label="比較的值" placeholder="${['GT', 'GTE', 'LT', 'LTE'].includes(c.op) ? '例：500' : '例：gold'}">`}</div>
         ${c.t === 'unk' ? `<p class="help">系統不知道「${esc(c.name)}」是數字還是文字。要比大小，請在比較欄選「數字比大小」那一組的項目（大於、至少、小於、至多），500 會當成數字比對。</p>` : ''}
         <details class="adv"><summary>進階資訊</summary><code>${esc(c.code)} ・ ${c.op === 'NN' ? 'IS_NOT_NULL' : c.op === 'NOTIN' ? 'NOT_IN' : c.op} ・ ${esc(c.val)}</code></details></div>`).join('');
-    const tbody = $('#cmp-test'); const ex = examples(state[last]);
-    tbody.innerHTML = `<div class="ex"><div class="y"><b>${icon('check')}會符合</b><ul>${examples(state[last]).ok.map((x) => `<li><q style="quotes:none">${esc(state[last].name)}</q> ${esc(x)}</li>`).join('')}</ul></div><div class="n"><b>${icon('x')}不會符合</b><ul>${ex.no.map((x) => `<li><q style="quotes:none">${esc(state[last].name)}</q> ${esc(x)}</li>`).join('')}</ul></div></div>
+    const tbody = $('#cmp-test');
+    tbody.innerHTML = `<div class="ex">${exampleHtml()}</div>
       <div><div class="try">${state.map((c, i) => `<label>${esc(c.name)}<input data-s="${i}" value="${esc(c.sample)}" placeholder="（沒填）"></label>`).join('')}</div></div><div id="verdict" role="status" aria-live="polite"></div>
       <p class="fine">只用你在這裡輸入的樣本判斷，不會讀取真實客戶，也不會改動旅程。</p>`;
     verdict();
   };
   const verdict = () => { const rs = state.map((c) => pass(c, c.sample)); const all = rs.every(Boolean);
-    $('#verdict').innerHTML = `<div class="verdict ${all ? 'ok' : 'no'}">${icon(all ? 'check' : 'x')}<div>${all ? '這位客戶會符合：可以進入' : '這位客戶不會符合：不會進入'}<ul>${state.map((c, i) => `<li>${rs[i] ? '✓' : '✗'} ${esc(c.name)} ${esc(frag(c))}（你填的：${c.sample === '' ? '沒填' : esc(c.sample)}）</li>`).join('')}</ul></div></div>`; };
+    $('#verdict').innerHTML = `<div class="verdict ${all ? 'ok' : 'no'}">${icon(all ? 'check' : 'x')}<div>${all ? '這位客戶會符合：可以進入' : '這位客戶不會符合：不會進入'}<ul>${state.map((c, i) => `<li class="${rs[i] ? 'p' : 'f'}">${icon(rs[i] ? 'check' : 'x')}<span>「${esc(c.name)}」${esc(frag(c))} <small>（你填的：${c.sample === '' ? '沒填' : esc(c.sample)}）</small></span></li>`).join('')}</ul></div></div>`; };
   host.addEventListener('change', (e) => { const i = e.target.dataset.i; if (e.target.classList.contains('cmp')) { last = +i; state[i].op = e.target.value; if (['NN', 'NULL'].includes(e.target.value)) state[i].val = ''; render(); } });
   host.addEventListener('input', (e) => { if (e.target.classList.contains('val')) { last = +e.target.dataset.i; state[e.target.dataset.i].val = e.target.value; const p = $('.sentence', host); p.innerHTML = `客戶要<b>全部符合</b>：${state.map((c) => `<q>${esc(c.name)}</q>${esc(frag(c))}`).join('；')}。`; const t = $('#cmp-test'); const keep = document.activeElement; const pos = keep.selectionStart; const idx = keep.dataset.i; renderTest(); const again = host.querySelector(`.val[data-i="${idx}"]`); again && again.focus() && again.setSelectionRange(pos, pos); void t; } });
-  function renderTest() { const ex = examples(state[last]); const tb = $('#cmp-test'); tb.querySelector('.ex').innerHTML = `<div class="y"><b>${icon('check')}會符合</b><ul>${ex.ok.map((x) => `<li>${esc(state[last].name)} ${esc(x)}</li>`).join('')}</ul></div><div class="n"><b>${icon('x')}不會符合</b><ul>${ex.no.map((x) => `<li>${esc(state[last].name)} ${esc(x)}</li>`).join('')}</ul></div>`; verdict(); }
+  function renderTest() { $('#cmp-test').querySelector('.ex').innerHTML = exampleHtml(); verdict(); }
   $('#cmp-test').addEventListener('input', (e) => { if (e.target.dataset.s !== undefined) { state[e.target.dataset.s].sample = e.target.value; verdict(); } });
   render();
 })();
