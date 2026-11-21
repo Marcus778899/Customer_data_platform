@@ -153,7 +153,7 @@
 | canvas-zoom-filter-fix | frontend | done | 0 | PR #267 |
 | login-proxy-design | architect | done | 0 | PR #275 |
 | osv-ignore-extend | architect | done | 0 | PR #274 |
-| canvas-interaction-ui | designer | review | 1 |  |
+| canvas-interaction-ui | designer | done | 1 | PR #282 |
 | osv-ignore-remove | architect | done | 0 | PR #279 |
 | journey-delete-design | architect | review | 0 |  |
 | login-proxy-api | backend | done | 0 | PR #285 |
