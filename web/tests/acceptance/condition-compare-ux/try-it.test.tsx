@@ -140,3 +140,43 @@ describe('試試看區', () => {
     for (const el of box.querySelectorAll<HTMLInputElement>('input, textarea, select')) expect(el.disabled || el.readOnly || el.closest('fieldset[disabled]')).toBeTruthy()
   })
 })
+
+describe('試試看：同欄位多條件的範例（回歸：CONTAINS 誤報矛盾、NOT_IN 只列一條不合）', () => {
+  const MSG = '條件互相矛盾'
+  const exText = async (cond: unknown) => {
+    const { panel } = await openCond(cond)
+    return tryBox(panel).textContent ?? ''
+  }
+  const flat = (s: string) => s.replace(/\s+/g, '')
+
+  it.each([
+    ['包含 a 且 包含 b', [tierLeaf('CONTAINS', 'a'), tierLeaf('CONTAINS', 'b')]],
+    ['包含 ab 且 包含 bc（需 abc）', [tierLeaf('CONTAINS', 'ab'), tierLeaf('CONTAINS', 'bc')]],
+    ['包含 vip 且 包含 gold', [tierLeaf('CONTAINS', 'vip'), tierLeaf('CONTAINS', 'gold')]],
+    ['包含 a、b、c 三個', [tierLeaf('CONTAINS', 'a'), tierLeaf('CONTAINS', 'b'), tierLeaf('CONTAINS', 'c')]],
+    ['是其中之一 [ab, x] 且 包含 a', [tierLeaf('IN', ['ab', 'x']), tierLeaf('CONTAINS', 'a')]],
+    ['不是其中任何一個 [a] 且 包含 a_x', [tierLeaf('NOT_IN', ['a']), tierLeaf('CONTAINS', 'a_x')]],
+  ])('%s：有一位會符合的客戶，不顯示條件互相矛盾', async (_n, leaves) => {
+    const t = flat(await exText(andOf(...leaves)))
+    expect(t).toContain('一位會符合的客戶')
+    expect(t).not.toContain(MSG)
+  })
+
+  it('真矛盾（等於 gold 且 包含 zzz）仍顯示條件互相矛盾', async () => {
+    const t = flat(await exText(andOf(tierLeaf('EQ', 'gold'), tierLeaf('CONTAINS', 'zzz'))))
+    expect(t).toContain(MSG)
+  })
+
+  it.each([
+    ['NOT_IN [5,6,7] 且 大於 4 且 小於 8', [cartLeaf('NOT_IN', [5, 6, 7]), cartLeaf('GT', 4), cartLeaf('LT', 8)]],
+    ['NOT_IN [5,6,7] 且 大於 4', [cartLeaf('NOT_IN', [5, 6, 7]), cartLeaf('GT', 4)]],
+  ])('數字欄 %s：不會符合那位只有一條紅字原因', async (_n, leaves) => {
+    const { panel } = await openCond(andOf(...leaves))
+    const box = tryBox(panel)
+    const no = box.querySelector('.try-ex .no') as HTMLElement
+    expect(no).toBeTruthy()
+    expect(flat(no.textContent ?? '').match(/不合：/g)?.length).toBe(1)
+    expect(no.querySelectorAll('dd.fail .why').length).toBe(1)
+    expect(no.querySelectorAll('dd.fail').length).toBe(1)
+  })
+})
