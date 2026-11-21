@@ -1,6 +1,7 @@
 // 節點庫（取代頂部工具列）：四組九個項目，按一下／Enter 新增，桌機也可拖進畫布。
 // ≥1101px 側欄、≤1100px 圖示軌、≤640px 上方橫排（只用 CSS 切換，同一份元素）。
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from '../components/CanvasIcons'
 import { categoryOf, NODE_MIME, PALETTE, typeLabel } from './model'
 
 export function NodeLibrary({ onAdd, locked }: { onAdd: (type: string) => void; locked: boolean }) {
@@ -37,11 +38,14 @@ export function NodeLibrary({ onAdd, locked }: { onAdd: (type: string) => void; 
               }}
               onClick={() => !locked && onAdd(it.type)}
             >
+              <Icon name={it.type} />
               <span className="nl-tx">
                 <b>{typeLabel(it.type)}</b>
                 <small>{it.hint}</small>
               </span>
-              <span className="nl-grip" aria-hidden="true" />
+              <span className="nl-grip" aria-hidden="true">
+                <Icon name="grip" size={16} />
+              </span>
             </button>
           ))}
         </div>

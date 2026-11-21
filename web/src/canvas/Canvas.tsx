@@ -21,6 +21,8 @@ import {
 } from '@xyflow/react'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { HANDLE_R, outletY, pickZoom } from '../graph/card'
+import { Icon } from '../components/CanvasIcons'
+import { placeLinkMenu, type LinkMenu } from './menu'
 import { placeRemove, routeEdge, type Pt, type Route } from '../graph/route'
 import {
   canTarget,
@@ -180,7 +182,8 @@ function LinkView(props: EdgeProps<Edge<LinkData>>) {
               data.onRemove(id)
             }}
           >
-            {button.long ? '移除連線' : <span aria-hidden="true" className="edel-x" />}
+            <Icon name="trash" />
+            {button.long && '移除連線'}
           </button>
         </EdgeLabelRenderer>
       )}
@@ -443,23 +446,6 @@ const markHintSeen = () => {
   }
 }
 
-const MENU_W = 240
-const MENU_H = 440
-const MENU_GAP = 16
-const DRAG_MIN = 6
-
-interface LinkMenu {
-  /** 選單左上角（畫布容器內的像素） */
-  x: number
-  y: number
-  /** 放開處（流程座標） */
-  flow: Pt
-  from: { id: string; port: string }
-  /** 來源出口與放開處（畫布容器內的像素），畫保留的虛線 */
-  start: Pt
-  drop: Pt
-}
-
 interface CanvasProps {
   def: Def
   layout: Layout | null
@@ -628,31 +614,27 @@ function CanvasBody({
     [isValidConnection, dismissHint, onConnect],
   )
   const handleConnectEnd = (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
-      const press = pressAt.current
-      pressAt.current = null
-      if (locked || state.isValid || state.toNode || !state.fromNode || !state.fromHandle?.id) return
-      const pt = 'changedTouches' in event ? event.changedTouches[0] : event
-      if (!pt || (press && Math.hypot(pt.clientX - press.x, pt.clientY - press.y) < DRAG_MIN)) return
-      const fromId = state.fromNode.id
-      const port = state.fromHandle.id
-      const rect = wrap.current?.getBoundingClientRect()
-      const drop = { x: pt.clientX - (rect?.left ?? 0), y: pt.clientY - (rect?.top ?? 0) }
-      const w = wrap.current?.offsetWidth ?? 0
-      const h = wrap.current?.offsetHeight ?? 0
-      const flow = rf.screenToFlowPosition({ x: pt.clientX, y: pt.clientY })
-      // 放開點右側 16px（放不下改左側）；不蓋住來源出口
-      let x = drop.x + MENU_GAP
-      if (w > 0 && x + MENU_W > w - 8) x = Math.max(8, drop.x - MENU_GAP - MENU_W)
-      let y = h > 0 ? Math.min(Math.max(8, drop.y - 24), Math.max(8, h - MENU_H - 8)) : drop.y
-      const p = fullRef.current.nodes[fromId]
-      const specs = outputSpecs(def.nodes.find((n) => n.id === fromId) ?? { id: fromId, type: '', name: null, config: {}, outputs: {} })
-      const idx = Math.max(0, specs.findIndex((s) => s.port === port))
-      const vp = rf.getViewport()
-      const start = p ? { x: vp.x + (p.x + CARD_W) * vp.zoom, y: vp.y + (p.y + outletY(idx, specs.length)) * vp.zoom } : drop
-      if (start.x >= x - HANDLE_R && start.x <= x + MENU_W + HANDLE_R && start.y >= y - HANDLE_R && start.y <= y + MENU_H + HANDLE_R) {
-        y = Math.min(start.y + 24, Math.max(8, h - MENU_H - 8))
-      }
-      setMenu({ x, y, flow, from: { id: fromId, port }, start, drop })
+    const press = pressAt.current
+    pressAt.current = null
+    if (locked || state.isValid || state.toNode || !state.fromNode || !state.fromHandle?.id) return
+    const pt = 'changedTouches' in event ? event.changedTouches[0] : event
+    if (!pt) return
+    const fromId = state.fromNode.id
+    const port = state.fromHandle.id
+    const rect = wrap.current?.getBoundingClientRect()
+    const specs = outputSpecs(def.nodes.find((n) => n.id === fromId) ?? { id: fromId, type: '', name: null, config: {}, outputs: {} })
+    const next = placeLinkMenu({
+      press,
+      pointer: { x: pt.clientX, y: pt.clientY },
+      box: { left: rect?.left ?? 0, top: rect?.top ?? 0, w: wrap.current?.offsetWidth ?? 0, h: wrap.current?.offsetHeight ?? 0 },
+      flow: rf.screenToFlowPosition({ x: pt.clientX, y: pt.clientY }),
+      from: { id: fromId, port },
+      node: fullRef.current.nodes[fromId],
+      outputs: specs.length,
+      index: Math.max(0, specs.findIndex((s) => s.port === port)),
+      viewport: rf.getViewport(),
+    })
+    if (next) setMenu(next)
   }
 
   // 選單開著時：Esc 取消（先於 Editor 的 Esc，不順便取消選取）
