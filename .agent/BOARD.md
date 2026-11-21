@@ -155,8 +155,9 @@
 | osv-ignore-extend | architect | done | 0 | PR #274 |
 | canvas-interaction-ui | designer | done | 1 | PR #282 |
 | osv-ignore-remove | architect | done | 0 | PR #279 |
-| journey-delete-design | architect | review | 0 |  |
+| journey-delete-design | architect | done | 0 | PR #284 |
 | login-proxy-api | backend | done | 0 | PR #285 |
+| node-card-unify | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
