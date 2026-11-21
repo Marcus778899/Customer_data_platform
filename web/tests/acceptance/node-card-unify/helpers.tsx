@@ -8,6 +8,8 @@
  *   - 提示是 role=status 的文字，與縮放列在同一個父元素內、不在 `.graph` 裡（不浮在圖上）。
  *   - 目前縮放 = 百分比文字 / 100；節點卡位置讀 `.react-flow__node` 的 translate（流程座標）與 style 寬高。
  *     捲動位置 0 時，容器右緣在流程座標 = GRAPH_W / 縮放。
+ *   - 卡片尺寸常數（寬 200、高 120／144 等）放在 app.css（或 `.node` 直接寫死），不放 tokens.css（不在負責檔案，規格無新 token）；
+ *     css-rules.test.ts 的 var() 只查 app.css 自己的定義再查 tokens.css。
  *   - 漸層元素 class 含 `fade`（編輯畫布 `.cvfade`）；「消失」＝元素不存在、有 hidden、或自己／祖先帶 class `end`、opacity 0、display none。
  */
 import { screen, waitFor } from '@testing-library/react'
