@@ -156,7 +156,7 @@
 | canvas-interaction-ui | designer | qa | 1 |  |
 | osv-ignore-remove | architect | done | 0 | PR #279 |
 | journey-delete-design | architect | review | 0 |  |
-| login-proxy-api | backend | todo | 0 |  |
+| login-proxy-api | backend | done | 0 | PR #285 |
 
 ## 卡住／待甲方決定
 
@@ -177,7 +177,7 @@
 - security v0.3.0 FAIL 待重審：H-1 advisory 已撤回（D-093，osv-ignore-remove）；M-1／M-2 依 D-091 修（login-proxy-design 已核可 → login-proxy-api）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
 - 注意（journey-delete-design）：journey 改軟刪除（deleted_at），之後任何讀 journey 表的新查詢都要加 deleted_at IS NULL
 - 請甲方手動關 #240（picomatch advisory 撤回，PR #279 已移除忽略，D-093）
-- 甲方 2026-11-19 要求暫停、不再派新工作。恢復點：1) canvas-interaction-ui（PR #282）qa 第二輪 PASS 已 record → 派 visual-reviewer；2) journey-delete-design（PR #284）qa PASS，與 #282 一起交甲方核可；3) login-proxy-api 後端修 spotless 並重跑測試（仲裁 TEST_WRONG 已重鎖 dd9004f）→ ae pr open → qa B → review（看兩處偏離設計）；4) 核可後開 journey-delete-api 與前端四張單（node-card-unify、canvas-connect-drag、condition-compare-ux、journey-header-save-delete）；5) 全部合併後 security 重審、uat 重測、甲方驗收（uat 第七輪 PASS，minor #268 #271）
+- 進度（2026-11-21）：login-proxy-api 已合併（PR #285；review 非阻擋：login-proxy.md 做法 #4 依實作補正，併入下一張 architect 單）；canvas-interaction-ui 第 2 輪評審修正後 qa 中 → 視覺評審 → 與 journey-delete-design 一起交甲方核可；核可後開 journey-delete-api 與前端四張單；全部合併後 security 重審、uat 重測、甲方驗收
 
 ## 注意事項（踩過的坑）
 
