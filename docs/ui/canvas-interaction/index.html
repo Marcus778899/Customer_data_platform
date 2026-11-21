@@ -272,7 +272,7 @@ function rounded(p, r) {
     const r1 = Math.min(r, Math.hypot(x - x0, y - y0) / 2, Math.hypot(x2 - x, y2 - y) / 2);
     d += ` L${x - Math.sign(x - x0) * r1},${y - Math.sign(y - y0) * r1} Q${x},${y} ${x + Math.sign(x2 - x) * r1},${y + Math.sign(y2 - y) * r1}`;
   }
-  const l = p[p.length - 1]; return d + ` L${l[0] - 2},${l[1]}`;
+  const l = p[p.length - 1], q = p[p.length - 2]; return d + ` L${l[0] - 2 * Math.sign(l[0] - q[0])},${l[1] - 2 * Math.sign(l[1] - q[1])}`;
 }
 /* 連線路徑：目標在來源右邊用曲線；目標在左邊或同一欄（往回、往上下）用 smoothstep 繞行，offset 24，不穿過卡片 */
 function route(a, b, x1, y1, x2, y2) {
@@ -282,6 +282,12 @@ function route(a, b, x1, y1, x2, y2) {
     return { d: bez(x1, y1, x2, y2), mid: mid(x1, y1, x2, y2), len };
   }
   const o = 24; let yr;
+  /* 同一欄（往上或往下）：從來源右側出、在欄外 24px 上下走，接目標卡的上緣（或下緣）中點，不進兩欄之間的空隙、不跟既有連線共用箭頭 */
+  if (Math.abs(b.x - a.x) < a.w) {
+    const up = b.y < a.y, ex = b.x + b.w / 2, ey = up ? b.y : b.y + b.h, yy = up ? b.y - o : b.y + b.h + o, xr = Math.max(x1, b.x + b.w) + o;
+    const pts = [[x1, y1], [xr, y1], [xr, yy], [ex, yy], [ex, ey]];
+    return { d: rounded(pts, 10), mid: [(xr + ex) / 2, yy], len: Math.abs(y1 - yy) + Math.abs(xr - ex) };
+  }
   if (b.y + b.h + o <= a.y) yr = a.y - o; else if (b.y >= a.y + a.h + o) yr = a.y + a.h + o; else yr = Math.max(a.y + a.h, b.y + b.h) + o;
   const pts = [[x1, y1], [x1 + o, y1], [x1 + o, yr], [x2 - o, yr], [x2 - o, y2], [x2, y2]];
   return { d: rounded(pts, 10), mid: [(x1 + x2) / 2, yr], len: Math.abs(x1 - x2) + 2 * o };
@@ -303,15 +309,30 @@ function route(a, b, x1, y1, x2, y2) {
     sizer.style.width = offX + (b.w + 280) * Z + 'px'; sizer.style.height = (b.h + 120) * Z + 'px';
     const p = $('#zp'); p.textContent = Math.round(Z * 100) + '%';
     p.style.color = Z < 0.7 ? 'var(--color-warning-fg)' : ''; p.style.background = Z < 0.7 ? 'var(--color-warning-bg)' : '';
+    if (typeof syncFade === 'function') requestAnimationFrame(syncFade);
   }
   const toWorld = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left + cv.scrollLeft - offX) / Z, y: (e.clientY - r.top + cv.scrollTop) / Z }; };
   const bbox = () => nodes.length ? { w: Math.max(...nodes.map((n) => n.x + NW)) + 24, h: Math.max(...nodes.map((n) => n.y + NH)) + 24 } : { w: 600, h: 400 };
   /* 初始縮放＝唯讀圖同一條規則：整張放得下就 100% 置中；放不下就看全圖，但不低於 75%（放不下的部分捲動） */
   function fitView() {
     const b = bbox(), cw = cv.clientWidth, ch = cv.clientHeight;
-    const z = b.w <= cw && b.h <= ch ? 1 : Math.max(0.75, Math.min(1, cw / b.w, ch / b.h));
-    offX = Math.max(0, Math.round((cw - b.w * z) / 2)); setZoom(z); cv.scrollTo(0, 0);
+    let z = b.w <= cw && b.h <= ch ? 1 : Math.max(0.75, Math.min(1, cw / b.w, ch / b.h));
+    /* 放不下（75% 仍超出）時跟唯讀圖一樣微調：右緣只露出某張卡的色條（6～14px），不切在卡片文字中間 */
+    if (b.w * z > cw + 1) {
+      const zmax = Math.max(0.75, Math.min(1, ch / b.h));
+      const edge = (zz) => { const r = cw / zz; let peek = false, cut = false; nodes.forEach((n) => { const d = (r - n.x) * zz; if (d >= 6 && d <= 14) peek = true; else if (d > 0 && d < NW * zz) cut = true; }); return { peek, cut }; };
+      let best = null; for (let zz = zmax; zz >= 0.749; zz -= 0.0025) { const e = edge(zz); if (e.peek && !e.cut) { best = zz; break; } }
+      if (best === null) for (let zz = zmax; zz >= 0.749; zz -= 0.0025) if (!edge(zz).cut) { best = zz; break; }
+      /* 手機：75%～100% 都會切到字時，同唯讀圖放大（上限 125%）到只露出下一張卡色條 */
+      if (best === null) for (let zz = 1; zz <= 1.25; zz += 0.0025) { const e = edge(zz); if (e.peek && !e.cut) { best = zz; break; } }
+      if (best !== null) z = best;
+    }
+    offX = Math.max(0, Math.round((cw - b.w * z) / 2)); setZoom(z); cv.scrollTo(0, 0); syncFade();
   }
+  /* 右緣漸層：還能往右捲時顯示，捲到底消失 */
+  const fade = document.createElement('div'); fade.className = 'cvfade'; fade.setAttribute('aria-hidden', 'true'); cvw.appendChild(fade);
+  function syncFade() { fade.style.top = cv.offsetTop + 'px'; fade.style.height = cv.offsetHeight + 'px'; fade.style.right = (cvw.clientWidth - cv.offsetLeft - cv.offsetWidth) + 'px'; const right = cv.scrollLeft + cv.clientWidth; fade.hidden = !nodes.some((n) => offX + (n.x + NW) * Z > right + 1); }
+  cv.addEventListener('scroll', syncFade); addEventListener('resize', syncFade);
   const overlap = (x, y, ignore) => nodes.some((m) => m !== ignore && Math.abs(m.x - x) < NW + 24 && Math.abs(m.y - y) < NH + 24);
   const freeSpot = (x, y) => { let k = 0; while (overlap(x, y) && k++ < 40) y += 144, k % 4 === 0 && (x += 272, y = 24); return { x, y: Math.max(16, y) }; };
 
@@ -323,7 +344,7 @@ function route(a, b, x1, y1, x2, y2) {
     const wm = t.ports.length;
     w.innerHTML = `<button type="button" class="nc cat-${t.cat}" aria-label="${esc(n.name)}（${t.label}）"><div class="c">${icon(t.ico)}${t.label}</div><div class="n"></div><div class="s ${t.warn ? 'warn' : ''}">${esc(t.sub)}</div></button>` +
       (type === 'start' ? '' : `<span class="hd in" style="left:0;top:${NH / 2}px"></span>`) +
-      t.ports.map((p, i) => `<button type="button" class="hd out" data-i="${i}" style="left:${NW}px;top:${portY(n, i)}px" aria-label="從「${esc(n.name)}」${p ? `的「${p}」出口` : '的出口'}拉線到下一步"><span class="plabel">${p || '下一步'}</span><span class="tag">拉線接下一步</span></button>`).join('');
+      t.ports.map((p, i) => `<button type="button" class="hd out" data-i="${i}" style="left:${NW}px;top:${portY(n, i)}px" aria-label="從「${esc(n.name)}」${p ? `的「${p}」出口` : '的出口'}拉線到下一步">${p ? `<span class="plabel">${p}</span>` : ''}<span class="tag">拉線接下一步</span></button>`).join('');
     n.el = w; w.querySelector('.n').textContent = n.name;
     world.appendChild(w);
     w.querySelector('.nc').addEventListener('pointerdown', (e) => nodeDown(e, n));
@@ -340,7 +361,7 @@ function route(a, b, x1, y1, x2, y2) {
       const a = nodeById(ed.from), b = nodeById(ed.to); if (!a || !b) return;
       const x1 = a.x + NW, y1 = a.y + portY(a, ed.pi), x2 = b.x, y2 = b.y + NH / 2;
       const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'edge' + (sel && sel.k === 'edge' && sel.id === ed.id ? ' sel' : ''));
-      const rt = route({ x: a.x, y: a.y, h: NH }, { x: b.x, y: b.y, h: NH }, x1, y1, x2, y2); const d = rt.d;
+      const rt = route({ x: a.x, y: a.y, w: NW, h: NH }, { x: b.x, y: b.y, w: NW, h: NH }, x1, y1, x2, y2); const d = rt.d;
       const p = document.createElementNS(NS, 'path'); p.setAttribute('class', 'e'); p.setAttribute('d', d); p.setAttribute('marker-end', 'url(#ah)');
       const h = document.createElementNS(NS, 'path'); h.setAttribute('class', 'hit'); h.setAttribute('d', d);
       h.addEventListener('click', (e) => { e.stopPropagation(); select({ k: 'edge', id: ed.id }); });
@@ -387,8 +408,9 @@ function route(a, b, x1, y1, x2, y2) {
     drawEdges(); fillSide();
   }
   function fillSide() {
+    requestAnimationFrame(syncFade);
     if (!sel || sel.k !== 'node') { side.hidden = true; cvw.classList.remove('has-side'); return; }
-    const n = nodeById(sel.id); if (!n) { side.hidden = true; cvw.classList.remove('has-side'); return; } const t = T[n.type]; side.hidden = false; cvw.classList.add('has-side');
+    const n = nodeById(sel.id); if (!n) { side.hidden = true; cvw.classList.remove('has-side'); return; } const t = T[n.type]; side.hidden = false; cvw.classList.add('has-side'); requestAnimationFrame(syncFade);
     const others = nodes.filter((m) => m !== n && m.type !== 'start');
     side.innerHTML = `<header>${icon(t.ico)}<h3></h3><button type="button" class="x" aria-label="關閉面板">${icon('x')}</button></header>
       <div class="field"><label for="nm">名稱</label><input id="nm" value="${esc(n.name)}" maxlength="40"></div>
@@ -489,8 +511,8 @@ function route(a, b, x1, y1, x2, y2) {
   $('#reset').onclick = () => { nodes.forEach((n) => n.el.remove()); nodes = []; edges = []; cnt = {}; sel = null; seed(); $('#coach').hidden = false; };
 
   function seed() {
-    const s = mk('start', 24, 168, '開始'); const w = mk('wait', 296, 168, '等待 1 小時'); const c = mk('cond', 568, 168, '已下單？');
-    const m = mk('msg', 840, 336, '提醒 1'); const e = mk('end', 840, 24, '結束');
+    const s = mk('start', 24, 192, '開始'); const w = mk('wait', 296, 192, '等待 1 小時'); const c = mk('cond', 568, 192, '已下單？');
+    const m = mk('msg', 840, 360, '提醒 1'); const e = mk('end', 840, 48, '結束');
     edges = [{ id: 'e0', from: s.id, pi: 0, to: w.id }, { id: 'e1', from: w.id, pi: 0, to: c.id }, { id: 'e2', from: c.id, pi: 0, to: e.id }, { id: 'e3', from: c.id, pi: 1, to: m.id }]; eid = 3;
     m.el.querySelector('.s').textContent = '歡迎回來，還在考慮嗎？'; m.el.querySelector('.s').classList.remove('warn'); c.el.querySelector('.s').textContent = '客戶已下單'; c.el.querySelector('.s').classList.remove('warn');
     fitView(); drawEdges(); fillSide();
@@ -525,7 +547,7 @@ function route(a, b, x1, y1, x2, y2) {
     const end = sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 4; host.classList.toggle('end', end); bar.classList.toggle('end', end);
     const right = (sc.scrollLeft + sc.clientWidth) / Z; const left = sc.scrollLeft / Z;
     const hidR = N.filter((n) => n.x + NW > right + 1).length, hidL = N.filter((n) => n.x < left - 1).length;
-    $('#romore').innerHTML = end && !hidL ? `${icon('check')}<span>已看到全部 ${N.length} 個節點</span>` : hidR ? `${icon('fit')}<span>右邊還有 <b>${hidR}</b> 個節點：左右拖曳、捲動，或按「看全圖」</span>` : `${icon('check')}<span>已捲到最右邊；左邊還有 <b>${hidL}</b> 個節點</span>`;
+    $('#romore').innerHTML = end && !hidL ? `${icon('check')}<span>已看到全部 ${N.length} 個節點</span>` : hidR ? `${icon('fit')}<span>右邊還有 <b>${hidR}</b> 個節點，左右滑動或按「看全圖」</span>` : `${icon('check')}<span>已捲到最右邊；左邊還有 <b>${hidL}</b> 個節點</span>`;
     $('#rowidth').textContent = sc.clientWidth;
   };
   const apply = () => { host.style.setProperty('--zoom', Z); $('#robox').style.cssText = `width:${W * Z}px;height:${H * Z}px`; $('#rzp').textContent = Math.round(Z * 100) + '%'; $('#rzp').style.color = Z < 0.7 ? 'var(--color-warning-fg)' : ''; sync(); };
@@ -542,7 +564,8 @@ function route(a, b, x1, y1, x2, y2) {
     for (let z = 1; z <= 1.25; z += 0.0025) if (peek(z)) return z;
     return 0.75;
   };
-  const reset = () => { Z = initialZoom(); apply(); sc.scrollLeft = 0; $('#rozoom').textContent = Math.round(Z * 100) + '%'; };
+  /* 窄螢幕框高上限 360px，捲到主幹那一列（不留大片上下空白） */
+  const reset = () => { Z = initialZoom(); apply(); sc.scrollLeft = 0; const narrow = sc.clientWidth < 480; sc.style.maxHeight = narrow ? '360px' : ''; sc.style.overflowY = narrow ? 'auto' : ''; sc.scrollTop = narrow ? Math.max(0, (170 + NHS / 2) * Z - 180) : 0; $('#rozoom').textContent = Math.round(Z * 100) + '%'; };
   const fit = () => { Z = Math.min(1, (sc.clientWidth - 8) / W); apply(); sc.scrollLeft = 0; };
   $('#rfit').onclick = fit; $('#rzi').onclick = () => { Z = Math.min(1.25, Z + 0.1); apply(); }; $('#rzo').onclick = () => { Z = Math.max(0.4, Z - 0.1); apply(); };
   let drag = null; sc.addEventListener('pointerdown', (e) => { if (e.target.closest('.nc')) return; drag = { x: e.clientX, l: sc.scrollLeft }; }); addEventListener('pointermove', (e) => { if (drag) sc.scrollLeft = drag.l - (e.clientX - drag.x); }); addEventListener('pointerup', () => (drag = null));
