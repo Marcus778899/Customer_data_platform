@@ -72,7 +72,7 @@ function Editor({ id }: { id: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented || dialog) return
-      if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"]')) return
+      if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"], [role="alertdialog"]')) return
       if (selectedEdge) setSelectedEdge(null)
       else if (selected) setSelected(null)
       else if (settingsOpen) setSettingsOpen(false)
@@ -97,6 +97,7 @@ function Editor({ id }: { id: string }) {
   const { edit } = ed
   const removeLink = useCallback(
     (edgeId: string) => {
+      if (locked) return
       const at = edgeId.indexOf(':')
       const source = edgeId.slice(0, at)
       const port = edgeId.slice(at + 1)
@@ -104,10 +105,11 @@ function Editor({ id }: { id: string }) {
       setSelectedEdge(null)
       setLive('已移除連線')
     },
-    [edit],
+    [edit, locked],
   )
   const deleteNode = useCallback(
     (nid: string) => {
+      if (locked) return
       edit((d, l) => {
         const nodes = { ...l.nodes }
         delete nodes[nid]
@@ -116,13 +118,13 @@ function Editor({ id }: { id: string }) {
       setSelected(null)
       setLive('已刪除節點')
     },
-    [edit],
+    [edit, locked],
   )
 
   // Delete：選取連線就移除連線，否則刪除選取的節點（進入條件與開始不可刪）；在輸入欄位、對話框裡不處理
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' || e.defaultPrevented || dialog) return
+      if (e.key !== 'Delete' || e.defaultPrevented || dialog || locked) return
       const t = e.target as HTMLElement | null
       if (t?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
       if (selectedEdge) removeLink(selectedEdge)
@@ -133,15 +135,15 @@ function Editor({ id }: { id: string }) {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [dialog, selectedEdge, selected, def, removeLink, deleteNode])
+  }, [dialog, locked, selectedEdge, selected, def, removeLink, deleteNode])
 
   const connectPorts = useCallback(
     (source: string, port: string, target: string) => {
-      if (!def || !connect(def, source, port, target)) return
+      if (locked || !def || !connect(def, source, port, target)) return
       edit((d, l) => [connect(d, source, port, target) ?? d, l])
       setLive('已連接')
     },
-    [def, edit],
+    [def, edit, locked],
   )
   const portKey = useCallback(
     (nid: string, port: string) => {
@@ -357,7 +359,7 @@ function Editor({ id }: { id: string }) {
               panelOpen={!!panelKey && !collapsed}
               locked={locked}
               onSelect={select}
-              onSelectEdge={setSelectedEdge}
+              onSelectEdge={(eid) => !locked && setSelectedEdge(eid)}
               onConnect={connectPorts}
               onRemoveLink={removeLink}
               onPortKey={portKey}

@@ -7,7 +7,7 @@ import { NodeLibrary } from './NodeLibrary'
 import { NODE_MIME } from './model'
 import { render, screen } from '@testing-library/react'
 import {
-  cleanup, editorBackend, libraryItem, library, nodeButtons, openEditor, resetEnv, smallDef, teardown, userEvent, waitFor, waitForPut,
+  JID, cleanup, draftBody, editorBackend, json, libraryItem, library, nodeButtons, openEditor, resetEnv, smallDef, teardown, userEvent, waitFor, waitForPut,
 } from '../../tests/acceptance/journey-canvas-ui/fixtures'
 
 beforeEach(() => {
@@ -86,5 +86,28 @@ describe('編輯畫布：拖入與首次提示', () => {
     await userEvent.click(await screen.findByRole('button', { name: '知道了' }))
     await waitFor(() => expect(screen.queryByRole('button', { name: '知道了' })).toBeNull())
     expect(library()).toBeTruthy()
+  })
+})
+
+describe('送審鎖定', () => {
+  it('點線不選取、選取節點後按 Delete 不刪、live region 不報讀', async () => {
+    const pending = { review_id: 'r1', journey_id: 'j', action: 'PUBLISH', status: 'PENDING', revision: 1, base_version: null, note: '', submitted_by: { user_id: 'x', display_name: 'x' }, submitted_at: '2026-11-07T02:00:00Z', decided_by: null, decided_at: null, reason: null }
+    const ed = editorBackend({
+      def: smallDef(),
+      revision: 1,
+      routes: {
+        [`GET /api/v1/journeys/${JID}/draft`]: () => json(draftBody({ revision: 1, latest_review: pending })),
+      },
+    })
+    await openEditor()
+    await waitFor(() => expect(nodeButtons().length).toBe(6))
+    const path = document.querySelector('[data-testid="rf__edge-wait_1:next"] path')!
+    await userEvent.click(path)
+    expect(screen.queryByRole('button', { name: '移除連線' })).toBeNull()
+    await userEvent.click(nodeButtons().find((b) => (b.textContent ?? '').includes('VIP 專屬關心'))!)
+    await userEvent.keyboard('{Delete}')
+    expect(nodeButtons().length).toBe(6)
+    expect(screen.getAllByRole('status').some((s) => /已刪除|已移除|已連接/.test(s.textContent ?? ''))).toBe(false)
+    expect(ed.puts().length).toBe(0)
   })
 })
