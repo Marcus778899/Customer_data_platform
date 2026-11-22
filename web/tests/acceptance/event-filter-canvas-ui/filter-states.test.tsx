@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /** event-filter-canvas-ui：欄位建議載入中／失敗改手動輸入／事件名稱未填；驗證錯誤依 field 標到對應條件；不支援的條件。 */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { saveDraftNow } from '../journey-canvas-ui/fixtures'
 import {
   DRAFT_PATH, FK, and, bodyText, cleanup, deferred, efBackend, efDef, fieldKeysBody, filterOf, json, leaf, nodeButton, open,
   putWith, resetEnv, rowsOf, screen, SRC_LEGEND, teardown, userEvent, waitFor, within, optionCount,
@@ -49,7 +50,8 @@ describe('欄位建議的載入與失敗', () => {
     const alert = within(g).getByRole('alert')
     expect(alert.textContent).toContain('格式不符')
     expect(box.getAttribute('aria-describedby')).toContain(alert.id)
-    await new Promise((r) => setTimeout(r, 1500))
+    await saveDraftNow() // 手動儲存：按儲存草稿後，不完整的值仍不可寫入
+    await new Promise((r) => setTimeout(r, 500))
     for (const c of ed.puts()) expect(filterOf(c.body as never, 'src_1')?.children?.length ?? 0).toBe(0)
   })
 

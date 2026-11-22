@@ -30,12 +30,12 @@ describe('新建草稿', () => {
     expect(tryNodeButton('開始')).toBeTruthy()
   })
 
-  it('新草稿（只有開始）：空狀態引導「因為什麼事件進入？」＋「設定進入事件」，狀態列「尚未儲存」，不自動送出 PUT', async () => {
+  it('新草稿（只有開始）：空狀態引導「因為什麼事件進入？」＋「設定進入事件」，狀態字「已儲存（HH:mm）」（剛載入），不自動送出 PUT', async () => {
     const ed = editorBackend({ def: skeleton(), revision: 1 })
     await openEditor()
     expect(await screen.findByText('因為什麼事件進入？')).toBeTruthy()
     expect(bodyText()).toContain('還沒設定進入事件')
-    expect(bodyText()).toContain('尚未儲存')
+    expect(bodyText()).toMatch(/已儲存（\d{2}:\d{2}）/)
     expect(screen.getByRole('button', { name: '設定進入事件' })).toBeTruthy()
     await new Promise((r) => setTimeout(r, 1500))
     expect(ed.puts().length).toBe(0)

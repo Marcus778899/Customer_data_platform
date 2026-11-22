@@ -6,22 +6,12 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  addNode, chooseLabel, cleanup, editorBackend, nodeById, openEditor, rename, resetEnv, screen, selectNode, skeleton, teardown,
-  waitForPut as waitForPutRaw, byName, userEvent, type Def, type Editor, type PutBody,
+  addNode, chooseLabel, cleanup, editorBackend, nodeById, openEditor, rename, resetEnv, selectNode, skeleton, teardown,
+  waitForPut, byName, userEvent, type Def, type PutBody,
 } from '../journey-canvas-ui/fixtures'
 
 beforeEach(resetEnv)
 afterEach(() => { cleanup(); teardown() })
-
-/** journey-header-save-delete：手動儲存，不再自動 PUT；先按「儲存草稿」（有未儲存才可按）再等 PUT */
-async function saveNow() {
-  const btn = screen.getByRole('button', { name: /^(儲存草稿|重試儲存)/ })
-  if (btn.getAttribute('aria-disabled') !== 'true') await userEvent.click(btn)
-}
-async function waitForPut(pred: (b: PutBody) => boolean, ed: Editor) {
-  await saveNow()
-  return waitForPutRaw(pred, ed)
-}
 
 // node-card-unify：卡片尺寸 200×120（原 148×72）
 const W = 200
