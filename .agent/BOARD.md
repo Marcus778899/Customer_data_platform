@@ -160,6 +160,7 @@
 | node-card-unify | frontend | done | 1 | PR #289 |
 | journey-delete-api | backend | done | 0 | PR #288 |
 | canvas-connect-drag | frontend | done | 1 | PR #291 |
+| condition-compare-ux | frontend | done | 2 | PR #293 |
 
 ## 卡住／待甲方決定
 
@@ -186,6 +187,10 @@
 - 注意：前端 qa「A」的樣式測試要驗斷點下的顯示／隱藏，不只寬度；worker 改了 CSS 要重新截圖
 - journey-header-save-delete 開單時寫進背景：alertdialog 排除目前只加在 Esc 處理，Delete 鍵也要補（canvas-connect-drag qa 第 3 輪）
 - 下一張 designer 單追認（canvas-connect-drag review 2）：1024 節點庫圖示軌留名稱（圖示在上名稱在下），uat 目視「A/B 分流」等名稱是否超寬
+- 下一張 designer 單追認（condition-compare-ux）：條件節點只有 behavior／segment 葉節點時顯示停用的「欄位」下拉＋移除鈕（原本整頁崩潰），文案與外觀待確認
+- 注意：前端測試閘門用 npm test -w web（讀 web/vite.config.ts 的 testTimeout 20000），不要用根目錄 npx vitest run（預設 5000ms 會整批逾時誤判）
+- 下一張 designer 單追認（condition-compare-ux 第 2 輪）：試算的「這個條件沒有客戶能符合（條件互相矛盾）」「每位客戶都會符合」與 NOT 子條件數不對的說明文字
+- 注意：搜尋式／推算式邏輯（例：試算範例客戶）的單元測試要涵蓋每個判斷區間（常數之間、邊界、多值避開、組合），不只 review 舉的例子；qa 驗證時也要自己補幾個區間案例
 
 ## 注意事項（踩過的坑）
 
