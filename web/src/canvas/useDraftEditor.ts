@@ -1,20 +1,25 @@
-// 草稿狀態與自動儲存：編輯後停手 SAVE_DELAY 毫秒再 PUT；同時只送一個請求；revision 取自上一次回應。
+// 草稿狀態與手動儲存：只有按「儲存草稿」（或送審、驗證前）才 PUT；同時只送一個請求；revision 取自上一次回應。
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, getDraft, getFieldKeys, getJourney, putDraft, submitDraft, validateDraft, withdrawReview } from '../api/client'
 import type { Draft, FieldKeys, Issue, JourneyDetail, Review, UserRef, ValidationReport } from '../api/types'
 import { entryEventName, fillLayout, isAutoLayout, layoutAll, topologyKey, type Def, type Layout } from './model'
-
-export const SAVE_DELAY = 1000
 
 export type Banner =
   | { kind: 'conflict'; by: UserRef | null; at: string | null }
   | { kind: 'inReview' }
   | { kind: 'aborted'; detail: JourneyDetail | null }
   | { kind: 'saveFailed'; requestId: string | null }
+  | { kind: 'deleted' }
   | { kind: 'submitBlocked'; count: number }
   | { kind: 'submitFailed'; requestId: string | null }
 
 const asError = (e: unknown) => (e instanceof ApiError ? e : new ApiError(0, null, null))
+
+/** 儲存失敗：給狀態字用的白話原因（內容仍保留在畫面上） */
+export interface SaveError {
+  reason: string
+  requestId: string | null
+}
 
 export function useDraftEditor(journeyId: string) {
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -33,17 +38,16 @@ export function useDraftEditor(journeyId: string) {
   const [validating, setValidating] = useState(false)
   const [fieldKeys, setFieldKeys] = useState<FieldKeys | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [saveError, setSaveError] = useState<SaveError | null>(null)
 
   const defRef = useRef<Def | null>(null)
   const layoutRef = useRef<Layout | null>(null)
   const revRef = useRef(0)
   const dirtyRef = useRef(false)
-  const haltRef = useRef(false)
   /** 送審中：草稿鎖定，編輯與儲存都不動作（契約 §3.2） */
   const lockedRef = useRef(false)
   const reviewRef = useRef<Review | null>(null)
-  const timer = useRef<number | null>(null)
-  const inflight = useRef<Promise<void> | null>(null)
+  const inflight = useRef<Promise<boolean> | null>(null)
   const alive = useRef(true)
 
   const apply = useCallback((d: Draft) => {
@@ -51,7 +55,6 @@ export function useDraftEditor(journeyId: string) {
     layoutRef.current = d.layout
     revRef.current = d.revision
     dirtyRef.current = false
-    haltRef.current = false
     lockedRef.current = d.latest_review?.status === 'PENDING'
     reviewRef.current = d.latest_review ?? null
     setReview(d.latest_review ?? null)
@@ -59,6 +62,7 @@ export function useDraftEditor(journeyId: string) {
     setLayout(d.layout)
     setMeta({ updatedAt: d.updated_at, updatedBy: d.updated_by })
     setDirty(false)
+    setSaveError(null)
     setBanner(null)
   }, [])
 
@@ -91,34 +95,31 @@ export function useDraftEditor(journeyId: string) {
     setAttempt((n) => n + 1)
   }, [])
 
-  // ---------- 儲存 ----------
-  const saveRef = useRef<() => Promise<void>>(() => Promise.resolve())
-  const schedule = useCallback(() => {
-    if (timer.current !== null) window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => {
-      timer.current = null
-      void saveRef.current()
-    }, SAVE_DELAY)
-  }, [])
-  const save = useCallback((): Promise<void> => {
+  // ---------- 儲存（手動；送審與驗證前自動存一次） ----------
+  /** 存完回傳 true（含沒有未儲存內容）；失敗或被擋回傳 false，內容保留在畫面上 */
+  const save = useCallback((): Promise<boolean> => {
     if (inflight.current) return inflight.current
-    if (haltRef.current || lockedRef.current || !dirtyRef.current || !defRef.current) return Promise.resolve()
+    if (lockedRef.current || !defRef.current) return Promise.resolve(!dirtyRef.current)
+    if (!dirtyRef.current) return Promise.resolve(true)
     const definition = defRef.current
     const full = fillLayout(definition, layoutRef.current)
     dirtyRef.current = false
     setSaving(true)
-    const run = (async () => {
+    setSaveError(null)
+    const run = (async (): Promise<boolean> => {
+      let ok = false
       try {
         const res = await putDraft(journeyId, { revision: revRef.current, definition, layout: full })
         revRef.current = res.revision
+        ok = true
         if (alive.current) {
           setMeta({ updatedAt: res.updated_at, updatedBy: res.updated_by })
           setSavedAt(res.updated_at ?? new Date().toISOString())
+          setBanner(null)
         }
       } catch (e) {
         dirtyRef.current = true
-        haltRef.current = true
-        if (!alive.current) return
+        if (!alive.current) return false
         const err = asError(e)
         if (err.status === 409 && err.code === 'DRAFT_CONFLICT') {
           setBanner({ kind: 'conflict', by: null, at: null })
@@ -135,7 +136,13 @@ export function useDraftEditor(journeyId: string) {
             (j) => alive.current && setBanner({ kind: 'aborted', detail: j }),
             () => undefined,
           )
+        } else if (err.status === 404 && err.code === 'JOURNEY_NOT_FOUND') {
+          setBanner({ kind: 'deleted' })
         } else if (err.status !== 401) {
+          setSaveError({
+            reason: err.status === 0 ? '網路不穩，內容還在這個畫面上' : '伺服器暫時無法儲存，內容還在這個畫面上',
+            requestId: err.requestId,
+          })
           setBanner({ kind: 'saveFailed', requestId: err.requestId })
         }
       } finally {
@@ -143,26 +150,18 @@ export function useDraftEditor(journeyId: string) {
         if (alive.current) {
           setSaving(false)
           setDirty(dirtyRef.current)
-          if (dirtyRef.current && !haltRef.current) schedule()
         }
       }
+      return ok
     })()
     inflight.current = run
     return run
-  }, [journeyId, schedule])
-
-  useEffect(() => {
-    saveRef.current = save
-  }, [save])
+  }, [journeyId])
 
   /** 立刻存完（驗證、送審前）；回傳是否已無未儲存內容 */
   const flush = useCallback(async () => {
-    if (timer.current !== null) {
-      window.clearTimeout(timer.current)
-      timer.current = null
-    }
     if (inflight.current) await inflight.current
-    if (dirtyRef.current && !haltRef.current) await save()
+    if (dirtyRef.current) await save()
     return !dirtyRef.current
   }, [save])
 
@@ -181,32 +180,15 @@ export function useDraftEditor(journeyId: string) {
       setDef(d)
       setLayout(l)
       setDirty(true)
-      if (!haltRef.current) schedule()
     },
-    [schedule],
+    [],
   )
-
-  const retrySave = useCallback(() => {
-    haltRef.current = false
-    setBanner(null)
-    void save()
-  }, [save])
-
-  useEffect(() => {
-    const online = () => {
-      if (banner?.kind === 'saveFailed') retrySave()
-    }
-    window.addEventListener('online', online)
-    return () => window.removeEventListener('online', online)
-  })
 
   useEffect(
     () => () => {
       alive.current = false
-      if (timer.current !== null) window.clearTimeout(timer.current)
-      if (dirtyRef.current && !haltRef.current) void save()
     },
-    [save],
+    [],
   )
 
   const loadLatest = useCallback(async () => {
@@ -262,18 +244,15 @@ export function useDraftEditor(journeyId: string) {
         setReport({ valid: false, errors, warnings: [] })
         setBanner({ kind: 'submitBlocked', count: errors.length })
       } else if (err.status === 409 && err.code === 'DRAFT_CONFLICT') {
-        haltRef.current = true
         setBanner({ kind: 'conflict', by: null, at: null })
         getDraft(journeyId).then(
           (d) => setBanner({ kind: 'conflict', by: d.updated_by, at: d.updated_at }),
           () => undefined,
         )
       } else if (err.status === 409 && err.code === 'REVIEW_PENDING') {
-        haltRef.current = true
         lockedRef.current = true
         setBanner({ kind: 'inReview' })
       } else if (err.status === 409 && err.code === 'JOURNEY_ABORTED') {
-        haltRef.current = true
         setBanner({ kind: 'aborted', detail: null })
         getJourney(journeyId).then(
           (j) => setBanner({ kind: 'aborted', detail: j }),
@@ -310,6 +289,6 @@ export function useDraftEditor(journeyId: string) {
   return {
     phase, loadError, reload, def, layout, meta, detail, review, dirty, saving, savedAt, banner, setBanner,
     report, setReport, reportOpen, setReportOpen, validating, fieldKeys,
-    edit, flush, retrySave, loadLatest, withdraw, validate, submit,
+    saveError, save, edit, flush, loadLatest, withdraw, validate, submit,
   }
 }

@@ -113,21 +113,46 @@ export function BannerBar({
       )
     }
     case 'saveFailed':
+      return (
+        <div className="msg error banner" role="alert">
+          <div>
+            <p>
+              <strong>儲存失敗，修改仍保留在畫面上</strong>
+            </p>
+            <p>{banner.requestId ? `請求編號 ${banner.requestId}；` : ''}按標頭的「重試儲存」再存一次。</p>
+          </div>
+        </div>
+      )
     case 'submitFailed':
       return (
         <div className="msg error banner" role="alert">
           <div>
             <p>
-              <strong>{banner.kind === 'saveFailed' ? '儲存失敗，修改仍保留在畫面上' : '送審失敗，請稍後再試'}</strong>
+              <strong>送審失敗，請稍後再試</strong>
             </p>
-            <p>
-              {banner.requestId ? `請求編號 ${banner.requestId}；` : ''}連線恢復後會自動重試，也可以手動重試。
-            </p>
+            <p>{banner.requestId ? `請求編號 ${banner.requestId}；` : ''}可以手動重試。</p>
           </div>
           <div className="acts">
             <button type="button" className="btn secondary sm" onClick={onRetry}>
               重試
             </button>
+          </div>
+        </div>
+      )
+    case 'deleted':
+      return (
+        <div className="msg error banner" role="alert">
+          <div>
+            <p>
+              <strong>這個旅程已被刪除</strong>
+            </p>
+            <p>你的修改無法儲存，也不會再送出。</p>
+          </div>
+          <div className="acts">
+            <AppLink className="btn secondary sm" to="/journeys">
+              回旅程列表
+            </AppLink>
+            {mine}
           </div>
         </div>
       )

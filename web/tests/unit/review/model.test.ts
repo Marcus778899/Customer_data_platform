@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../../src/api/client'
 import type { CurrentUser, JourneyDetail, Review } from '../../../src/api/types'
 import {
-  ADMIN_ONLY, NOT_OWNER, NOT_PUBLISHED, OWN_APPROVE, VIEW_ONLY, describeError, diffNodes, journeyActions, reviewPageActions,
+  ADMIN_ONLY, LOCKED, NOT_OWNER, OWN_APPROVE, VIEW_ONLY, describeError, diffNodes, headerReason, journeyActions, reviewPageActions,
   reviewRow, stopRow, waitText,
 } from '../../../src/pages/review/model'
 
@@ -28,9 +28,31 @@ describe('journeyActions', () => {
     expect(labels(detail(), me('EDITOR'))).toEqual(['編輯', '停止旅程'])
     expect(labels(detail({ has_draft: true }), me('EDITOR'))).toEqual(['編輯', '捨棄草稿', '停止旅程'])
   })
-  it('從未發佈：捨棄與停止停用', () => {
+  it('從未發佈（DRAFT）：不顯示停止與捨棄草稿，改有可用的「刪除旅程」（收在更多動作）', () => {
     const a = journeyActions(detail({ status: 'DRAFT', has_draft: true, latest_version: null }), me('EDITOR'))
-    expect(a.filter((x) => x.disabled).map((x) => x.disabled)).toEqual([NOT_PUBLISHED, NOT_PUBLISHED])
+    expect(a.map((x) => x.label)).toEqual(['編輯', '刪除旅程'])
+    expect(a.some((x) => x.disabled)).toBe(false)
+    expect(a.find((x) => x.key === 'delete')?.more).toBe(true)
+    expect(a.find((x) => x.key === 'edit')?.more).toBeUndefined()
+  })
+  it('已發佈過的旅程沒有刪除旅程；停止與捨棄草稿收在更多動作', () => {
+    const a = journeyActions(detail({ has_draft: true }), me('ADMIN'))
+    expect(a.some((x) => x.key === 'delete')).toBe(false)
+    expect(a.filter((x) => x.more).map((x) => x.key)).toEqual(['discard', 'stop'])
+  })
+  it('檢視者看從未發佈：編輯與刪除旅程停用並說明角色，沒有停止', () => {
+    const a = journeyActions(detail({ status: 'DRAFT', latest_version: null }), me('VIEWER'))
+    expect(a.map((x) => x.key)).toEqual(['edit', 'delete'])
+    expect(a.every((x) => x.disabled === VIEW_ONLY)).toBe(true)
+  })
+  it('送審中的從未發佈草稿：編輯、刪除旅程因鎖定停用，沒有停止與捨棄草稿', () => {
+    const a = journeyActions(detail({ status: 'DRAFT', latest_version: null, has_draft: true, review_status: 'PENDING', latest_review: brief('u1') }), me('EDITOR'))
+    expect(a.map((x) => x.key)).toEqual(['withdraw', 'edit', 'delete'])
+    expect(a.filter((x) => x.disabled).map((x) => x.disabled)).toEqual([LOCKED, LOCKED])
+  })
+  it('已退回的從未發佈草稿：修改後再送審＋刪除旅程（沒有捨棄草稿、停止）', () => {
+    const a = journeyActions(detail({ status: 'DRAFT', latest_version: null, has_draft: true, review_status: 'REJECTED' }), me('EDITOR'))
+    expect(a.map((x) => x.key)).toEqual(['resubmit', 'delete'])
   })
   it('已退回', () => expect(labels(detail({ has_draft: true, review_status: 'REJECTED' }), me('EDITOR'))[0]).toBe('修改後再送審'))
   it('送審中：編輯者撤回別人的停用；管理員可核准別人、不可核准自己', () => {
@@ -40,6 +62,15 @@ describe('journeyActions', () => {
     expect(journeyActions(d('u2'), me('EDITOR')).some((x) => x.key === 'approve')).toBe(false)
     expect(journeyActions(d('u2'), me('ADMIN')).find((x) => x.key === 'approve')?.disabled).toBeUndefined()
     expect(journeyActions(d('u1'), me('ADMIN')).find((x) => x.key === 'approve')?.disabled).toBe(OWN_APPROVE)
+  })
+})
+
+describe('headerReason：標頭唯一一行停用原因', () => {
+  it('沒有停用動作 → null', () => expect(headerReason(journeyActions(detail(), me('EDITOR')))).toBeNull())
+  it('檢視者的多個停用動作共用同一句', () => expect(headerReason(journeyActions(detail(), me('VIEWER')))).toBe(VIEW_ONLY))
+  it('送審中：非送審者的撤回與鎖定原因去重後併成一行', () => {
+    const d = detail({ status: 'DRAFT', latest_version: null, has_draft: true, review_status: 'PENDING', latest_review: brief('u2') })
+    expect(headerReason(journeyActions(d, me('EDITOR')))).toBe(`${NOT_OWNER}${LOCKED}`)
   })
 })
 

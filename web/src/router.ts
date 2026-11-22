@@ -9,7 +9,15 @@ export interface Loc {
   search: string
 }
 
+/** 離開攔截（編輯頁有未儲存變更時用）：回傳 true = 這次站內導覽被攔下（由攔截者決定要不要再導）；replace 導覽（登入導向等）不攔 */
+export type NavigationBlocker = (to: string) => boolean
+let blocker: NavigationBlocker | null = null
+export function setNavigationBlocker(fn: NavigationBlocker | null) {
+  blocker = fn
+}
+
 export function navigate(to: string, opts: { replace?: boolean; state?: unknown } = {}) {
+  if (!opts.replace && blocker?.(to)) return
   if (opts.replace) window.history.replaceState(opts.state ?? null, '', to)
   else window.history.pushState(opts.state ?? null, '', to)
   lastNav = opts.replace ? 'replace' : 'push'

@@ -3,7 +3,7 @@ import { ApiError } from '../../api/client'
 import type { CurrentUser, DraftDefinition, JourneyDetail, JourneyNode, Review } from '../../api/types'
 import { displayName, summaryOf } from '../../canvas/model'
 
-export type ActionKey = 'edit' | 'resubmit' | 'discard' | 'stop' | 'withdraw' | 'approve' | 'reject'
+export type ActionKey = 'edit' | 'resubmit' | 'discard' | 'stop' | 'withdraw' | 'approve' | 'reject' | 'delete'
 
 export interface ActionSpec {
   key: ActionKey
@@ -11,10 +11,13 @@ export interface ActionSpec {
   kind: 'primary' | 'secondary' | 'danger'
   /** 有值 = 停用（aria-disabled），值是原因 */
   disabled?: string
+  /** true = 收在「⋯ 更多動作」選單裡（刪除旅程、停止旅程、捨棄草稿） */
+  more?: boolean
 }
 
 export const VIEW_ONLY = '你的角色（檢視者）只能查看。'
 export const NOT_PUBLISHED = '尚未發佈的旅程不能停止或刪除草稿。'
+export const LOCKED = '草稿送審中，內容已鎖定。要修改或刪除，請先撤回送審。'
 export const OWN_APPROVE = '不能核准自己送審的版本，請另一位管理員審核。'
 export const NOT_OWNER = '只有送審者或管理員可以撤回。'
 export const ADMIN_ONLY = '只有管理員可以處理審核。'
@@ -28,39 +31,53 @@ export const isMine = (review: Submitter, user: CurrentUser) =>
 export const withdrawBlock = (review: Submitter, user: CurrentUser) =>
   user.role === 'ADMIN' || isMine(review, user) ? undefined : NOT_OWNER
 
-/** 旅程頁頁首的動作（rv-matrix）；已停止沒有動作 */
+/**
+ * 旅程頁標頭的動作（rv-matrix、canvas-interaction.md §4）。
+ * 因旅程狀態不適用的動作不出現（DRAFT 沒有停止、捨棄草稿；只有 DRAFT 才有刪除旅程）；
+ * 只有角色或送審鎖定才停用，原因由 headerReason 合成標頭唯一一行。已停止沒有動作。
+ */
 export function journeyActions(detail: JourneyDetail, user: CurrentUser): ActionSpec[] {
   if (detail.status === 'ABORTED') return []
+  const never = detail.status === 'DRAFT'
   if (user.role === 'VIEWER') {
-    return [
-      { key: 'edit', label: '編輯', kind: 'secondary', disabled: VIEW_ONLY },
-      { key: 'stop', label: '停止旅程', kind: 'danger', disabled: VIEW_ONLY },
-    ]
+    const out: ActionSpec[] = [{ key: 'edit', label: '編輯', kind: 'secondary', disabled: VIEW_ONLY }]
+    if (never) out.push({ key: 'delete', label: '刪除旅程', kind: 'danger', disabled: VIEW_ONLY, more: true })
+    else out.push({ key: 'stop', label: '停止旅程', kind: 'danger', disabled: VIEW_ONLY, more: true })
+    return out
   }
-  const never = detail.status === 'DRAFT' ? NOT_PUBLISHED : undefined
-  const stop: ActionSpec = { key: 'stop', label: '停止旅程', kind: 'danger', disabled: never }
-  const discard: ActionSpec = { key: 'discard', label: '捨棄草稿', kind: 'secondary', disabled: never }
+  const stop: ActionSpec[] = never ? [] : [{ key: 'stop', label: '停止旅程', kind: 'danger', more: true }]
+  const discard: ActionSpec[] = never ? [] : [{ key: 'discard', label: '捨棄草稿', kind: 'secondary', more: true }]
+  const del = (disabled?: string): ActionSpec[] =>
+    never ? [{ key: 'delete', label: '刪除旅程', kind: 'danger', disabled, more: true }] : []
   if (detail.review_status === 'PENDING') {
     const rv = detail.latest_review
     const out: ActionSpec[] = []
     if (user.role === 'ADMIN') {
-      out.push({ key: 'reject', label: '退回', kind: 'secondary' })
       out.push({
         key: 'approve',
         label: '核准並發佈',
         kind: 'primary',
         disabled: isMine(rv, user) ? OWN_APPROVE : undefined,
       })
+      out.push({ key: 'reject', label: '退回', kind: 'secondary' })
     }
     out.push({ key: 'withdraw', label: '撤回送審', kind: 'secondary', disabled: withdrawBlock(rv, user) })
-    out.push(stop)
-    return out
+    out.push({ key: 'edit', label: '編輯', kind: 'secondary', disabled: LOCKED })
+    return [...out, ...stop, ...del(LOCKED)]
   }
   if (detail.review_status === 'REJECTED') {
-    return [{ key: 'resubmit', label: '修改後再送審', kind: 'primary' }, discard, stop]
+    return [{ key: 'resubmit', label: '修改後再送審', kind: 'primary' }, ...discard, ...stop, ...del()]
   }
-  if (detail.has_draft) return [{ key: 'edit', label: '編輯', kind: 'primary' }, discard, stop]
-  return [{ key: 'edit', label: '編輯', kind: 'primary' }, stop]
+  const edit: ActionSpec = { key: 'edit', label: '編輯', kind: 'primary' }
+  if (detail.has_draft) return [edit, ...discard, ...stop, ...del()]
+  return [edit, ...stop, ...del()]
+}
+
+/** 標頭唯一一行停用原因：把停用動作的原因去重後合在一起；沒有停用動作回傳 null */
+export function headerReason(specs: ActionSpec[]): string | null {
+  const texts: string[] = []
+  for (const s of specs) if (s.disabled && !texts.includes(s.disabled)) texts.push(s.disabled)
+  return texts.length ? texts.join('') : null
 }
 
 /** 審核頁的兩顆鈕：非管理員停用；自己送的核准停用 */
