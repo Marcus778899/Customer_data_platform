@@ -7,8 +7,9 @@
  *   - 進入點、fetch、時區、polyfill 同 journey-canvas-ui／journey-customer-ui fixtures。
  *   - 網址：旅程頁 `/journeys/<id>`、編輯畫布 `/journeys/<id>/edit`、新建草稿 `/journeys/new`（canvas-ui 已定）；
  *     管理員審核頁固定為 `/journeys/<id>/review`（REVIEW_PATH，設計稿 rv-review）；其餘（審核紀錄頁）從旅程頁點「審核紀錄」進入，不假設網址。
- *   - 旅程頁（JourneyPage）的頁首按鈕列依 `rv-matrix`／`rv-bars`：按鈕、連結、「更多：…」收合選單裡的選單項都算「動作」，
- *     以可存取名稱（aria-label 或文字）完全相等比對；「更多：…」按鈕的 aria-label 列出收在裡面的動作，測試會先點開再找。
+ *   - 旅程頁（JourneyPage）的頁首按鈕列依 `rv-matrix`／`rv-bars`：按鈕、連結、「更多動作」收合選單裡的選單項都算「動作」，
+ *     以可存取名稱（aria-label 或文字）完全相等比對；「更多動作」按鈕（journey-header-save-delete 起 aria-label 固定為「更多動作」）
+ *     不再列出收在裡面的動作，測試找不到時會依序點開各個「更多動作」再找。
  *     停用鈕 = `aria-disabled="true"`（不可用原生 disabled，要能聚焦）＋ `aria-describedby` 指向原因文字；點下去不得開對話框或送請求。
  *   - 旅程頁「審核紀錄」連結（或按鈕）在所有狀態、所有角色都存在（含檢視者；規格矩陣只列部分狀態，但紀錄頁檢視者以上都能看）。
  *   - 旅程頁以 `JourneyDetail`（含 `review_status`、`latest_review`）決定按鈕；核准／退回／撤回用 `latest_review.review_id`。
@@ -192,15 +193,17 @@ export const callsTo = (api: Api, method: string, path: string) => api.calls.fil
 const nameOf = (el: Element) => (el.getAttribute('aria-label') ?? el.textContent ?? '').replace(/\s+/g, ' ').trim()
 const ACTION_SEL = 'button, a, [role="menuitem"], [role="button"]'
 const outsideDialog = (el: Element) => !el.closest('[role="dialog"]')
-const find = (name: string) => [...document.querySelectorAll<HTMLElement>(ACTION_SEL)].filter(outsideDialog).find((e) => nameOf(e) === name) ?? null
+// 選單項（role=menuitem）可帶一行小字說明（設計稿「刪除旅程／刪掉整個旅程，無法復原」），名稱以動作名稱開頭即算
+const nameIs = (e: Element, name: string) => nameOf(e) === name || (e.getAttribute('role') === 'menuitem' && nameOf(e).startsWith(name))
+const find = (name: string) => [...document.querySelectorAll<HTMLElement>(ACTION_SEL)].filter(outsideDialog).find((e) => nameIs(e, name)) ?? null
+/** 「⋯ 更多」按鈕（canvas-interaction.md §4：aria-label「更多動作」，收刪除旅程／停止旅程／捨棄草稿） */
 const overflows = () => [...document.querySelectorAll<HTMLElement>('button[aria-label^="更多"]')]
 
-/** 找動作；不在頁首就先點開含這個名稱的「更多：…」。找不到回 null */
+/** 找動作；不在頁首就依序點開「更多動作」選單（aria-label 不再列出收在裡面的動作）。找不到回 null */
 export async function action(name: string): Promise<HTMLElement | null> {
   const hit = find(name)
   if (hit) return hit
   for (const o of overflows()) {
-    if (!nameOf(o).includes(name)) continue
     if (o.getAttribute('aria-expanded') !== 'true') await userEvent.click(o)
     const again = find(name)
     if (again) return again

@@ -101,13 +101,17 @@ describe('畫布建旅程 → 送審 → 他人核准上線', () => {
     await screen.findByRole('complementary', { name: '節點庫' })
     expect(window.location.pathname).toBe(`/journeys/${JID}/edit`)
 
-    // 2) 設進入事件 → 自動儲存（PUT 帶目前 revision）
+    // 2) 設進入事件 → 手動儲存（不自動 PUT；按「儲存草稿」才送，帶目前 revision）
     await userEvent.click(await screen.findByRole('button', { name: '設定進入事件' }))
     await userEvent.type(await screen.findByRole('textbox', { name: /事件/ }), 'cart_item_added')
+    expect(api.calls.filter((c) => c.method === 'PUT')).toEqual([])
+    await userEvent.click(await screen.findByRole('button', { name: /^儲存草稿/ }))
     await waitFor(() => expect(w.definition?.nodes.some((n) => n.type === 'EventSourceNode')).toBe(true), { timeout: 8000 })
     const put = api.calls.filter((c) => c.method === 'PUT' && c.path === `${API}/draft`)
     expect(put.length).toBeGreaterThan(0)
     expect((put[0].body as { revision: number }).revision).toBe(1)
+
+    await waitFor(() => expect(bodyText()).toMatch(/已儲存（\d{2}:\d{2}）/))
 
     // 3) 送審：用最新 revision；請求不是 mock、帶 CSRF
     await userEvent.click(screen.getByRole('button', { name: '送審' }))

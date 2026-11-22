@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** journey-review-ui：旅程頁頁首按鈕的角色 × 狀態可見性（rv-matrix、rv-bars）；停用鈕保留並附原因；入口（編輯、新增旅程）。 */
+/** journey-review-ui：旅程頁頁首按鈕的角色 × 狀態可見性（rv-matrix、rv-bars）；角色或送審鎖定才停用並附原因（狀態不適用的動作不顯示，journey-header-save-delete）；入口（編輯、新增旅程）。 */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   API, AMY, JID, REF_DAMING, REF_WANG, VIEWER, WANG, action, bodyText, callsTo, cleanup, expectAbsent, expectDisabled, expectEnabled,
@@ -12,7 +12,7 @@ afterEach(() => { cleanup(); teardown() })
 
 const VIEW_ONLY = '你的角色（檢視者）只能查看。'
 const OWN_APPROVE = '不能核准自己送審的版本，請另一位管理員審核。'
-const NOT_PUBLISHED = '尚未發佈的旅程不能停止或刪除草稿'
+const NOT_PUBLISHED = '尚未發佈的旅程不能停止或刪除草稿' // 舊停用說明；新規格已改成不顯示
 
 describe('進行中、沒有草稿', () => {
   it('檢視者：編輯、停止旅程停用並說明「你的角色（檢視者）只能查看。」；點下去不開對話框、不送請求', async () => {
@@ -85,15 +85,20 @@ describe('草稿編輯中（尚未送審）', () => {
 })
 
 describe('從未發佈的草稿（status DRAFT）', () => {
-  it('編輯者：編輯可用；捨棄草稿、停止旅程停用並說明「尚未發佈的旅程不能停止或刪除草稿」', async () => {
+  // canvas-interaction.md §4：因旅程狀態不適用的動作不顯示（DRAFT 沒有「捨棄草稿」「停止旅程」）；改有「刪除旅程」（§6、journey-delete.md）
+  it('編輯者：編輯可用；沒有「捨棄草稿」「停止旅程」（連停用鈕也不出現）；「更多動作」裡有可用的「刪除旅程」', async () => {
     const { api } = await openJourney({ me: AMY, kind: 'neverPublished' })
     await expectEnabled('編輯')
-    const discard = await expectDisabled('捨棄草稿', NOT_PUBLISHED)
-    const stop = await expectDisabled('停止旅程', NOT_PUBLISHED)
-    await userEvent.click(discard)
-    await userEvent.click(stop)
-    expect(screen.queryByRole('dialog')).toBeNull()
+    await expectAbsent('捨棄草稿')
+    await expectAbsent('停止旅程')
+    await expectEnabled('刪除旅程')
+    expect(bodyText()).not.toContain(NOT_PUBLISHED)
     expect(api.calls.filter((c) => c.method !== 'GET')).toEqual([])
+  })
+
+  it('檢視者：沒有可用的刪除旅程、捨棄草稿、停止旅程', async () => {
+    await openJourney({ me: VIEWER, kind: 'neverPublished' })
+    for (const n of ['刪除旅程', '捨棄草稿', '停止旅程']) await expectNotUsable(n)
   })
 })
 

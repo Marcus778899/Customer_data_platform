@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** journey-canvas-ui：驗證結果標在節點並可定位；DRAFT_CONFLICT、DRAFT_IN_REVIEW、JOURNEY_ABORTED、儲存失敗、VALIDATION_FAILED 提示條。 */
+/** journey-canvas-ui：驗證結果標在節點並可定位；DRAFT_CONFLICT、DRAFT_IN_REVIEW、JOURNEY_ABORTED、儲存失敗、VALIDATION_FAILED 提示條（儲存改手動，journey-header-save-delete）。 */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   DRAFT_PATH, JID, bodyText, cleanup, draftBody, editorBackend, json, nodeButton, nodeButtons, openEditor,
@@ -19,6 +19,8 @@ const report = () => ({
   warnings: [{ field: 'definition.nodes[2]', message: '「等 1 小時」目前只有 1 條路進來。', rule: null, node_id: 'wait_1' }],
 })
 const VALIDATE = `POST ${DRAFT_PATH}/validate`
+/** journey-header-save-delete：手動儲存，按「儲存草稿」才送 PUT（有未儲存的變更時才可按） */
+const saveDraft = async () => userEvent.click(await screen.findByRole('button', { name: /^(儲存草稿|重試儲存)/ }))
 const panel = async () => screen.findByRole('heading', { name: '驗證結果' })
 
 describe('驗證結果', () => {
@@ -84,6 +86,7 @@ describe('提示條（出現在畫布上方，編輯區保持原樣、不被清�
     await openEditor()
     await selectNode('VIP 專屬關心')
     await typeInto('範本代碼', 'cart_vip_x')
+    await saveDraft()
     return ed
   }
 
@@ -110,6 +113,7 @@ describe('提示條（出現在畫布上方，編輯區保持原樣、不被清�
     await openEditor()
     await selectNode('VIP 專屬關心')
     await typeInto('範本代碼', 'cart_vip_x')
+    await saveDraft()
     const alert = await screen.findByRole('alert', {}, { timeout: 8000 })
     await waitFor(() => expect(alert.textContent).toContain('王大明'))
     expect(alert.textContent).toContain('09:52')
@@ -133,11 +137,13 @@ describe('提示條（出現在畫布上方，編輯區保持原樣、不被清�
     await openEditor()
     await selectNode('VIP 專屬關心')
     await typeInto('範本代碼', 'cart_vip_x')
+    await saveDraft()
     await screen.findByRole('button', { name: '載入最新草稿' }, { timeout: 8000 })
     await userEvent.click(screen.getByRole('button', { name: '載入最新草稿' }))
     await waitFor(() => expect(nodeButton('他改過的名稱')).toBeTruthy())
     await selectNode('他改過的名稱')
     await typeInto('範本代碼', 'cart_after')
+    await saveDraft()
     await waitForPut((b) => b.revision === 6, ed)
   }, 30000)
 
@@ -165,7 +171,7 @@ describe('提示條（出現在畫布上方，編輯區保持原樣、不被清�
     expect(screen.getByRole('button', { name: '複製我的修改' })).toBeTruthy()
   }, 30000)
 
-  it('儲存失敗（5xx）：「儲存失敗，修改仍保留在畫面上」＋請求編號＋「重試」；重試成功後提示消失並回「已自動儲存」', async () => {
+  it('儲存失敗（5xx）：狀態字「儲存失敗」＋請求編號；按鈕變「重試儲存」；修改仍保留在畫面上；重試成功後回「已儲存（HH:mm）」', async () => {
     let fail = true
     const ed = editorBackend({
       routes: {
@@ -178,16 +184,19 @@ describe('提示條（出現在畫布上方，編輯區保持原樣、不被清�
     await openEditor()
     await selectNode('VIP 專屬關心')
     await typeInto('範本代碼', 'cart_vip_x')
+    await saveDraft()
     const alert = await screen.findByRole('alert', {}, { timeout: 8000 })
-    expect(alert.textContent).toContain('儲存失敗，修改仍保留在畫面上')
-    expect(alert.textContent).toContain('REQ-SAVE-500')
+    expect(alert.textContent).toContain('儲存失敗')
+    expect(bodyText()).toContain('REQ-SAVE-500')
     expect((screen.getByLabelText('範本代碼') as HTMLInputElement).value).toBe('cart_vip_x')
+    expect(screen.queryByRole('button', { name: /^儲存草稿/ })).toBeNull()
     fail = false
     const before = ed.puts().length
-    await userEvent.click(screen.getByRole('button', { name: '重試' }))
+    await userEvent.click(screen.getByRole('button', { name: '重試儲存' }))
     await waitFor(() => expect(ed.puts().length).toBeGreaterThan(before))
-    await waitFor(() => expect(screen.queryByText('儲存失敗，修改仍保留在畫面上')).toBeNull())
-    await waitFor(() => expect(bodyText()).toContain('已自動儲存'))
+    await waitFor(() => expect(bodyText()).toMatch(/已儲存（\d{2}:\d{2}）/))
+    await waitFor(() => expect(screen.queryByRole('button', { name: '重試儲存' })).toBeNull())
+    expect(bodyText()).not.toContain('儲存失敗')
   }, 30000)
 
   it('送審被擋（400 VALIDATION_FAILED）：「送審前驗證沒有通過」＋「有 N 個錯誤，已列在右側「驗證結果」」＋「看驗證結果」', async () => {
