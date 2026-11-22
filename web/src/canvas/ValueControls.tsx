@@ -1,34 +1,32 @@
 // 事件篩選與條件節點共用的比較下拉與「值當成：文字｜數字」切換（F-33；規格 docs/ui/journey-builder.md「事件篩選」）。
-import { groupedOps, OP_GROUPS, opsFor } from './eventFilter'
-
-const SYMBOL: Record<string, string> = { GT: '>', GTE: '≥', LT: '<', LTE: '≤' }
+import { OP_GROUPS, opMenuLabel, opsFor } from './eventFilter'
 
 /**
- * 比較下拉的選項。型別不明的欄位分三組（optgroup），「比大小」四項右側附提示（例：amount ≥ 500）；
- * 已知型別的欄位是平的清單。labelOf 由呼叫端提供（條件節點與事件篩選的白話略有不同）。
+ * 比較下拉的選項：條件節點與事件篩選同一套，分「數字比大小」「比對內容」「有沒有填」三組（optgroup），
+ * 選項只寫比較方式、不帶欄位名；型別已知的欄位不列不適用的項目（整組沒項目就不列該組）。
  */
-export function OperatorOptions({ field, current, labelOf, name }: { field: string; current: string; labelOf: (op: string) => string; name: string }) {
-  if (!groupedOps(field)) {
-    return (
-      <>
-        {opsFor(field, current).map((o) => (
-          <option key={o.value} value={o.value}>
-            {labelOf(o.value)}
-          </option>
-        ))}
-      </>
-    )
-  }
+export function OperatorOptions({ field, current }: { field: string; current: string }) {
+  const allowed = new Set(opsFor(field, current).map((o) => o.value))
+  const grouped = new Set(OP_GROUPS.flatMap((g) => g.ops))
+  const strays = [...allowed].filter((v) => !grouped.has(v))
   return (
     <>
-      {OP_GROUPS.map((g, i) => (
-        <optgroup key={g.label} label={g.label}>
-          {g.ops.map((op) => (
-            <option key={op} value={op}>
-              {i === 0 ? `${labelOf(op)}\u3000${name || '欄位'} ${SYMBOL[op]} 500` : labelOf(op)}
-            </option>
-          ))}
-        </optgroup>
+      {OP_GROUPS.map((g) => {
+        const ops = g.ops.filter((o) => allowed.has(o))
+        return ops.length ? (
+          <optgroup key={g.label} label={g.label}>
+            {ops.map((op) => (
+              <option key={op} value={op}>
+                {opMenuLabel(op)}
+              </option>
+            ))}
+          </optgroup>
+        ) : null
+      })}
+      {strays.map((op) => (
+        <option key={op} value={op}>
+          {opMenuLabel(op)}
+        </option>
       ))}
     </>
   )

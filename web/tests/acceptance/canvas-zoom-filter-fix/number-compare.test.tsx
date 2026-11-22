@@ -4,7 +4,7 @@
  * 契約 docs/contracts/journeys.md §4「比較語意」依 value 的 JSON 型別）。事件篩選與條件節點同一套。
  * 對 worker 的假設（規格沒寫死）：
  *   - 比較下拉的選項依 value（GT…）判斷；型別不明的欄位用 optgroup 分三組，label：
- *     「比大小（值會存成數字）」「比對內容」「有沒有填」。
+ *     「數字比大小」「比對內容」「有沒有填」。
  *   - 內建型別對照至少含 cart_total、price、quantity 三個數字欄：只列 GT／GTE／LT／LTE／EQ／NEQ／IS_NULL／IS_NOT_NULL，
  *     不列 CONTAINS／IN／NOT_IN，也不顯示「值當成」切換。`amount` 不在對照內（型別不明）。
  *   - 「值當成」切換：role=group（或 radiogroup）名稱含「值當成」，內有名稱「文字」「數字」的 radio 或 button。
@@ -65,13 +65,13 @@ const asKind = (row: HTMLElement, kind: '文字' | '數字') =>
 const toggle = (row: HTMLElement) => within(row).queryByRole('group', { name: /值當成/ })
 
 describe('事件篩選：型別不明欄位（手動輸入 amount）列出全部比較並分三組', () => {
-  it('比較下拉有 11 個比較，分成「比大小（值會存成數字）」「比對內容」「有沒有填」三個 optgroup', async () => {
+  it('比較下拉有 11 個比較，分成「數字比大小」「比對內容」「有沒有填」三個 optgroup', async () => {
     ef()
     const g = await open('加入購物車')
     const row = await manualRow(g, 'amount')
     expect(opValues(row)).toEqual([...OPS_ALL].sort())
     const groups = [...row.querySelectorAll('optgroup')]
-    expect(groups.map((o) => o.label)).toEqual(['比大小（值會存成數字）', '比對內容', '有沒有填'])
+    expect(groups.map((o) => o.label)).toEqual(['數字比大小', '比對內容', '有沒有填'])
     expect([...groups[0].querySelectorAll('option')].map((o) => o.value)).toEqual(['GT', 'GTE', 'LT', 'LTE'])
   })
 
@@ -243,7 +243,7 @@ describe('條件節點同一套（欄位根 trigger.properties.）', () => {
     const { sel, row } = await condRow()
     await userEvent.selectOptions(sel, 'trigger.properties.cart_id')
     expect(opValues(row)).toEqual([...OPS_ALL].sort())
-    expect([...row.querySelectorAll('optgroup')].map((o) => o.label)).toEqual(['比大小（值會存成數字）', '比對內容', '有沒有填'])
+    expect([...row.querySelectorAll('optgroup')].map((o) => o.label)).toEqual(['數字比大小', '比對內容', '有沒有填'])
   })
 
   it('已知數字欄 trigger.properties.cart_total 不列 CONTAINS／IN／NOT_IN', async () => {

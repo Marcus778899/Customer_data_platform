@@ -2,7 +2,9 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import type { FieldKeys, Issue } from '../api/types'
 import { EventFilterEditor, type Locate } from './EventFilterEditor'
-import { fieldKind, needsKindToggle, numericInput, parseValue, textLooksNumber, valueKindLabel } from './eventFilter'
+import { fieldKind, needsKindToggle, numericInput, parseValue, textLooksNumber, unknownKindHint, valueKindLabel } from './eventFilter'
+import { TryIt } from './TryIt'
+import { conditionSentence, isAttrLeaf } from './tryEval'
 import { useLocked } from './lock'
 import { KindToggle, OperatorOptions, PanelActions } from './ValueControls'
 import {
@@ -232,8 +234,8 @@ function LeafRow({
           ))}
           <option value={CUSTOM}>手動輸入…</option>
         </select>
-        <select aria-label="比較" value={view.op} disabled={locked} onChange={(e) => edit({ op: e.target.value })}>
-          <OperatorOptions field={leaf.field} current={view.op} labelOf={(v) => OPERATORS.find((o) => o.value === v)?.label ?? v} name={leaf.field ? fieldLabel(leaf.field) : ''} />
+        <select className="cond-cmp" aria-label="比較" value={view.op} disabled={locked} onChange={(e) => edit({ op: e.target.value })}>
+          <OperatorOptions field={leaf.field} current={view.op} />
         </select>
         {!op?.noValue && (
           <input
@@ -252,7 +254,7 @@ function LeafRow({
         </button>
       </div>
       {leaf.field && kind === 'unknown' && (
-        <p className="hint">系統不知道『{fieldLabel(leaf.field)}』是數字還是文字。要比大小請選「比大小」，500 會當成數字比對。</p>
+        <p className="hint">{unknownKindHint(fieldLabel(leaf.field))}</p>
       )}
       {needsKindToggle(leaf.field, view.op) && <KindToggle num={view.num} disabled={locked} onChange={(num) => edit({ num })} />}
       {error && (
@@ -325,6 +327,18 @@ function GroupEditor({
           isGroup(c) ? (
             <li key={i}>
               <GroupEditor group={c} depth={depth + 1} keys={keys} onChange={(g) => setChild(i, g)} onRemove={() => setChild(i, null)} />
+            </li>
+          ) : !isAttrLeaf(c) ? (
+            <li key={i} className="cond-row">
+              <div className="cond-line">
+                <select aria-label="欄位" disabled value="unsupported">
+                  <option value="unsupported">（{(c as { type?: string }).type === 'segment' ? '客群' : (c as { type?: string }).type === 'behavior' ? '客戶行為' : '其他'}條件，畫面無法編輯）</option>
+                </select>
+              </div>
+              <p className="hint">這個條件畫面無法編輯，原樣保留；要改請先移除。</p>
+              <button type="button" className="btn ghost-dark sm" aria-label="移除這個條件" disabled={locked} onClick={() => setChild(i, null)}>
+                移除
+              </button>
             </li>
           ) : (
             <LeafRow key={i} leaf={c} keys={keys} onChange={(l) => setChild(i, l)} onRemove={() => setChild(i, null)} />
@@ -421,7 +435,9 @@ function Body({
       return (
         <div className="field">
           <p className="sub">符合這些條件的客戶走「是」</p>
+          <p className="cond-sentence">{conditionSentence(condOf(node))}</p>
           <GroupEditor group={condOf(node)} depth={1} keys={keys} onChange={(g) => cfg({ condition: g })} />
+          <TryIt cond={condOf(node)} />
           <span className="hint">最多 5 層。欄位選單列出客戶屬性與這個事件的屬性（取自最近的資料，不一定完整，也可手動輸入）。</span>
         </div>
       )

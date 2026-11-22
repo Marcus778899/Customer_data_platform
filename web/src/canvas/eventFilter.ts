@@ -75,30 +75,32 @@ export function fieldKind(field: string): FieldKind {
 }
 export const isNumericField = (field: string) => fieldKind(field) === 'num'
 
-export const FILTER_OPS: { value: string; label: string; noValue?: boolean }[] = [
-  { value: 'EQ', label: '等於' },
-  { value: 'NEQ', label: '不等於' },
-  { value: 'GT', label: '大於' },
-  { value: 'GTE', label: '至少' },
-  { value: 'LT', label: '小於' },
-  { value: 'LTE', label: '至多' },
-  { value: 'CONTAINS', label: '包含' },
-  { value: 'IN', label: '是其中之一' },
-  { value: 'NOT_IN', label: '不是其中任何一個' },
-  { value: 'IS_NOT_NULL', label: '有填', noValue: true },
-  { value: 'IS_NULL', label: '沒填', noValue: true },
+export const FILTER_OPS: { value: string; label: string; menu: string; noValue?: boolean }[] = [
+  { value: 'GT', label: '大於', menu: '大於（>）' },
+  { value: 'GTE', label: '至少', menu: '至少（≥）' },
+  { value: 'LT', label: '小於', menu: '小於（<）' },
+  { value: 'LTE', label: '至多', menu: '至多（≤）' },
+  { value: 'EQ', label: '等於', menu: '等於' },
+  { value: 'NEQ', label: '不等於', menu: '不等於' },
+  { value: 'CONTAINS', label: '包含', menu: '包含' },
+  { value: 'IN', label: '是其中之一', menu: '是其中之一' },
+  { value: 'NOT_IN', label: '不是其中任何一個', menu: '不是其中任何一個' },
+  { value: 'IS_NOT_NULL', label: '有填', menu: '有填', noValue: true },
+  { value: 'IS_NULL', label: '沒填', menu: '沒填', noValue: true },
 ]
 const NUM_OPS = ['GT', 'GTE', 'LT', 'LTE', 'EQ', 'NEQ', 'IS_NOT_NULL', 'IS_NULL']
 const TEXT_OPS = ['EQ', 'NEQ', 'CONTAINS', 'IN', 'NOT_IN', 'IS_NOT_NULL', 'IS_NULL']
-const COMPARE_OPS = ['GT', 'GTE', 'LT', 'LTE']
+export const COMPARE_OPS = ['GT', 'GTE', 'LT', 'LTE']
 const LIST_OPS = ['IN', 'NOT_IN']
 const opMeta = (op: string) => FILTER_OPS.find((o) => o.value === op)
 export const opNoValue = (op: string) => !!opMeta(op)?.noValue
 export const opLabel = (op: string) => opMeta(op)?.label ?? op
+/** 比較選單的選項文字（只寫比較方式，符號放括號） */
+export const opMenuLabel = (op: string) => opMeta(op)?.menu ?? op
 
-/** 比較的分組（型別不明的欄位用 optgroup 分三組；「比大小」會把值存成數字） */
+/** 比較的分組（條件節點與事件篩選同一套；「數字比大小」會把值存成數字） */
 export const OP_GROUPS: { label: string; ops: string[] }[] = [
-  { label: '比大小（值會存成數字）', ops: COMPARE_OPS },
+  { label: '數字比大小', ops: COMPARE_OPS },
   { label: '比對內容', ops: ['EQ', 'NEQ', 'CONTAINS', 'IN', 'NOT_IN'] },
   { label: '有沒有填', ops: ['IS_NOT_NULL', 'IS_NULL'] },
 ]
@@ -111,8 +113,9 @@ export function opsFor(field: string, current: string) {
   return FILTER_OPS.filter((o) => keep.includes(o.value))
 }
 
-/** 型別不明的欄位要把比較分三組；已知型別用平的清單 */
-export const groupedOps = (field: string) => !field || fieldKind(field) === 'unknown'
+/** 型別不明欄位的說明（規格 canvas-interaction §3）；name 是欄位顯示名 */
+export const unknownKindHint = (name: string) =>
+  `系統不知道『${name}』是數字還是文字。要比大小，請在比較欄選『數字比大小』那一組的項目（大於、至少、小於、至多），500 會當成數字比對。`
 
 /** 「值當成：文字｜數字」只在型別不明欄位的 EQ／NEQ／IN／NOT_IN 出現 */
 export const needsKindToggle = (field: string, operator: string) =>

@@ -17,7 +17,7 @@ import {
   keyLabel,
   needsKindToggle,
   numericInput,
-  opLabel,
+  unknownKindHint,
   textLooksNumber,
   valueKindLabel,
   leafField,
@@ -200,7 +200,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
           onChange={(e) => set({ operator: e.target.value })}
         >
           <option value="">（選擇比較）</option>
-          <OperatorOptions field={field} current={leaf.operator} labelOf={opLabel} name={field ? keyLabel(field.slice(FIELD_PREFIX.length)) : ''} />
+          <OperatorOptions field={field} current={leaf.operator} />
         </select>
         <input
           type="text"
@@ -220,9 +220,7 @@ function LeafRow({ leaf, ctx }: { leaf: FLeaf; ctx: Ctx }) {
       </div>
       {needsKindToggle(field, leaf.operator) && <KindToggle num={leaf.num} disabled={locked} onChange={(num) => set({ num })} />}
       {field && !leaf.operator && fieldKind(field) === 'unknown' && (
-        <p className="hint">
-          系統不知道『{keyLabel(field.slice(FIELD_PREFIX.length))}』是數字還是文字。要比大小請選「比大小」，500 會當成數字比對。
-        </p>
+        <p className="hint">{unknownKindHint(keyLabel(field.slice(FIELD_PREFIX.length)))}</p>
       )}
       <Err id={feId} messages={fieldErrs} />
       <Err id={veId} messages={valueErrs} />

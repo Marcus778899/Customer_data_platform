@@ -288,15 +288,19 @@ export function useDraftEditor(journeyId: string) {
 
   // ---------- 欄位建議（field-keys）：載入時與進入事件名稱改變時更新 ----------
   const eventName = def ? entryEventName(def) : null
+  const keysFetched = useRef(false)
   useEffect(() => {
     if (eventName === null) return
     let cancelled = false
+    // 載入後第一次立刻取；之後事件名稱改變（打字中）才等 400ms
+    const wait = eventName && keysFetched.current ? 400 : 0
+    keysFetched.current = true
     const t = window.setTimeout(() => {
       getFieldKeys(eventName || undefined).then(
         (k) => !cancelled && setFieldKeys(k),
         () => undefined,
       )
-    }, eventName ? 400 : 0)
+    }, wait)
     return () => {
       cancelled = true
       window.clearTimeout(t)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fieldKind, groupedOps, needsKindToggle, numericInput, parseValue, textLooksNumber, valueKindLabel } from './eventFilter'
+import { fieldKind, needsKindToggle, numericInput, parseValue, textLooksNumber, valueKindLabel } from './eventFilter'
 
 describe('欄位型別對照（F-33）', () => {
   it('內建數字欄、文字欄；amount 與其他不明的鍵是 unknown', () => {
@@ -10,9 +10,6 @@ describe('欄位型別對照（F-33）', () => {
     expect(fieldKind('tier')).toBe('unknown')
   })
   it('分組、切換、數字鍵盤、型別標示', () => {
-    expect(groupedOps('')).toBe(true)
-    expect(groupedOps('properties.amount')).toBe(true)
-    expect(groupedOps('properties.price')).toBe(false)
     expect(needsKindToggle('properties.amount', 'EQ')).toBe(true)
     expect(needsKindToggle('properties.amount', 'GT')).toBe(false)
     expect(needsKindToggle('', 'EQ')).toBe(false)
