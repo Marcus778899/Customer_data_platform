@@ -202,6 +202,7 @@
 - v0.3.0 收尾：canvas-add-reveal-fix（F-54、F-59）worker 實作中、canvas-ui-ratify（PR #304）第 2 輪視覺評審中，兩者 17:10 用量重置後 SendMessage 接續；修完 uat 小範圍重測 F-54／F-59＋未測（不可核准自己送的：uat-admin2 登入失敗待查、儲存中離開、各頁版面腳本）；之後 security 確認 PR #302 起的程式變動、甲方驗收；backlog #296 #301 #303 #307
 - 2026-11-22 canvas-ui-ratify 已合併（PR #304）；canvas-add-reveal-fix PR #308 qa 驗證中。下一張 designer 單或 backlog：768 試算卡欄位窄（「客／戶」斷行）、第 7 區對話框標題孤字（text-wrap: balance 只加在第 8 區）、§6 措辭可合併。uat 目視：375 軌跡頁無水平捲動、1440／1280 面板開著連續新增節點露出且出口點點得到
 - 2026-11-22 uat 第十輪：F-54、F-59 PASS（F-44 結案），blocker 0、major 0；minor F-60 #309、F-61 #310，seed.py 缺 __main__ #311 進 backlog。uat 第十一輪補測（不可核准自己送的畫面、各頁版面）與 security 發版前審查並行中
+- 2026-11-22 uat 第十一輪：驗收條件 2 畫面 PASS，blocker 0、major 0，minor F-62～F-66 進 backlog（#312～#316）；security v0.3.0 PASS（審 6176d44）；README 已更新。等甲方驗收（docs/uat/v0.3.0.md 各輪甲方驗收清單＋ae release designs 的 canvas-ui-ratify 自行決定表），甲方寫「甲方驗收：PASS」後 ae release open v0.3.0
 
 ## 注意事項（踩過的坑）
 

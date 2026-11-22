@@ -35,6 +35,11 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 | 旅程列表（唯讀，不顯示人數）、唯讀旅程頁（標頭、版本切換、節點圖）、圖形軌跡（直線） | v0.2.0 | D-050、D-062；契約 `docs/contracts/journeys.md` |
 | relay／推進迴圈改寫、大量同時到期的效能修正與壓測（`make perf`） | v0.2.0 | D-036、D-038、D-077；報告 `docs/perf/v0.2.0.md` |
 | 示範資料（`make demo-seed`／`make demo-verify`） | v0.2.0 | D-031；見「快速開始」第 4 步 |
+| 旅程畫布編輯：節點庫拖入、拉線、條件／分支／A/B 分流／等事件節點、事件篩選與「試試看」試算、手動儲存草稿 | v0.3.0 | D-046、D-085、D-087；規格 `docs/ui/journey-builder.md`、`docs/ui/canvas-interaction.md` |
+| 旅程生命週期與審核：送審鎖定、另一位管理員核准（不可核准自己送的）、退回附原因、撤回送審、停止（未送出訊息取消並留紀錄）、刪除未發佈旅程 | v0.3.0 | D-056、D-060、D-061、D-090；契約 `docs/contracts/journeys.md` |
+| 分支與迴圈引擎、版本並行（舊版客戶照舊版走完）、同一 cart_id 只建 1 筆旅程進度 | v0.3.0 | 契約 `docs/contracts/journey-engine.md` |
+| 圖形軌跡顯示分支與迴圈、旅程頁各節點人數 | v0.3.0 | D-050 |
+| 遮罩內建預設（姓名明文、email／手機遮罩）；登入限速改 email＋來源 IP、`CDP_TRUSTED_PROXIES` 必填；金鑰過短或佔位值拒絕啟動 | v0.3.0 | D-083、D-084、D-091；資安 `docs/security/v0.3.0.md` |
 
 ## 架構
 
@@ -59,6 +64,7 @@ Windows 請在 **Git Bash** 執行以下指令（Makefile 需要 sh；PowerShell
 |---|---|---|
 | v0.1.0 | 2026-10-18 | 旅程引擎直線流程、Mock 發送、事件攝取、唯讀軌跡查詢頁（UAT：`docs/uat/v0.1.0.md`；已知小問題見 GitHub `backlog` 標籤） |
 | v0.2.0 | 2026-11-02 | 使用者登入與角色、外框導覽、客戶搜尋與客戶頁、旅程列表與唯讀旅程頁、圖形軌跡、relay／迴圈改寫與壓測（UAT：`docs/uat/v0.2.0.md`；壓測：`docs/perf/v0.2.0.md`；已知小問題見 `backlog` 標籤） |
+| v0.3.0 | 2026-11-22 | 旅程畫布編輯、送審與核准、分支與迴圈引擎、節點人數與分支軌跡、遮罩預設、登入限速與金鑰檢查、UX 小問題修正（UAT：`docs/uat/v0.3.0.md`；資安：`docs/security/v0.3.0.md`；已知小問題見 `backlog` 標籤） |
 
 ## 授權
 
