@@ -338,6 +338,8 @@ kbd { font: 600 var(--text-xs)/1.2 var(--font-mono); padding: 2px 6px; border: 1
 .rt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--space-4); align-items: start; }
 .rt { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .rt.full { grid-column: 1 / -1; }
+.rt-grid.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); }
+.rt .dlg h3 { text-wrap: balance; }
 @media (min-width: 1101px) { .rt-grid.cp { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
 .rt > figcaption { font-size: var(--text-sm); line-height: 1.6; color: var(--color-text-muted); }
 .rt > figcaption b { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-1); font-size: var(--text-md); color: var(--color-text); }
@@ -354,7 +356,8 @@ kbd { font: 600 var(--text-xs)/1.2 var(--font-mono); padding: 2px 6px; border: 1
 .rt-status { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--color-warning-fg); }
 .rt-status .ico { width: 16px; height: 16px; }
 .rt-svg { overflow-x: auto; background-color: var(--color-graph-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
-.rt-svg svg { display: block; width: 100%; max-width: 880px; min-width: 560px; height: auto; margin: 0 auto; }
+/* viewBox 800 以 600px 呈現（0.75 倍）：卡片字級實際 15／12px，與 rt-ports 的節點卡、編輯畫布 75% 縮放一致 */
+.rt-svg svg { display: block; width: 100%; max-width: 600px; min-width: 560px; height: auto; margin: 0 auto; }
 .rt-svg .card { fill: var(--color-surface); stroke: var(--color-border-strong); }
 .rt-svg .k { font-size: 16px; fill: var(--color-text-muted); }
 .rt-svg .nm { font-size: 20px; font-weight: 600; fill: var(--color-text); }
@@ -363,7 +366,7 @@ kbd { font: 600 var(--text-xs)/1.2 var(--font-mono); padding: 2px 6px; border: 1
 .rt-svg .e.back { stroke-dasharray: 2 5; stroke-linecap: round; }
 .rt-svg .lb { font-size: 16px; font-weight: 600; fill: var(--color-text-muted); paint-order: stroke; stroke: var(--color-graph-bg); stroke-width: 4px; }
 .rt-svg .guide { fill: none; stroke: var(--color-info-fg); stroke-width: 1; stroke-dasharray: 4 4; }
-.rt-svg .gt { font-size: 14px; fill: var(--color-info-fg); }
+.rt-svg .gt { font-size: 16px; fill: var(--color-info-fg); }
 /* 1024 節點庫圖示軌：現況 64px（溢出）與修正後 72px（名稱可換行） */
 .rt-rails { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
 .rt-rail { box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); }

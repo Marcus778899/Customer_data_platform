@@ -227,7 +227,7 @@
   <p class="lead">入口只有旅程頁標頭「⋯ 更多」裡的「刪除旅程」（紅字），只在從未發佈（草稿狀態）的旅程出現；已發佈的旅程維持「停止」。送審中停用並說明「請先撤回送審」。確認對話框不要求輸入名稱（尚無客戶在旅程中，風險低於停止），但預設焦點在「取消」，紅色按鈕寫明「刪除旅程」。成功後導回旅程列表並顯示「已刪除『…』」提示，不提供復原。API 與角色依 architect 的 journey-delete-design。</p>
   <div class="dlgs">
     <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t" aria-describedby="dl-d"><h3 id="dl-t">刪除「生日禮提醒（2026 秋季檔期）」？</h3><div id="dl-d"><p>刪除後無法復原。</p><ul class="facts" style="margin:0;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4)"><li>旅程和裡面的 6 個節點會一起刪除</li><li>這個旅程還沒發佈，沒有客戶在旅程中</li><li>送審紀錄的處理依後端規則（待 journey-delete-design）</li></ul></div><div class="foot"><button class="btn secondary fr" type="button" autofocus>取消</button><button class="btn danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</button></div></div></div>
-    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t2"><h3 id="dl-t2">刪除「生日禮提醒（2026 秋季檔期）」？</h3><p>刪除後無法復原。</p><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>這個旅程剛被送審，目前不能刪除。請先撤回送審再試一次。<br><span style="font-size:var(--text-xs)">請求編號 req-7f3a91</span></span></p><div class="foot"><button class="btn secondary fr" type="button">關閉</button><button class="btn" type="button">重新載入旅程</button></div></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t2"><h3 id="dl-t2">刪除「生日禮提醒（2026 秋季檔期）」？</h3><p>刪除後無法復原。</p><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>這個旅程剛被送審，目前不能刪除。請先撤回送審再試一次。<br><span style="font-size:var(--text-xs)">請求編號 req-7f3a91</span></span></p><div class="foot"><button class="btn secondary fr" type="button">關閉</button><button class="btn" type="button">重新載入旅程</button></div></div></div>
   </div>
   <p class="muted" style="margin-top:var(--space-2)">刪除中：紅色鈕換成「刪除中…」＋旋轉圖示並停用，取消也停用。成功：導向「旅程」列表，頂端綠色提示「已刪除『生日禮提醒（2026 秋季檔期）』」，6 秒自動消失，可手動關閉。失敗時錯誤顯示在同一個對話框內（見第 8 區 <code>rt-delete</code>）。錯誤文案依錯誤碼：送審中（DRAFT_IN_REVIEW）、已發佈（旅程已有版本）、找不到（已被刪除，直接導回列表）、5xx 重試。</p>
 </section>
@@ -348,8 +348,8 @@
   </div>
 
   <h3 class="subh">標頭與儲存<small>提示條、刪除失敗、儲存中離開</small></h3>
-  <div class="rt-grid">
-    <figure class="rt" id="rt-banners">
+  <div class="rt-grid two">
+    <figure class="rt full" id="rt-banners">
       <div class="rt-bns">
         <div class="rt-bn" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg><div class="tx"><p><strong>這個旅程已被刪除</strong></p><p>你的修改無法儲存，也不會再送出。</p></div><div class="acts"><a class="btn secondary sm" href="#rt">回旅程列表</a><button class="btn secondary sm" type="button">複製我的修改</button></div></div>
         <div class="rt-bn" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><div class="tx"><p><strong>驗證沒有完成</strong></p><p><span class="rid">請求編號 req-4c2e81</span>；你的草稿內容與儲存狀態不受影響，可以稍後再按「驗證」。</p></div><div class="acts"><button class="btn secondary sm" type="button">關閉</button></div></div>
