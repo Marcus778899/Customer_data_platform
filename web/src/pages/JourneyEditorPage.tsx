@@ -130,19 +130,27 @@ function Editor({ id }: { id: string }) {
 
   // ---------- 離開提醒：站內導覽（返回、麵包屑、側欄）由 router 的攔截器轉成對話框；關分頁／重整用 beforeunload ----------
   const unsaved = ed.dirty || ed.saving
-  const guard = useRef({ unsaved: false, saving: false, bypass: false })
+  const guard = useRef({ unsaved: false, saving: false, bypass: false, phase: null as Leave['phase'] | null, mounted: true, start: null as ((to: string) => void) | null })
   useEffect(() => {
     guard.current.unsaved = unsaved
     guard.current.saving = ed.saving
-  }, [unsaved, ed.saving])
+    guard.current.phase = leave?.phase ?? null
+  }, [unsaved, ed.saving, leave])
   useEffect(() => {
+    const g = guard.current
+    g.mounted = true
     setNavigationBlocker((to) => {
-      const g = guard.current
       if (g.bypass || !g.unsaved) return false
-      if (!g.saving) setLeave({ to, phase: 'ask' })
+      // 離開對話框已在儲存中：忽略重複點擊；一般儲存進行中點連結：等這次儲存完成再依結果導頁或顯示失敗對話框
+      if (g.phase === 'saving') return true
+      if (g.saving) g.start?.(to)
+      else setLeave({ to, phase: 'ask' })
       return true
     })
-    return () => setNavigationBlocker(null)
+    return () => {
+      g.mounted = false
+      setNavigationBlocker(null)
+    }
   }, [])
   useEffect(() => {
     if (!ed.dirty) return
@@ -157,13 +165,18 @@ function Editor({ id }: { id: string }) {
     guard.current.bypass = true
     navigate(to)
   }
-  const saveAndLeave = async () => {
-    if (!leave) return
-    setLeave({ ...leave, phase: 'saving' })
-    const ok = await ed.save()
-    if (ok) leaveNow(leave.to)
-    else setLeave({ ...leave, phase: 'failed' })
+  /** 存完（含等進行中的那次）再導頁；失敗改顯示失敗對話框，內容保留 */
+  const runLeave = async (to: string) => {
+    setLeave({ to, phase: 'saving' })
+    const ok = await ed.flush()
+    if (!guard.current.mounted) return
+    if (ok) leaveNow(to)
+    else setLeave({ to, phase: 'failed' })
   }
+  useEffect(() => {
+    guard.current.start = (to) => void runLeave(to)
+  })
+  const saveAndLeave = () => (leave ? runLeave(leave.to) : Promise.resolve())
 
   // Ctrl／Cmd＋S：儲存草稿（擋掉瀏覽器的另存網頁）
   const { save } = ed
@@ -480,6 +493,7 @@ function Editor({ id }: { id: string }) {
           onLoadLatest={() => void ed.loadLatest()}
           onWithdraw={() => setDialog('withdraw')}
           onRetry={() => ed.setBanner(null)}
+          onDismiss={() => ed.setBanner(null)}
           onShowReport={() => ed.setReportOpen(true)}
         />
       )}

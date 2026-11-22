@@ -45,6 +45,7 @@ export function BannerBar({
   onLoadLatest,
   onWithdraw,
   onRetry,
+  onDismiss,
   onShowReport,
 }: {
   banner: Banner
@@ -54,6 +55,7 @@ export function BannerBar({
   onLoadLatest: () => void
   onWithdraw: () => void
   onRetry: () => void
+  onDismiss: () => void
   onShowReport: () => void
 }) {
   const mine = <CopyMine def={def} layout={layout} />
@@ -135,6 +137,30 @@ export function BannerBar({
           <div className="acts">
             <button type="button" className="btn secondary sm" onClick={onRetry}>
               重試
+            </button>
+          </div>
+        </div>
+      )
+    case 'requestFailed':
+      return (
+        <div className="msg error banner" role="alert">
+          <div>
+            <p>
+              <strong>{banner.what === 'validate' ? '驗證沒有完成' : '載入最新草稿失敗'}</strong>
+            </p>
+            <p>
+              {banner.requestId ? `請求編號 ${banner.requestId}；` : ''}
+              {banner.what === 'validate' ? '你的草稿內容與儲存狀態不受影響，可以稍後再按「驗證」。' : '你目前的修改仍在畫面上，可以再試一次。'}
+            </p>
+          </div>
+          <div className="acts">
+            {banner.what === 'load' && (
+              <button type="button" className="btn secondary sm" onClick={onLoadLatest}>
+                再試一次
+              </button>
+            )}
+            <button type="button" className="btn secondary sm" onClick={onDismiss}>
+              關閉
             </button>
           </div>
         </div>

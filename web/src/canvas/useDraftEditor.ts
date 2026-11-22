@@ -10,6 +10,8 @@ export type Banner =
   | { kind: 'aborted'; detail: JourneyDetail | null }
   | { kind: 'saveFailed'; requestId: string | null }
   | { kind: 'deleted' }
+  /** 驗證或載入最新草稿的請求失敗（不是儲存失敗；草稿內容與儲存狀態不受影響） */
+  | { kind: 'requestFailed'; what: 'validate' | 'load'; requestId: string | null }
   | { kind: 'submitBlocked'; count: number }
   | { kind: 'submitFailed'; requestId: string | null }
 
@@ -195,8 +197,7 @@ export function useDraftEditor(journeyId: string) {
     try {
       apply(await getDraft(journeyId))
     } catch (e) {
-      const err = asError(e)
-      setBanner({ kind: 'saveFailed', requestId: err.requestId })
+      setBanner({ kind: 'requestFailed', what: 'load', requestId: asError(e).requestId })
     }
   }, [journeyId, apply])
 
@@ -223,7 +224,7 @@ export function useDraftEditor(journeyId: string) {
       setReport(r)
       setReportOpen(true)
     } catch (e) {
-      setBanner({ kind: 'saveFailed', requestId: asError(e).requestId })
+      setBanner({ kind: 'requestFailed', what: 'validate', requestId: asError(e).requestId })
     } finally {
       setValidating(false)
     }
