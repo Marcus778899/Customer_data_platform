@@ -37,8 +37,8 @@ describe('節點庫 ≤1100px 圖示軌（canvas-connect-drag）', () => {
     const rule = /\.nl-title, \.nl-tip, \.nl-gh, \.nl-tx small, \.nl-grip\s*\{([^}]*)\}/.exec(block)?.[1] ?? ''
     expect(rule.trim()).toBe('display: none;')
   })
-  it('圖示軌 64px，且 1100 斷點裡沒有重複貼進來的 .nl-item > svg 規則', () => {
-    expect(block).toMatch(/\.nodelib\s*\{[^}]*width:\s*64px/)
+  it('圖示軌 72px，且 1100 斷點裡沒有重複貼進來的 .nl-item > svg 規則', () => {
+    expect(block).toMatch(/\.nodelib\s*\{[^}]*width:\s*72px/)
     expect(block).not.toMatch(/\.nl-item > svg/)
   })
 })

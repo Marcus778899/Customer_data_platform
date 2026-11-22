@@ -211,6 +211,10 @@ const NARROW_W = 640
 /** 面板排到圖下方的界線（同 app.css） */
 const STACK_W = 1100
 const ZOOMBAR_BAND = 64
+/** 手機／面板在圖下方：看視窗寬（同 app.css 斷點），不看畫布寬（面板在旁邊時畫布會變窄）；沒有 matchMedia 時退回畫布寬 */
+const mediaMatch = (q: string, fallback: boolean) => (typeof window.matchMedia === 'function' ? window.matchMedia(q).matches : fallback)
+const isNarrow = (canvasW: number) => mediaMatch(`(max-width: ${NARROW_W}px)`, canvasW <= NARROW_W)
+const isStacked = (canvasW: number) => mediaMatch(`(max-width: ${STACK_W}px)`, canvasW <= STACK_W)
 const REVEAL_GAP = 16
 /** 畫布右緣漸層寬（同 app.css）：選取節點的出口圓點不可落在漸層下 */
 const EDGE_FADE_W = 48
@@ -266,7 +270,7 @@ function place(rf: Rf, wrap: Wrap, positions: Positions) {
   const zoom = pickZoom(availW, b.bw, (z) => b.minX + (w - PAD) / z, xs)
   const x = b.bw * zoom <= availW ? (w - b.bw * zoom) / 2 - b.minX * zoom : PAD - b.minX * zoom
   let y = b.bh * zoom <= availH ? PAD + (availH - b.bh * zoom) / 2 - b.minY * zoom : PAD - b.minY * zoom
-  if (w <= NARROW_W && b.bh * zoom > availH) {
+  if (isNarrow(w) && b.bh * zoom > availH) {
     // 主幹列＝最左邊（開始）那張卡所在的列
     const start = Object.values(positions()).reduce((a, p) => (p.x < a.x ? p : a))
     const centered = h / 2 - (start.y + CARD_H / 2) * zoom
@@ -298,9 +302,20 @@ function fitWidth(rf: Rf, wrap: Wrap, positions: Positions) {
   apply(rf, PAD - b.minX * zoom, rf.getViewport().y, zoom)
 }
 
-/** 加節點、接線、畫布大小改變後自動縮放並置位；拖曳不觸發，開關面板不改畫布大小所以也不觸發 */
-function FitOnChange({ signature, wrap, positions }: { signature: string; wrap: Wrap; positions: Positions }) {
+/** 加節點、接線、畫布大小改變後自動縮放並置位；拖曳不觸發；開關面板造成的那一次寬度變化也不重排（不蓋掉選取平移與使用者視角） */
+function FitOnChange({ signature, wrap, positions, panelOpen }: { signature: string; wrap: Wrap; positions: Positions; panelOpen: boolean }) {
   const rf = useReactFlow()
+  const skip = useRef(false)
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    skip.current = true
+    const t = window.setTimeout(() => (skip.current = false), 1000)
+    return () => window.clearTimeout(t)
+  }, [panelOpen])
   useEffect(() => {
     const box = boxOf(wrap)
     const run = () => place(rf, wrap, positions)
@@ -308,6 +323,10 @@ function FitOnChange({ signature, wrap, positions }: { signature: string; wrap: 
     let ro: ResizeObserver | undefined
     if (box && typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => {
+        if (skip.current) {
+          skip.current = false
+          return
+        }
         window.cancelAnimationFrame(raf)
         raf = window.requestAnimationFrame(run)
       })
@@ -322,18 +341,21 @@ function FitOnChange({ signature, wrap, positions }: { signature: string; wrap: 
 }
 
 /**
- * 選取節點：只平移、不改縮放。桌機（面板浮在畫布右側）只在節點被面板蓋住時往左平移，露出節點、左側留 16px；
+ * 選取節點：只平移、不改縮放。桌機（面板在畫布右側）只在節點靠近右緣漸層時往左平移，露出節點、左側留 16px；
  * 窄螢幕（面板在圖下方）把節點捲到水平置中、上方留 8px。被平移時回報，畫布顯示提示。
  */
 function RevealSelected({
   selectedId,
   panelOpen,
+  boxW,
   wrap,
   positions,
   onMoved,
 }: {
   selectedId: string | null
   panelOpen: boolean
+  /** 畫布寬（面板開關後變了要再檢查一次） */
+  boxW: number
   wrap: Wrap
   positions: Positions
   onMoved: (id: string) => void
@@ -352,14 +374,13 @@ function RevealSelected({
       // 出口圓點突出卡片右緣 HANDLE_R，一起算進可見範圍
       const right = left + (CARD_W + HANDLE_R) * vp.zoom
       const top = vp.y + p.y * vp.zoom
-      if (w <= STACK_W) {
+      if (isStacked(w)) {
         const nx = w / 2 - (p.x + CARD_W / 2) * vp.zoom
         const ny = top < 8 || top + CARD_H * vp.zoom > h ? 8 - p.y * vp.zoom : vp.y
         if (Math.abs(nx - vp.x) > 0.5 || Math.abs(ny - vp.y) > 0.5) apply(rf, nx, ny, vp.zoom)
         return
       }
-      const panelW = 0 // 面板在文件流中，畫布本身已讓出面板寬
-      const limit = w - panelW - EDGE_FADE_W - REVEAL_GAP
+      const limit = w - EDGE_FADE_W - REVEAL_GAP
       if (right <= limit) return
       const shift = Math.min(right - limit, left - REVEAL_GAP)
       if (shift <= 0.5) return
@@ -368,17 +389,17 @@ function RevealSelected({
     }
     const raf = window.requestAnimationFrame(run)
     return () => window.cancelAnimationFrame(raf)
-  }, [selectedId, panelOpen, rf, wrap, positions, onMoved])
+  }, [selectedId, panelOpen, boxW, rf, wrap, positions, onMoved])
   return null
 }
 
 /** 小地圖：整張圖都在「面板以外的可見範圍」內就隱藏；有節點被蓋住或超出畫面才顯示 */
-function MiniGate({ size, positions, panelW }: { size: Size; positions: Positions; panelW: number }) {
+function MiniGate({ size, positions }: { size: Size; positions: Positions }) {
   const [x, y, zoom] = useStore((s) => s.transform)
   const b = bounds(positions)
-  if (size.w > 0 && size.w <= NARROW_W) return null
+  if (size.w > 0 && isNarrow(size.w)) return null
   if (b && size.w > 0 && size.h > 0) {
-    const seen = size.w - (size.w > STACK_W ? panelW : 0)
+    const seen = size.w
     const l = x + b.minX * zoom
     const t = y + b.minY * zoom
     if (l >= -0.5 && t >= -0.5 && l + b.bw * zoom <= seen + 0.5 && t + b.bh * zoom <= size.h + 0.5) return null
@@ -397,7 +418,7 @@ function RightFade({ size, positions }: { size: Size; positions: Positions }) {
 function ZoomBar({ wrap, positions, size }: { wrap: Wrap; positions: Positions; size: Size }) {
   const rf = useReactFlow()
   const zoom = useStore((s) => s.transform[2])
-  if (size.w > 0 && size.w <= NARROW_W) return null
+  if (size.w > 0 && isNarrow(size.w)) return null
   const low = zoom < READABLE - 0.0005
   return (
     <>
@@ -514,7 +535,6 @@ function CanvasBody({
   const [over, setOver] = useState(false)
   const pressAt = useRef<Pt | null>(null)
 
-  const panelW = 0
 
   const nodes = useMemo<CardNode[]>(
     () =>
@@ -592,7 +612,7 @@ function CanvasBody({
             label: multi && idx >= 0 ? portName(specs[idx]) : '',
             route: routeEdge(from, a, b, cards),
             selected: selectedEdge === id,
-            visibleRight: size.w - panelW,
+            visibleRight: size.w,
             onRemove: onRemoveLink,
             locked,
           },
@@ -600,7 +620,7 @@ function CanvasBody({
       }
     }
     return out
-  }, [def, full, drag, selectedEdge, size.w, panelW, locked, onRemoveLink])
+  }, [def, full, drag, selectedEdge, size.w, locked, onRemoveLink])
 
   const isValidConnection = useCallback(
     (c: Edge | Connection) => c.source !== c.target && canTarget(def.nodes.find((n) => n.id === c.target)),
@@ -713,13 +733,13 @@ function CanvasBody({
           setDrag({})
         }}
       >
-        <MiniGate size={size} positions={positions} panelW={panelW} />
+        <MiniGate size={size} positions={positions} />
       </ReactFlow>
       <RightFade size={size} positions={positions} />
       <ZoomBar wrap={wrap} positions={positions} size={size} />
-      <FitOnChange signature={signature} wrap={wrap} positions={positions} />
-      <RevealSelected selectedId={selectedId} panelOpen={panelOpen} wrap={wrap} positions={positions} onMoved={setMoved} />
-      {movedNode && size.w > STACK_W && (
+      <FitOnChange signature={signature} wrap={wrap} positions={positions} panelOpen={panelOpen} />
+      <RevealSelected selectedId={selectedId} panelOpen={panelOpen} boxW={size.w} wrap={wrap} positions={positions} onMoved={setMoved} />
+      {movedNode && !isStacked(size.w) && (
         <p className="zfhint" aria-live="polite">
           已移動畫面，讓『{displayName(movedNode)}』露出來
         </p>
