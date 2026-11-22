@@ -162,6 +162,8 @@
 | canvas-connect-drag | frontend | done | 1 | PR #291 |
 | condition-compare-ux | frontend | done | 2 | PR #293 |
 | journey-header-save-delete | frontend | done | 0 | PR #295 |
+| canvas-ui-ratify | designer | in-progress | 0 |  |
+| login-proxy-doc-align | architect | in-progress | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -178,9 +180,7 @@
 - 注意：CI 的 osv-scanner 偶發 Maven 中央庫 429（非漏洞），重跑 failed job 即可；若頻繁再開單加快取
 - 注意：manager 執行 ae task／ae pr 不要加關閉 sandbox 參數（單獨一行即自動在 sandbox 外），否則每次都跳權限確認給甲方
 - 甲方驗收回饋記在 #276（畫布拖拉／拉線互動待 designer 評估、旅程頁節點字裁切、條件面板比較欄窄與怎麼測）；甲方回饋完再分級排單
-- security v0.3.0 FAIL 待重審：H-1 advisory 已撤回（D-093，osv-ignore-remove）；M-1／M-2 依 D-091 修（login-proxy-design 已核可 → login-proxy-api）；兩者合併後派 security 重審；L-1 #269、L-2 #270 backlog
 - 注意（journey-delete-design）：journey 改軟刪除（deleted_at），之後任何讀 journey 表的新查詢都要加 deleted_at IS NULL
-- v0.3.0 剩餘實作：journey-delete-api、node-card-unify 進行中；canvas-connect-drag、condition-compare-ux、journey-header-save-delete 依序開（改同一批前端檔）；login-proxy.md 做法 #4 補正併入下一張 architect 單；全部合併後 security 重審、uat 重測、甲方驗收
 - 2026-11-22 已關 v0.3.0 修好的 issue：#144～#150、#152、#153、#178～#180、#184、#187、#188、#240（uat 重測若重現再重開）
 - 注意：規格改到連線接點或卡片尺寸時，開單要一起列出驗收測試裡檢查接點位置的 helper（例 node-card-unify/helpers.tsx anchorMismatches），否則 worker 撞舊斷言要多走仲裁；前端 worker 交件前跑完整 npm test -w web（含 tests/unit）
 - 下一張 designer 單順手清：tokens.css 的 --node-width／--node-height 已無程式使用（node-card-unify review）
@@ -194,6 +194,7 @@
 - 注意：搜尋式／推算式邏輯（例：試算範例客戶）的單元測試要涵蓋每個判斷區間（常數之間、邊界、多值避開、組合），不只 review 舉的例子；qa 驗證時也要自己補幾個區間案例
 - 工具誤判（2026-11-22）：ae pr open journey-header-save-delete 擋「驗收測試跟鎖定時（commit 01ae4b4）不一樣」，但 git diff 01ae4b4..HEAD 在 web/tests/acceptance/ 無變動；只有 manager 追加段「受影響的既有驗收測試」裡點名由 worker 改的單元測試（web/tests/unit/canvas/review-fixes.test.tsx、web/tests/unit/review/model.test.ts）有改。疑似該段標題下的路徑都被算進 lock。處理：派 qa 確認後重新 lock；之後追加時單元測試不要寫在「驗收測試」標題段
 - 下一張 designer 單追認（journey-header-save-delete）：「這個旅程已被刪除」提示條、刪除失敗在原對話框內顯示錯誤、requestFailed 提示條（驗證沒有完成／載入最新草稿失敗）、儲存中離開對話框；backlog #296 瀏覽器上一頁不攔
+- v0.3.0 收尾（2026-11-22）：實作全部合併；security 重審、canvas-ui-ratify（designer 追認）、login-proxy-doc-align（architect）進行中；之後 uat 重測（含 #276 畫布互動）、甲方驗收；backlog：tokens.css --node-width／--node-height 清理、#296、#297
 
 ## 注意事項（踩過的坑）
 
