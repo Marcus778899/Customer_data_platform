@@ -162,8 +162,8 @@
 | canvas-connect-drag | frontend | done | 1 | PR #291 |
 | condition-compare-ux | frontend | done | 2 | PR #293 |
 | journey-header-save-delete | frontend | done | 0 | PR #295 |
-| canvas-ui-ratify | designer | blocked | 0 |  |
-| login-proxy-doc-align | architect | blocked | 0 |  |
+| canvas-ui-ratify | designer | review | 0 |  |
+| login-proxy-doc-align | architect | review | 0 |  |
 | canvas-uat-fix | frontend | done | 0 | PR #302 |
 
 ## 卡住／待甲方決定
