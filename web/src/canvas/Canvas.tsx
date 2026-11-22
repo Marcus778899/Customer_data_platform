@@ -322,11 +322,22 @@ function FitOnChange({ signature, wrap, positions, panelOpen }: { signature: str
     let raf = window.requestAnimationFrame(run)
     let ro: ResizeObserver | undefined
     if (box && typeof ResizeObserver !== 'undefined') {
+      let lastW = box.offsetWidth
+      let lastH = box.offsetHeight
       ro = new ResizeObserver(() => {
+        // 開關面板造成的那一次量測：吃掉旗標、不重排
         if (skip.current) {
           skip.current = false
+          lastW = box.offsetWidth
+          lastH = box.offsetHeight
           return
         }
+        // 尺寸沒變的重複量測（新增節點後面板內容換掉）不重排，免得蓋掉選取露出的平移
+        const nw = box.offsetWidth
+        const nh = box.offsetHeight
+        if (nw === lastW && nh === lastH) return
+        lastW = nw
+        lastH = nh
         window.cancelAnimationFrame(raf)
         raf = window.requestAnimationFrame(run)
       })
