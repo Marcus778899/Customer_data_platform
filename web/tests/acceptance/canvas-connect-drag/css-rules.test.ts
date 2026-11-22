@@ -23,9 +23,26 @@ describe('樣式規則（app.css）', () => {
     [...src.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter((m) => m[1].split(',').some((s) => sel.test(s.trim()))).map((m) => m[2]).join(';')
   const base = css.replace(/@media[^{]*\{(?:[^{}]*\{[^}]*\})*[^{}]*\}/g, '')
 
-  it('節點庫 .nodelib：≥1101px 寬 216px；≤1100px 收成 64px 圖示軌', () => {
+  it('節點庫 .nodelib：≥1101px 寬 216px；≤1100px 收成 72px 圖示軌（canvas-uat-fix：64px 放不下「A/B 分流」）', () => {
     expect(rule(base, /^\.nodelib$/)).toMatch(/width:\s*216px/)
-    expect(rule(media(1100), /\.nodelib$/)).toMatch(/width:\s*64px/)
+    const r = rule(media(1100), /\.nodelib$/)
+    expect(r).toMatch(/(^|[;\s])width:\s*72px/)
+    expect(r).not.toMatch(/(^|[;\s])width:\s*64px/)
+  })
+
+  it('≤1100px 圖示軌：項目撐滿軌寬；名稱可換行最多 2 行（無 nowrap、word-break: keep-all），節點庫不可水平捲動', () => {
+    const m = media(1100)
+    const item = rule(m, /^\.nl-item$/)
+    expect(item, '1100 斷點要有 .nl-item 規則').not.toBe('')
+    expect(item).toMatch(/width:\s*100%|align-self:\s*stretch/)
+    const name = rule(m, /^\.nl-tx b$/)
+    expect(name, '1100 斷點要有 .nl-tx b 規則').not.toBe('')
+    expect(name).not.toMatch(/white-space:\s*nowrap/)
+    expect(name).toMatch(/word-break:\s*keep-all/)
+    expect(name).toMatch(/text-align:\s*center/)
+    const lib = rule(m, /\.nodelib$/)
+    expect(lib).not.toMatch(/overflow(-x)?:\s*(auto|scroll)/)
+    expect(lib).toMatch(/overflow-x:\s*hidden|overflow:\s*hidden/)
   })
 
   it('≤640px：節點庫變上方橫排（flex row、可橫向捲動）並有右緣漸層', () => {
