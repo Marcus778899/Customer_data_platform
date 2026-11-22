@@ -161,6 +161,7 @@
 | journey-delete-api | backend | done | 0 | PR #288 |
 | canvas-connect-drag | frontend | done | 1 | PR #291 |
 | condition-compare-ux | frontend | done | 2 | PR #293 |
+| journey-header-save-delete | frontend | done | 0 | PR #295 |
 
 ## 卡住／待甲方決定
 
@@ -191,6 +192,8 @@
 - 注意：前端測試閘門用 npm test -w web（讀 web/vite.config.ts 的 testTimeout 20000），不要用根目錄 npx vitest run（預設 5000ms 會整批逾時誤判）
 - 下一張 designer 單追認（condition-compare-ux 第 2 輪）：試算的「這個條件沒有客戶能符合（條件互相矛盾）」「每位客戶都會符合」與 NOT 子條件數不對的說明文字
 - 注意：搜尋式／推算式邏輯（例：試算範例客戶）的單元測試要涵蓋每個判斷區間（常數之間、邊界、多值避開、組合），不只 review 舉的例子；qa 驗證時也要自己補幾個區間案例
+- 工具誤判（2026-11-22）：ae pr open journey-header-save-delete 擋「驗收測試跟鎖定時（commit 01ae4b4）不一樣」，但 git diff 01ae4b4..HEAD 在 web/tests/acceptance/ 無變動；只有 manager 追加段「受影響的既有驗收測試」裡點名由 worker 改的單元測試（web/tests/unit/canvas/review-fixes.test.tsx、web/tests/unit/review/model.test.ts）有改。疑似該段標題下的路徑都被算進 lock。處理：派 qa 確認後重新 lock；之後追加時單元測試不要寫在「驗收測試」標題段
+- 下一張 designer 單追認（journey-header-save-delete）：「這個旅程已被刪除」提示條、刪除失敗在原對話框內顯示錯誤、requestFailed 提示條（驗證沒有完成／載入最新草稿失敗）、儲存中離開對話框；backlog #296 瀏覽器上一頁不攔
 
 ## 注意事項（踩過的坑）
 
