@@ -45,7 +45,7 @@
     <li><a href="#ix">1 拖拉新增與連線</a></li>
     <li><a href="#nc">2 統一節點卡</a></li>
     <li><a href="#ro-sec">3 旅程頁節點圖</a></li>
-    <li><a href="#cmp">4 比較選單與條件試算</a></li><li><a href="#jh">5 旅程頁標頭</a></li><li><a href="#sv">6 儲存與離開提醒</a></li><li><a href="#dl">7 刪除旅程</a></li>
+    <li><a href="#cmp">4 比較選單與條件試算</a></li><li><a href="#jh">5 旅程頁標頭</a></li><li><a href="#sv">6 儲存與離開提醒</a></li><li><a href="#dl">7 刪除旅程</a></li><li><a href="#rt">8 實作追認</a></li>
   </ul>
 </header>
 
@@ -227,9 +227,147 @@
   <p class="lead">入口只有旅程頁標頭「⋯ 更多」裡的「刪除旅程」（紅字），只在從未發佈（草稿狀態）的旅程出現；已發佈的旅程維持「停止」。送審中停用並說明「請先撤回送審」。確認對話框不要求輸入名稱（尚無客戶在旅程中，風險低於停止），但預設焦點在「取消」，紅色按鈕寫明「刪除旅程」。成功後導回旅程列表並顯示「已刪除『…』」提示，不提供復原。API 與角色依 architect 的 journey-delete-design。</p>
   <div class="dlgs">
     <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t" aria-describedby="dl-d"><h3 id="dl-t">刪除「生日禮提醒（2026 秋季檔期）」？</h3><div id="dl-d"><p>刪除後無法復原。</p><ul class="facts" style="margin:0;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4)"><li>旅程和裡面的 6 個節點會一起刪除</li><li>這個旅程還沒發佈，沒有客戶在旅程中</li><li>送審紀錄的處理依後端規則（待 journey-delete-design）</li></ul></div><div class="foot"><button class="btn secondary fr" type="button" autofocus>取消</button><button class="btn danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>刪除旅程</button></div></div></div>
-    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t2"><h3 id="dl-t2">刪除失敗</h3><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>這個旅程剛被送審，目前不能刪除。請先撤回送審再試一次。<br><span style="font-size:var(--text-xs)">請求編號 req-7f3a91</span></span></p><div class="foot"><button class="btn secondary" type="button">關閉</button><button class="btn" type="button">重新載入旅程</button></div></div></div>
+    <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dl-t2"><h3 id="dl-t2">刪除「生日禮提醒（2026 秋季檔期）」？</h3><p>刪除後無法復原。</p><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>這個旅程剛被送審，目前不能刪除。請先撤回送審再試一次。<br><span style="font-size:var(--text-xs)">請求編號 req-7f3a91</span></span></p><div class="foot"><button class="btn secondary fr" type="button">關閉</button><button class="btn" type="button">重新載入旅程</button></div></div></div>
   </div>
-  <p class="muted" style="margin-top:var(--space-2)">刪除中：紅色鈕換成「刪除中…」＋旋轉圖示並停用，取消也停用。成功：導向「旅程」列表，頂端綠色提示「已刪除『生日禮提醒（2026 秋季檔期）』」，6 秒自動消失，可手動關閉。錯誤文案依錯誤碼：送審中（DRAFT_IN_REVIEW）、已發佈（旅程已有版本）、找不到（已被刪除，直接導回列表）、5xx 重試。</p>
+  <p class="muted" style="margin-top:var(--space-2)">刪除中：紅色鈕換成「刪除中…」＋旋轉圖示並停用，取消也停用。成功：導向「旅程」列表，頂端綠色提示「已刪除『生日禮提醒（2026 秋季檔期）』」，6 秒自動消失，可手動關閉。失敗時錯誤顯示在同一個對話框內（見第 8 區 <code>rt-delete</code>）。錯誤文案依錯誤碼：送審中（DRAFT_IN_REVIEW）、已發佈（旅程已有版本）、找不到（已被刪除，直接導回列表）、5xx 重試。</p>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="sec" id="rt">
+  <h2>8 實作追認：設計稿沒畫到、實作時補上的細節<span class="id">rt-ratify</span></h2>
+  <p class="lead">四張前端單（PR #289、#291、#293、#295）實作時自行補上的地方，逐項看過。標「追認」的照實作寫進規格；標「已修正」的是追認時要求調整、已由 PR #302 照這裡的畫法實作。規格見 <code>canvas-interaction.md</code>「自行決定」表。</p>
+
+  <h3 class="subh first">畫布<small>出口圓點、往左的回頭線、1024 節點庫、事件篩選</small></h3>
+  <div class="rt-grid">
+    <figure class="rt" id="rt-ports">
+      <div class="rt-stage">
+        <div class="rt-node"><span class="cap">平常（游標不在節點上）</span>
+          <div class="mini"><div class="nc static cat-send"><div class="c"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg>訊息</div><div class="n">生日禮券通知</div><div class="s">LINE・birthday_coupon_v2</div></div><span class="hd out free" style="top:30%"></span><span class="hd out off" style="top:70%"></span></div>
+        </div>
+        <div class="rt-node"><span class="cap">游標移上或選取</span>
+          <div class="mini"><div class="nc static cat-send sel"><div class="c"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg>訊息</div><div class="n">生日禮券通知</div><div class="s">LINE・birthday_coupon_v2</div></div><span class="hd out free" style="top:30%"><span class="rt-pl free">送出後</span></span><span class="hd out" style="top:70%"><span class="rt-pl">被略過時（選填）</span></span></div>
+        </div>
+      </div>
+      <p class="rt-status"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>還有 1 個出口沒接下一步</p>
+      <figcaption><b><span class="rt-tag ok">追認</span>選填出口有圓點，但不算「沒接」</b>「被略過時（例如客戶已退訂）」是選填出口：圓點的樣子與已接好的出口相同（藍色實心，游標移上、選取、鍵盤聚焦時才出現），不是橘色虛線，也不算進標頭的「還有 N 個出口沒接下一步」。面板的「下一步」下拉預設「不處理，旅程結束」，下方說明「選填。不連線時，這位客戶的旅程進度就此結束」。</figcaption>
+    </figure>
+
+
+    <figure class="rt" id="rt-rail">
+      <div class="rt-rails">
+        <div><span class="cap">修正前：64px、名稱不換行</span>
+          <div class="rt-rail now" aria-label="節點庫（修正前示意）">
+            <button class="it cat-send" type="button"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg><b>訊息</b></button>
+            <button class="it cat-wait" type="button"><svg class="ico" aria-hidden="true"><use href="#i-wev"/></svg><b>等事件</b></button>
+            <button class="it cat-branch" type="button"><svg class="ico" aria-hidden="true"><use href="#i-ab"/></svg><b>A/B 分流</b></button>
+            <button class="it cat-branch" type="button"><svg class="ico" aria-hidden="true"><use href="#i-merge"/></svg><b>合流</b></button>
+          </div>
+        </div>
+        <div><span class="cap">修正後（PR #302）：72px、名稱最多 2 行</span>
+          <div class="rt-rail fixed" aria-label="節點庫（修正後）">
+            <button class="it cat-send" type="button"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg><b>訊息</b></button>
+            <button class="it cat-wait" type="button"><svg class="ico" aria-hidden="true"><use href="#i-wev"/></svg><b>等事件</b></button>
+            <button class="it cat-branch" type="button"><svg class="ico" aria-hidden="true"><use href="#i-ab"/></svg><b>A/B 分流</b></button>
+            <button class="it cat-branch" type="button"><svg class="ico" aria-hidden="true"><use href="#i-merge"/></svg><b>合流</b></button>
+          </div>
+        </div>
+      </div>
+      <figcaption><b><span class="rt-tag ok">追認</span><span class="rt-tag done">已修正（PR #302）</span>1024 節點庫圖示軌保留名稱</b>追認：≤1100px 的圖示軌保留名稱（圖示在上、名稱在下，12px），比只看圖示好認，按鈕名稱也不只靠 <code>title</code>。修正：64px 內扣掉內距與色條只剩約 33px，「A/B 分流」（約 49px）不換行會把整排撐寬、出現水平捲軸，左側色條被切（用 <code>app.css</code> 實測 scrollWidth 70 &gt; clientWidth 62），已改為軌寬 72px、項目撐滿軌寬、名稱置中可換行（最多 2 行，拿掉 <code>nowrap</code>，加 <code>word-break: keep-all</code> 讓「A/B 分流」在空格處斷、不拆開「分流」）；任何名稱都不得讓節點庫水平捲動。</figcaption>
+    </figure>
+
+    <figure class="rt" id="rt-filter">
+      <p class="rt-sum">只有「購物車金額」大於 500 的「加入購物車」事件，才會讓客戶進入這個旅程。<span class="todo">另有 1 項條件尚未完成，還不會寫入草稿。</span></p>
+      <div class="cond">
+        <div class="r1"><select aria-label="欄位"><option>購物車金額</option></select></div>
+        <div class="r2"><select class="cmp" aria-label="比較方式"><optgroup label="數字比大小"><option selected>大於（&gt;）</option></optgroup></select><input class="val" aria-label="值" value="500" inputmode="decimal"></div>
+      </div>
+      <div class="cond todo">
+        <div class="r1"><select aria-label="欄位"><option>選擇欄位…</option><option>購物車金額</option><option>商品數量</option><option>手動輸入欄位代碼…</option></select></div>
+        <p class="note">選好欄位後再選比較方式與值。沒填完的條件不會寫入草稿，也不標紅。</p>
+      </div>
+      <div class="cond">
+        <div class="r1"><select aria-label="欄位"><option>商品數量</option></select></div>
+        <div class="r2"><select class="cmp" aria-label="比較方式"><optgroup label="數字比大小"><option selected>至少（≥）</option></optgroup></select><input class="val" aria-label="值" value="1,000" aria-invalid="true" aria-describedby="rt-f-err"></div>
+        <p class="err" id="rt-f-err" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>「至少」要填數字，例如 500。不要加單位，1,000 請寫 1000。</p>
+      </div>
+      <figcaption><b><span class="rt-tag ok">追認</span>事件篩選的欄位下拉用原生 select；沒填完不即時標紅</b>取代舊規格的 <code>role="listbox"</code>：與比較選單同一種控制項，手機用系統選單、讀屏不用另做方向鍵。沒填完（欄位未選、值未填）只在區塊摘要寫「另有 N 項條件尚未完成，還不會寫入草稿。」，不標紅；只有填了但格式錯（數字、欄位代碼）才紅框＋行內說明。送審前驗證照舊列出。</figcaption>
+    </figure>
+
+    <figure class="rt full" id="rt-back">
+      <div class="rt-svg" role="img" aria-label="三張卡由左到右：等待下單、再提醒一次、等 1 天；從「等 1 天」右側出來的虛線往下繞到所有卡片下方，再往左接回「等待下單」左緣，標籤「再等一輪」">
+        <svg viewBox="0 0 800 212">
+          <g><rect class="card" x="40" y="20" width="200" height="120" rx="6"/><rect x="40" y="20" width="6" height="120" style="fill:var(--color-node-wait)"/><text class="k" x="60" y="50">等事件</text><text class="nm" x="60" y="82">等待下單</text><text class="sm" x="60" y="114">24 小時・下單</text></g>
+          <g><rect class="card" x="300" y="20" width="200" height="120" rx="6"/><rect x="300" y="20" width="6" height="120" style="fill:var(--color-node-send)"/><text class="k" x="320" y="50">訊息</text><text class="nm" x="320" y="82">再提醒一次</text><text class="sm" x="320" y="114">LINE・cart_reminder_2</text></g>
+          <g><rect class="card" x="560" y="20" width="200" height="120" rx="6"/><rect x="560" y="20" width="6" height="120" style="fill:var(--color-node-wait)"/><text class="k" x="580" y="50">等待</text><text class="nm" x="580" y="82">等 1 天</text><text class="sm" x="580" y="114">1 天</text></g>
+          <path class="e" d="M240 80 C262 80 278 80 298 80" marker-end="url(#ah)"/>
+          <path class="e" d="M500 80 C522 80 538 80 558 80" marker-end="url(#ah)"/>
+          <path class="e back" d="M760 80 L776 80 Q784 80 784 88 L784 156 Q784 164 776 164 L24 164 Q16 164 16 156 L16 88 Q16 80 24 80 L38 80" marker-end="url(#ah)"/>
+          <text class="lb" x="400" y="158" text-anchor="middle">再等一輪</text>
+          <path class="guide" d="M600 140 L600 164"/><text class="gt" x="608" y="157">24</text>
+          <text class="gt" x="400" y="196" text-anchor="middle">從來源右側出 24、走在所有卡片下緣下方 24、接回目標左緣中點；轉角半徑 8</text>
+        </svg>
+      </div>
+      <figcaption><b><span class="rt-tag ok">追認</span>往左的回頭線：自繪圓角折線，從卡片下方繞</b>取代規格原寫的 <code>smoothstep</code>：目標在兩欄以外時，smoothstep 的水平段會穿過中間的卡片。自繪折線先算出來源與目標之間所有卡片的最低點，水平段一律走在它下方 24px，不穿卡、不跟往右的線交叉。仍是點狀虛線（迴圈），點線選取時移除鈕放在底部水平段中點下方。</figcaption>
+    </figure>
+  </div>
+
+  <h3 class="subh">條件面板<small>不支援的條件、試試看的特殊結果</small></h3>
+  <div class="rt-grid cp">
+    <figure class="rt" id="rt-unsup">
+      <div class="cond">
+        <div class="r1"><select aria-label="欄位" disabled><option>（客戶行為條件，畫面無法編輯）</option></select></div>
+        <p class="note">這個條件畫面無法編輯，原樣保留；要改請先移除。</p>
+        <div><button class="btn secondary rmtx" type="button" aria-label="移除這個條件"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>移除</button></div>
+      </div>
+      <p class="rt-hint"><svg class="ico" aria-hidden="true"><use href="#i-flask"/></svg>這個條件裡有試算不支援的項目（客戶行為、客群），無法在這裡試算。</p>
+      <figcaption><b><span class="rt-tag ok">追認</span>只有客戶行為／客群條件時：停用的「欄位」下拉＋移除鈕</b>用停用的下拉佔住欄位那一行，版面與一般條件列一致，讀屏念得到「欄位，客戶行為條件，畫面無法編輯，已停用」。條件原樣保留、只能移除；「試試看」整區停用並說明原因。事件篩選裡同類條件沿用「不支援的條件」卡（只會在 API 寫入時出現）。</figcaption>
+    </figure>
+
+    <figure class="rt" id="rt-try">
+      <div class="rt-try">
+        <div>
+          <p class="q">條件互相矛盾<small>「購物車金額」大於 500；「購物車金額」小於 300</small></p>
+          <div class="ex"><div class="y"><p class="hd2"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>一位會符合的客戶</p><p class="none">這個條件沒有客戶能符合（條件互相矛盾）。</p></div><div class="n"><p class="hd2"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>一位不會符合的客戶</p><dl><dt>購物車金額</dt><dd class="fail">500<span class="why2">不合：要大於 500（剛好等於不算）</span></dd></dl></div></div>
+        </div>
+        <div>
+          <p class="q">每位客戶都符合<small>任一符合：「會員等級」有填；「會員等級」沒填</small></p>
+          <div class="ex"><div class="y"><p class="hd2"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>一位會符合的客戶</p><dl><dt>會員等級</dt><dd class="ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>gold</dd></dl></div><div class="n"><p class="hd2"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>一位不會符合的客戶</p><p class="none">每位客戶都會符合。</p></div></div>
+        </div>
+        <div>
+          <p class="q">「但不可以是…」裡放了兩個條件</p>
+          <p class="rt-hint"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>「但不可以是…」裡只能放一個條件，現在不會有客戶符合。</p>
+        </div>
+        <div>
+          <p class="q">組合太多（同一欄位 4 個「包含」再加其他欄位）</p>
+          <p class="rt-hint"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>條件太多，請直接用下方樣本試算。</p>
+          <p class="fine">範例區不顯示；下方「自己填填看」照常可用。</p>
+        </div>
+      </div>
+      <figcaption><b><span class="rt-tag ok">追認</span>試試看的四種特殊結果</b>找不到會符合的客戶、找不到不會符合的客戶、NOT 群組放了兩個條件、組合超過上限：各用一句白話取代範例，不用錯誤紅色（不是使用者做錯，是條件本身的性質）。另追認：不會符合的那位做不到「只差一條」時，列出最少的幾條紅字原因；「包含」的範例值一律以文字呈現（欄位是陣列時也一樣），判斷與後端相同。</figcaption>
+    </figure>
+  </div>
+
+  <h3 class="subh">標頭與儲存<small>提示條、刪除失敗、儲存中離開</small></h3>
+  <div class="rt-grid two">
+    <figure class="rt full" id="rt-banners">
+      <div class="rt-bns">
+        <div class="rt-bn" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg><div class="tx"><p><strong>這個旅程已被刪除</strong></p><p>你的修改無法儲存，也不會再送出。</p></div><div class="acts"><a class="btn secondary sm" href="#rt">回旅程列表</a><button class="btn secondary sm" type="button">複製我的修改</button></div></div>
+        <div class="rt-bn" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><div class="tx"><p><strong>驗證沒有完成</strong></p><p><span class="rid">請求編號 req-4c2e81</span>；你的草稿內容與儲存狀態不受影響，可以稍後再按「驗證」。</p></div><div class="acts"><button class="btn secondary sm" type="button">關閉</button></div></div>
+        <div class="rt-bn" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><div class="tx"><p><strong>載入最新草稿失敗</strong></p><p><span class="rid">請求編號 req-9d07b3</span>；你目前的修改仍在畫面上，可以再試一次。</p></div><div class="acts"><button class="btn secondary sm" type="button">再試一次</button><button class="btn secondary sm" type="button">關閉</button></div></div>
+      </div>
+      <figcaption><b><span class="rt-tag ok">追認</span>三種編輯頁提示條</b>形狀同 <code>ed-banners</code>（淡紅底、左圖示、按鈕靠右，≤640px 按鈕整列 44px）。「已被刪除」：儲存或送審收到旅程不存在時出現，提供回列表與複製修改。「驗證沒有完成」「載入最新草稿失敗」：只是那一次請求失敗，不改標頭的儲存狀態、不出現「重試儲存」；附請求編號、可關閉，載入失敗多「再試一次」。</figcaption>
+    </figure>
+
+    <figure class="rt" id="rt-delete">
+      <div class="dlgbg"><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="rt-dl-t" aria-describedby="rt-dl-d"><h3 id="rt-dl-t">刪除「生日禮提醒（2026 秋季檔期）」？</h3><div id="rt-dl-d"><p>刪除後無法復原。</p><ul class="facts" style="margin:0 0 var(--space-3);padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4)"><li>旅程和草稿內容會一起刪除</li><li>這個旅程還沒發佈，沒有客戶在旅程中</li></ul></div><p class="errmsg" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg><span>刪除失敗，請稍後再試。<br><span style="font-size:var(--text-xs)">請求編號 req-2b81f0</span></span></p><div class="foot"><button class="btn secondary fr" type="button">取消</button><button class="btn danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>重試刪除</button></div></div></div>
+      <figcaption><b><span class="rt-tag ok">追認</span>刪除失敗：在原對話框內顯示</b>取代設計稿原本另開的「刪除失敗」對話框：標題仍是要刪的旅程名稱、焦點不跳。可以重試的錯誤（5xx、網路）：錯誤訊息＋「取消」「重試刪除」；不能重試的（送審中、已發佈）：「關閉」「重新載入旅程」（第 7 區）；沒有權限：只有「關閉」；已被別人刪除：直接導回列表。</figcaption>
+    </figure>
+
+    <figure class="rt" id="rt-leave">
+      <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="rt-lv-t"><h3 id="rt-lv-t">要把修改存成草稿嗎？</h3><p class="rt-status" role="status" style="color:var(--color-info-fg)"><span class="spin" aria-hidden="true"></span>正在儲存草稿，存好就會離開。</p><div class="foot"><button class="btn secondary fr" type="button">繼續編輯</button><button class="btn danger secondary" type="button" aria-disabled="true">不儲存，直接離開</button><button class="btn" type="button" aria-disabled="true">儲存中…</button></div></div></div>
+      <figcaption><b><span class="rt-tag ok">追認</span><span class="rt-tag done">已修正（PR #302）</span>儲存中點導覽：等存完再離開</b>追認：一般儲存進行中點返回、麵包屑或側欄，直接開離開對話框並等這次存完，成功就導頁、失敗改「儲存失敗，還不能離開」；儲存中又改的內容會一起存（存下來，不會遺失）。修正：原本三顆都停用、Esc 也關不掉，請求一直沒回應時會卡住；已改為「繼續編輯」保持可按（Esc 同效）：只取消離開、不中斷儲存，結果照常顯示在標頭；內文改「正在儲存草稿，存好就會離開。」（原本沿用「你有修改還沒儲存…」，與正在儲存矛盾）。</figcaption>
+    </figure>
+  </div>
 </section>
 </div>
 <script>
