@@ -211,8 +211,9 @@ const NARROW_W = 640
 /** 面板排到圖下方的界線（同 app.css） */
 const STACK_W = 1100
 const ZOOMBAR_BAND = 64
-const PANEL_FALLBACK_W = 372
 const REVEAL_GAP = 16
+/** 畫布右緣漸層寬（同 app.css）：選取節點的出口圓點不可落在漸層下 */
+const EDGE_FADE_W = 48
 
 type Positions = () => Record<string, { x: number; y: number }>
 type Size = { w: number; h: number }
@@ -357,8 +358,8 @@ function RevealSelected({
         if (Math.abs(nx - vp.x) > 0.5 || Math.abs(ny - vp.y) > 0.5) apply(rf, nx, ny, vp.zoom)
         return
       }
-      const panelW = wrap.current?.parentElement?.querySelector<HTMLElement>('.edside')?.offsetWidth || PANEL_FALLBACK_W
-      const limit = w - panelW - REVEAL_GAP
+      const panelW = 0 // 面板在文件流中，畫布本身已讓出面板寬
+      const limit = w - panelW - EDGE_FADE_W - REVEAL_GAP
       if (right <= limit) return
       const shift = Math.min(right - limit, left - REVEAL_GAP)
       if (shift <= 0.5) return
@@ -513,7 +514,7 @@ function CanvasBody({
   const [over, setOver] = useState(false)
   const pressAt = useRef<Pt | null>(null)
 
-  const panelW = panelOpen && size.w > STACK_W ? PANEL_FALLBACK_W : 0
+  const panelW = 0
 
   const nodes = useMemo<CardNode[]>(
     () =>

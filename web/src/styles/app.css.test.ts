@@ -30,7 +30,7 @@ describe('app.css 規則（#144、#148、#178）', () => {
 
 describe('節點庫 ≤1100px 圖示軌（canvas-connect-drag）', () => {
   const block = (() => {
-    const re = /@media \(max-width: 1100px\) \{\n([\s\S]*?)\n\}/g
+    const re = /@media \(max-width: 1100px\) \{\r?\n([\s\S]*?)\r?\n\}/g
     return [...css.matchAll(re)].map((m) => m[1]).find((b) => b.includes('.nodelib')) ?? ''
   })()
   it('標題、提示、分組名、說明、把手收起來（display: none），不被改成別的 display', () => {

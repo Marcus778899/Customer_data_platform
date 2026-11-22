@@ -527,6 +527,20 @@ function Editor({ id }: { id: string }) {
                 </button>
               )}
               <div className="edside" hidden={!panelKey || collapsed}>
+          {ed.reportOpen && ed.report && (
+            <ValidationPanel
+              report={ed.report}
+              busy={ed.validating}
+              onRevalidate={() => void ed.validate()}
+              onClose={() => ed.setReportOpen(false)}
+              onCollapse={() => setCollapsedKey(panelKey)}
+              onLocate={(nid, field) => {
+                select(nid)
+                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
+              }}
+              onSettings={openSettings}
+            />
+          )}
           {sel && (
             <NodePanel
               key={sel.id}
@@ -548,20 +562,6 @@ function Editor({ id }: { id: string }) {
             />
           )}
           {settingsOpen && <SettingsPanel def={def} onChange={setDef} onClose={() => setSettingsOpen(false)} onCollapse={() => setCollapsedKey(panelKey)} />}
-          {ed.reportOpen && ed.report && (
-            <ValidationPanel
-              report={ed.report}
-              busy={ed.validating}
-              onRevalidate={() => void ed.validate()}
-              onClose={() => ed.setReportOpen(false)}
-              onCollapse={() => setCollapsedKey(panelKey)}
-              onLocate={(nid, field) => {
-                select(nid)
-                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
-              }}
-              onSettings={openSettings}
-            />
-          )}
               </div>
             </LockProvider>
             {onlyStart && (
