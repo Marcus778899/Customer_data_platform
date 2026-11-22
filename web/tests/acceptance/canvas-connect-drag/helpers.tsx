@@ -21,7 +21,7 @@
  *   - 首次提示：畫布內（不在 `.react-flow__viewport` 之內，所以不跟著捲動／縮放）一個含「從節點右邊的圓點按住」的元素與按鈕「知道了」；
  *     按「知道了」後不再出現，記在 localStorage（鍵名不測，測同一個 localStorage 下重開編輯器）。
  *   - 路徑 `d` 用絕對座標指令 M L C Q H V（無相對指令、無弧線）；端點座標見 node-card-unify/helpers.tsx anchorMismatches。
- *   - 自動儲存仍在（手動儲存是之後 journey-header-save-delete 的事），PUT 帶 definition／layout。
+ *   - 手動儲存（journey-header-save-delete）：`waitForPut` 先按「儲存草稿」再等 PUT，PUT 帶 definition／layout。
  */
 import { expect } from 'vitest'
 import { EDIT, nodeButtons, screen, start, waitFor, within } from '../journey-canvas-ui/fixtures'

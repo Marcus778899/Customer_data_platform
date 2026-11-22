@@ -191,6 +191,8 @@ export const putDraft = (id: string, body: { revision: number; definition: Draft
 export const validateDraft = (id: string) =>
   request<ValidationReport>('POST', `/api/v1/journeys/${enc(id)}/draft/validate`)
 export const deleteDraft = (id: string) => request<void>('DELETE', `/api/v1/journeys/${enc(id)}/draft`)
+/** 刪除從未發佈的旅程（契約 journeys.md §3.6）；成功 204 */
+export const deleteJourney = (id: string) => request<void>('DELETE', `/api/v1/journeys/${enc(id)}`)
 export const submitDraft = (id: string, revision: number, note?: string) =>
   request<Review>('POST', `/api/v1/journeys/${enc(id)}/draft/submit`, {
     body: note ? { revision, note } : { revision },

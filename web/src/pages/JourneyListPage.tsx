@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { listJourneys } from '../api/client'
 import { AppLink } from '../components/AppLink'
+import { FlashBar } from '../components/Flash'
 import { Crumbs } from '../components/Shell'
 import { useAuth } from '../auth'
 import { Badge, ErrorBox, MoreControls, Skeleton, Time } from '../components/ui'
@@ -68,6 +69,7 @@ export function JourneyListPage({ loc }: { loc: Loc }) {
   return (
     <>
       <Crumbs items={[{ label: '旅程', to: '/journeys' }, { label: '旅程清單' }]} />
+      <FlashBar />
       <div className="pagehead">
         <div>
           <h1>旅程</h1>

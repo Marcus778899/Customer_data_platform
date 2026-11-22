@@ -2,7 +2,7 @@
 /**
  * canvas-layout-fix：uat v0.3.0 F-3／F-11 畫布存檔要分層排版（dagre 由左到右，docs/ui/journey-builder.md「畫布排版」）。
  * 重現：空草稿依序加節點、接線後，PUT 的 layout 不可是一整列；連線方向由左到右、分支分叉、節點不重疊。
- * 假設同 journey-canvas-ui/fixtures.tsx（工具列、右側面板「是／否／送出後」下一步選單、自動儲存 PUT）。
+ * 假設同 journey-canvas-ui/fixtures.tsx（節點庫、右側面板「是／否／送出後」下一步選單）；儲存改手動（journey-header-save-delete），測試每次取 PUT 前先按「儲存草稿」。
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {

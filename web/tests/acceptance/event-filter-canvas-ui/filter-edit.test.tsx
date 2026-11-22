@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /** event-filter-canvas-ui：入口與等事件節點新增／編輯／刪除篩選，PUT 的 event_filter 符合契約 §4。假設見 fixtures.tsx。 */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { saveDraftNow } from '../journey-canvas-ui/fixtures'
 import {
   FK, SRC_LEGEND, WAIT_LEGEND, addCond, and, bodyText, choose, cleanup, efBackend, efDef, filterOf, leaf, open, optionCount,
   putWith, resetEnv, rowsOf, screen, selectNode, statusText, teardown, typeInto, userEvent, waitFor, within,
@@ -88,7 +89,8 @@ describe('入口節點：新增', () => {
     await waitFor(() => expect(optionCount(within(g).getByLabelText('欄位'))).toBeGreaterThan(2))
     await choose(within(g).getByLabelText('欄位'), ['properties.cart_total'])
     expect(statusText(g)).toContain('尚未完成')
-    await new Promise((r) => setTimeout(r, 1800))
+    await saveDraftNow() // 手動儲存：按儲存草稿後，不完整的值仍不可寫入
+    await new Promise((r) => setTimeout(r, 500))
     for (const c of ed.puts()) expect(filterOf(c.body as never, 'src_1')?.children?.length ?? 0).toBe(0)
   })
 
@@ -147,7 +149,8 @@ describe('編輯與刪除', () => {
     await waitFor(() => expect([...(within(row).getByLabelText('欄位') as HTMLSelectElement).options].some((o) => o.value === 'properties.coupon_code')).toBe(true))
     await choose(within(row).getByLabelText('欄位'), ['properties.coupon_code'])
     expect((within(row).getByLabelText('值') as HTMLInputElement).value).toBe('')
-    await new Promise((r) => setTimeout(r, 1500))
+    await saveDraftNow() // 手動儲存：按儲存草稿後，不完整的值仍不可寫入
+    await new Promise((r) => setTimeout(r, 500))
     for (const c of ed.puts()) expect(JSON.stringify(filterOf(c.body as never, 'src_1'))).not.toContain('coupon_code')
   })
 

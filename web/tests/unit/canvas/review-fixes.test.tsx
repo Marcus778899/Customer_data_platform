@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** review 追加：存檔失敗不送審／不驗證；刪除條件列後其餘列的值不錯位。 */
+/** review 追加：存檔失敗不送審／不驗證（手動儲存，送審與驗證前自動存一次）；刪除條件列後其餘列的值不錯位。 */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { shownText } from '../../../src/canvas/model'
 import {
@@ -21,27 +21,34 @@ describe('shownText', () => {
 
 const fail500 = () => json({ type: 'about:blank', title: 'x', status: 500, code: 'INTERNAL', detail: 'd', request_id: 'R1' }, 500)
 
+const saveDraft = async () => userEvent.click(await screen.findByRole('button', { name: /^(儲存草稿|重試儲存)/ }))
+
 describe('存檔失敗時不送審、不驗證', () => {
-  it('PUT 5xx 後按送審：不呼叫 submit、不離開編輯頁，顯示儲存失敗', async () => {
+  it('手動儲存 5xx 後按送審並確認：不呼叫 submit、不離開編輯頁，仍顯示儲存失敗與「重試儲存」', async () => {
     const ed = editorBackend({ routes: { [`PUT ${DRAFT_PATH}`]: fail500 } })
     await openEditor()
     await selectNode('VIP 專屬關心')
     await typeInto('範本代碼', 'cart_x')
+    await saveDraft()
     await screen.findByRole('alert', {}, { timeout: 8000 })
     await userEvent.click(screen.getByRole('button', { name: '送審' }))
+    const d = await screen.findByRole('dialog', { name: /送審？/ })
+    await userEvent.click([...d.querySelectorAll('button')].find((b) => b.textContent === '送審')!)
     await new Promise((r) => setTimeout(r, 300))
     expect(ed.api.calls.some((c) => c.path.endsWith('/submit'))).toBe(false)
     expect(window.location.pathname).toMatch(/\/edit$/)
+    expect(screen.getByRole('button', { name: '重試儲存' })).toBeTruthy()
   }, 30000)
 
-  it('PUT 5xx 後按驗證：不呼叫 validate', async () => {
+  it('有未儲存變更按驗證：先自動存，PUT 5xx 就不呼叫 validate', async () => {
     const ed = editorBackend({ routes: { [`PUT ${DRAFT_PATH}`]: fail500 } })
     await openEditor()
     await selectNode('VIP 專屬關心')
     await typeInto('範本代碼', 'cart_x')
-    await screen.findByRole('alert', {}, { timeout: 8000 })
     await userEvent.click(screen.getByRole('button', { name: '驗證' }))
+    await screen.findByRole('alert', {}, { timeout: 8000 })
     await new Promise((r) => setTimeout(r, 300))
+    expect(ed.puts().length).toBe(1)
     expect(ed.api.calls.some((c) => c.path.endsWith('/validate'))).toBe(false)
   }, 30000)
 })
@@ -69,6 +76,7 @@ describe('刪除條件列', () => {
     await userEvent.click(screen.getAllByRole('button', { name: '移除這個條件' })[0])
     await waitFor(() => expect(screen.getAllByLabelText('值').map((i) => (i as HTMLInputElement).value)).toEqual(['BBB', 'CCC']))
     await userEvent.selectOptions(screen.getAllByLabelText('比較')[0], 'NEQ')
+    await saveDraft()
     const put = await waitFor(() => {
       const p = ed.puts().at(-1)
       expect(p).toBeTruthy()

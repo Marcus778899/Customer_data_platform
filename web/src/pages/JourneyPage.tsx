@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ApiError, getJourney, getJourneyVersion, getNodeStats, putDraft } from '../api/client'
 import { useAuth } from '../auth'
 import { AppLink } from '../components/AppLink'
@@ -9,9 +9,10 @@ import { formatLocal, JOURNEY_STATUS } from '../format'
 import { GraphSection } from '../graph/GraphSection'
 import { navigate, type Loc } from '../router'
 import { useFetch } from '../useFetch'
-import { ActionButtons } from './review/ActionButtons'
 import { ActionDialogs, type OpenDialog } from './review/ActionDialogs'
-import { journeyActions, type ActionKey } from './review/model'
+import { DeleteDialog } from './review/DeleteDialog'
+import { HeaderActions } from './review/HeaderActions'
+import { headerReason, journeyActions, type ActionKey } from './review/model'
 
 function LifecycleNotice({ detail }: { detail: JourneyDetail }) {
   const rv = detail.latest_review
@@ -110,6 +111,8 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
   const { data, last, error, reload } = useFetch(load)
   const { user } = useAuth()
   const [open, setOpen] = useState<OpenDialog>(null)
+  const [deleting, setDeleting] = useState(false)
+  const reasonId = useId()
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<ApiError | null>(null)
   // 重新整理時保留畫面（對話框與焦點不被骨架取代）
@@ -144,6 +147,7 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
 
   const reloadAll = useCallback(() => {
     setOpen(null)
+    setDeleting(false)
     reload()
   }, [reload])
 
@@ -174,6 +178,7 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
   function act(key: ActionKey) {
     if (key === 'edit') void startEdit()
     else if (key === 'resubmit') navigate(`/journeys/${encodeURIComponent(id)}/edit`)
+    else if (key === 'delete') setDeleting(true)
     else setOpen(key)
   }
 
@@ -213,6 +218,8 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
     )
   }
 
+  const specs = journeyActions(detail, user)
+  const reason = headerReason(specs)
   const st = JOURNEY_STATUS[detail.status] ?? { label: detail.status, tone: 'neutral' as const }
   const statItems = stats.data && Array.isArray(stats.data.items) ? stats.data.items : undefined
   const old = version !== null && latest !== null && version !== latest
@@ -222,58 +229,74 @@ export function JourneyPage({ id, loc }: { id: string; loc: Loc }) {
   return (
     <>
       {crumbs(detail.name)}
-      <div className="pagehead">
-        <div>
-          <h1 tabIndex={-1} ref={h1}>
-            {detail.name} <Badge tone={st.tone}>{st.label}</Badge>
-            {detail.review_status === 'PENDING' && (
-              <>
-                {' '}
-                <Badge tone="info">審核中</Badge>
-              </>
-            )}
-            {detail.review_status === 'REJECTED' && (
-              <>
-                {' '}
-                <Badge tone="warning">已退回</Badge>
-              </>
-            )}
-          </h1>
-          <p className="muted">
-            {latest !== null ? `最新版本 v${latest}` : '尚未發佈'}
-            {detail.published_at && (
-              <>
-                ・最近發佈 <Time iso={detail.published_at} />
-              </>
-            )}
-            ・最後更新 <Time iso={detail.updated_at} />
-            {detail.review_status === 'PENDING' && detail.latest_review && (
-              <>
-                ・草稿 v{(latest ?? 0) + 1}・{detail.latest_review.submitted_by?.display_name ?? '管理金鑰'}{' '}
-                <Time iso={detail.latest_review.submitted_at} /> 送審
-              </>
-            )}
-          </p>
+      <header className="jh">
+        <div className="jh-top">
+          <div className="ttl">
+            <h1 tabIndex={-1} ref={h1}>
+              {detail.name} <Badge tone={st.tone}>{st.label}</Badge>
+              {detail.review_status === 'PENDING' && (
+                <>
+                  {' '}
+                  <Badge tone="info">審核中</Badge>
+                </>
+              )}
+              {detail.review_status === 'REJECTED' && (
+                <>
+                  {' '}
+                  <Badge tone="warning">已退回</Badge>
+                </>
+              )}
+            </h1>
+            <p className="meta muted">
+              {latest !== null ? `最新版本 v${latest}` : '尚未發佈'}
+              {detail.published_at && (
+                <>
+                  ・最近發佈 <Time iso={detail.published_at} />
+                </>
+              )}
+              ・最後更新 <Time iso={detail.updated_at} />
+              {detail.review_status === 'PENDING' && detail.latest_review && (
+                <>
+                  ・草稿 v{(latest ?? 0) + 1}・{detail.latest_review.submitted_by?.display_name ?? '管理金鑰'}{' '}
+                  <Time iso={detail.latest_review.submitted_at} /> 送審
+                </>
+              )}
+            </p>
+          </div>
+          <HeaderActions
+            specs={specs}
+            reasonId={reasonId}
+            busy={busy}
+            onAct={act}
+            extra={
+              detail.review_status === 'PENDING' ? (
+                <AppLink className="btn secondary" to={`/journeys/${encodeURIComponent(id)}/review`}>
+                  看送審內容
+                </AppLink>
+              ) : null
+            }
+          />
         </div>
-        <div className="head-act">
-          <ActionButtons specs={journeyActions(detail, user)} busy={busy} onAct={act} />
-          {detail.review_status === 'PENDING' && (
-            <AppLink className="btn secondary" to={`/journeys/${encodeURIComponent(id)}/review`}>
-              看送審內容
-            </AppLink>
-          )}
-          <AppLink className="btn secondary" to={`/journeys/${encodeURIComponent(id)}/history`}>
-            審核紀錄
+        {reason && (
+          <p className="jh-why" id={reasonId}>
+            {reason}
+          </p>
+        )}
+        <nav className="jh-tabs" aria-label="旅程頁分頁">
+          <AppLink to={`/journeys/${encodeURIComponent(id)}`} aria-current="page">
+            節點圖
           </AppLink>
           <AppLink to={`/enrollments?journey_id=${encodeURIComponent(id)}`}>旅程進度</AppLink>
-        </div>
-      </div>
+          <AppLink to={`/journeys/${encodeURIComponent(id)}/history`}>審核紀錄</AppLink>
+        </nav>
+      </header>
       {actionError && (
         <div className="msg error" role="alert">
           <p>{actionError.status === 409 ? '這個旅程目前不能編輯，請重新載入後再試。' : '暫時無法建立草稿，請稍後再試。'}</p>
         </div>
       )}
       <LifecycleNotice detail={detail} />
+      {deleting && <DeleteDialog id={id} name={detail.name} onClose={() => setDeleting(false)} onReload={reloadAll} />}
       <ActionDialogs
         open={open}
         detail={detail}

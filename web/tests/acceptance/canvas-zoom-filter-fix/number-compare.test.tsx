@@ -13,6 +13,7 @@
  *   - 進階資訊（details）含「（數字）」或「（文字）」。
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { saveDraftNow } from '../journey-canvas-ui/fixtures'
 import {
   FK, and, choose, cleanup, efBackend, filterOf, leaf, json, open, optionCount, putWith, resetEnv, rowsOf,
   screen, teardown, userEvent, waitFor, within,
@@ -199,7 +200,8 @@ describe('事件篩選：數字驗證錯誤（行內 role=alert、aria-invalid�
     expect(alert.textContent).toContain('要填數字')
     expect(alert.textContent).toContain('1000')
     expect(within(row).getByLabelText('值').getAttribute('aria-invalid')).toBe('true')
-    await new Promise((r) => setTimeout(r, 1200))
+    await saveDraftNow() // 手動儲存：按儲存草稿後，不完整的值仍不可寫入
+    await new Promise((r) => setTimeout(r, 500))
     const wrote = ed.puts().some((c) => JSON.stringify(c.body).includes('"operator":"GT"'))
     expect(wrote, '壞值不可寫入').toBe(false)
   })
@@ -282,7 +284,8 @@ describe('條件節點同一套（欄位根 trigger.properties.）', () => {
     const alert = await within(row).findByRole('alert')
     expect(alert.textContent).toContain('要填數字')
     expect(within(row).getByLabelText('值').getAttribute('aria-invalid')).toBe('true')
-    await new Promise((r) => setTimeout(r, 1200))
+    await saveDraftNow() // 手動儲存：按儲存草稿後，不完整的值仍不可寫入
+    await new Promise((r) => setTimeout(r, 500))
     expect(ed.puts().some((c) => JSON.stringify(c.body).includes('"operator":"GT"'))).toBe(false)
   })
 })

@@ -7,11 +7,16 @@ export function Dialog({
   title,
   onClose,
   danger = false,
+  alert = false,
+  describedBy,
   children,
 }: {
   title: string
   onClose: () => void
   danger?: boolean
+  /** true = role="alertdialog"（刪除等不可復原的確認） */
+  alert?: boolean
+  describedBy?: string
   children: ReactNode
 }) {
   const titleId = useId()
@@ -55,9 +60,10 @@ export function Dialog({
     <div className="dlg-overlay">
       <div
         className={`dlg${danger ? ' danger' : ''}`}
-        role="dialog"
+        role={alert ? 'alertdialog' : 'dialog'}
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={describedBy}
         ref={box}
       >
         <h2 id={titleId} className="dlg-title">

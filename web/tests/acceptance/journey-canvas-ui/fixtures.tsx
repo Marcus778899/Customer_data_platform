@@ -8,8 +8,8 @@
  *   - 路由：編輯畫布 = `/journeys/<journey_id>/edit`；新建草稿 = `/journeys/new`
  *     （畫面：輸入框「旅程名稱」＋按鈕「建立草稿」→ POST /journeys/drafts → 導向該旅程的編輯網址）。
  *     旅程列表／旅程頁的入口按鈕不在本單負責檔案內，不測。
- *   - 儲存 = 自動儲存（設計稿狀態列「已自動儲存」「尚未儲存」），PUT 帶 `{ revision, definition, layout }`；
- *     防抖秒數不假設，測試以 waitFor（最長 8 秒）等 PUT。
+ *   - 儲存 = 手動儲存（journey-header-save-delete；不再自動 PUT）：按標頭「儲存草稿」（或 Ctrl／Cmd＋S）才送，PUT 帶 `{ revision, definition, layout }`；
+ *     `waitForPut` 會先按一次「儲存草稿」（有未儲存的變更時才可按）再以 waitFor（最長 8 秒）等 PUT；狀態字「已儲存（HH:mm）」「有未儲存的變更」。
  *   - 節點是畫布上的 `<button aria-pressed>`，名稱含節點名稱；選取後右側面板（aside，aria-labelledby 指向節點名稱標題）
  *     出現，欄位標籤同設計稿（名稱、管道代碼、範本代碼、時間／單位、等這個事件、最多等／單位／不設時限、
  *     下一步各出口：送出後、等完之後、事件發生時、逾時沒等到、是、否、會合後）。
@@ -192,7 +192,14 @@ export async function choose(select: HTMLElement, wanted: string | string[]) {
 }
 export const chooseLabel = (label: string | RegExp, wanted: string | string[]) => choose(screen.getByLabelText(label), wanted)
 
+/** 手動儲存：按標頭「儲存草稿」／「重試儲存」（沒有按鈕或已停用＝沒有未儲存的變更，不動作） */
+export async function saveDraftNow() {
+  const btn = screen.queryByRole('button', { name: /^(儲存草稿|重試儲存)/ })
+  if (btn && btn.getAttribute('aria-disabled') !== 'true' && !(btn as HTMLButtonElement).disabled) await userEvent.click(btn)
+}
+
 export async function waitForPut(pred: (b: PutBody) => boolean, ed: Editor, timeout = 8000) {
+  await saveDraftNow()
   const hits = () => ed.puts().map((c) => c.body as PutBody).filter(pred)
   await waitFor(() => expect(hits().length, `沒有符合條件的 PUT（共 ${ed.puts().length} 次）`).toBeGreaterThan(0), { timeout })
   return hits().at(-1)!

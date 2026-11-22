@@ -1,9 +1,11 @@
 // 旅程編輯畫布頁（FE-04）：載入／空／錯誤／權限狀態，頁首、工具列、畫布、狀態列、右側面板。
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { Pt } from '../graph/route'
 import { AppLink } from '../components/AppLink'
+import { Icon } from '../components/CanvasIcons'
 import { Crumbs } from '../components/Shell'
 import { Badge, ErrorBox } from '../components/ui'
+import { navigate, setNavigationBlocker } from '../router'
 import { useAuth } from '../auth'
 import { BannerBar, friendlyTime } from '../canvas/Banners'
 import { Canvas } from '../canvas/Canvas'
@@ -31,6 +33,7 @@ import { NodePanel } from '../canvas/NodePanel'
 import { SettingsPanel } from '../canvas/SettingsPanel'
 import { useDraftEditor } from '../canvas/useDraftEditor'
 import { ValidationPanel } from '../canvas/ValidationPanel'
+import { Dialog } from './review/Dialog'
 import { SubmitDialog, WithdrawDialog } from './review/Dialogs'
 import { withdrawBlock } from './review/model'
 
@@ -45,6 +48,65 @@ function NoAccess({ id }: { id: string }) {
         </AppLink>
       </p>
     </div>
+  )
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+/** 已儲存（HH:mm）用的本地時間 */
+const hhmm = (iso: string | null | undefined) => {
+  const d = iso ? new Date(iso) : null
+  return d && !Number.isNaN(d.getTime()) ? `${pad2(d.getHours())}:${pad2(d.getMinutes())}` : ''
+}
+
+type Leave = { to: string; phase: 'ask' | 'saving' | 'failed' }
+
+/** 有未儲存變更時離開編輯頁的提醒（三鈕）；儲存失敗改顯示錯誤與「重試儲存」 */
+function LeaveDialog({
+  leave,
+  reason,
+  onStay,
+  onDiscard,
+  onSave,
+}: {
+  leave: Leave
+  reason: string
+  onStay: () => void
+  onDiscard: () => void
+  onSave: () => void
+}) {
+  const busy = leave.phase === 'saving'
+  if (leave.phase === 'failed') {
+    return (
+      <Dialog key="failed" title="儲存失敗，還不能離開" onClose={onStay}>
+        <p className="msg error dlg-msg" role="alert">
+          {reason}
+        </p>
+        <div className="dlg-actions lv-actions">
+          <button type="button" className="btn danger secondary" onClick={onDiscard}>
+            不儲存，直接離開
+          </button>
+          <button type="button" className="btn" data-autofocus="" onClick={onSave}>
+            重試儲存
+          </button>
+        </div>
+      </Dialog>
+    )
+  }
+  return (
+    <Dialog key="ask" title="要把修改存成草稿嗎？" onClose={() => !busy && onStay()}>
+      <p>你有修改還沒儲存。現在離開，這些修改會不見。</p>
+      <div className="dlg-actions lv-actions">
+        <button type="button" className="btn secondary" data-autofocus="" aria-disabled={busy} onClick={() => !busy && onStay()}>
+          繼續編輯
+        </button>
+        <button type="button" className="btn danger secondary" aria-disabled={busy} onClick={() => !busy && onDiscard()}>
+          不儲存，直接離開
+        </button>
+        <button type="button" className="btn" aria-disabled={busy} onClick={() => !busy && onSave()}>
+          {busy ? '儲存中…' : '儲存並離開'}
+        </button>
+      </div>
+    </Dialog>
   )
 }
 
@@ -64,6 +126,69 @@ function Editor({ id }: { id: string }) {
   const { user } = useAuth()
   const pending = ed.review?.status === 'PENDING'
   const locked = pending || ed.banner?.kind === 'inReview'
+  const [leave, setLeave] = useState<Leave | null>(null)
+
+  // ---------- 離開提醒：站內導覽（返回、麵包屑、側欄）由 router 的攔截器轉成對話框；關分頁／重整用 beforeunload ----------
+  const unsaved = ed.dirty || ed.saving
+  const guard = useRef({ unsaved: false, saving: false, bypass: false, phase: null as Leave['phase'] | null, mounted: true, start: null as ((to: string) => void) | null })
+  useEffect(() => {
+    guard.current.unsaved = unsaved
+    guard.current.saving = ed.saving
+    guard.current.phase = leave?.phase ?? null
+  }, [unsaved, ed.saving, leave])
+  useEffect(() => {
+    const g = guard.current
+    g.mounted = true
+    setNavigationBlocker((to) => {
+      if (g.bypass || !g.unsaved) return false
+      // 離開對話框已在儲存中：忽略重複點擊；一般儲存進行中點連結：等這次儲存完成再依結果導頁或顯示失敗對話框
+      if (g.phase === 'saving') return true
+      if (g.saving) g.start?.(to)
+      else setLeave({ to, phase: 'ask' })
+      return true
+    })
+    return () => {
+      g.mounted = false
+      setNavigationBlocker(null)
+    }
+  }, [])
+  useEffect(() => {
+    if (!ed.dirty) return
+    const onUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onUnload)
+    return () => window.removeEventListener('beforeunload', onUnload)
+  }, [ed.dirty])
+  const leaveNow = (to: string) => {
+    guard.current.bypass = true
+    navigate(to)
+  }
+  /** 存完（含等進行中的那次）再導頁；失敗改顯示失敗對話框，內容保留 */
+  const runLeave = async (to: string) => {
+    setLeave({ to, phase: 'saving' })
+    const ok = await ed.flush()
+    if (!guard.current.mounted) return
+    if (ok) leaveNow(to)
+    else setLeave({ to, phase: 'failed' })
+  }
+  useEffect(() => {
+    guard.current.start = (to) => void runLeave(to)
+  })
+  const saveAndLeave = () => (leave ? runLeave(leave.to) : Promise.resolve())
+
+  // Ctrl／Cmd＋S：儲存草稿（擋掉瀏覽器的另存網頁）
+  const { save } = ed
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 's') return
+      e.preventDefault()
+      if (!leave) void save()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [save, leave])
 
   const errorIds = useMemo(() => new Set((ed.report?.errors ?? []).map((i) => i.node_id).filter((x): x is string => !!x)), [ed.report])
   const loops = useMemo(() => (def ? findLoops(def) : []), [def])
@@ -71,7 +196,7 @@ function Editor({ id }: { id: string }) {
   // Esc：關閉面板並取消選取（對話框開著時由對話框自己處理）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented || dialog) return
+      if (e.key !== 'Escape' || e.defaultPrevented || dialog || leave) return
       if ((e.target as HTMLElement | null)?.closest?.('[role="dialog"], [role="alertdialog"]')) return
       if (selectedEdge) setSelectedEdge(null)
       else if (selected) setSelected(null)
@@ -80,7 +205,7 @@ function Editor({ id }: { id: string }) {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [dialog, selected, selectedEdge, settingsOpen, ed])
+  }, [dialog, leave, selected, selectedEdge, settingsOpen, ed])
 
   const select = useCallback((nid: string | null) => {
     setSelected(nid)
@@ -124,9 +249,9 @@ function Editor({ id }: { id: string }) {
   // Delete：選取連線就移除連線，否則刪除選取的節點（進入條件與開始不可刪）；在輸入欄位、對話框裡不處理
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' || e.defaultPrevented || dialog || locked) return
+      if (e.key !== 'Delete' || e.defaultPrevented || dialog || leave || locked) return
       const t = e.target as HTMLElement | null
-      if (t?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      if (t?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="alertdialog"]')) return
       if (selectedEdge) removeLink(selectedEdge)
       else {
         const n = def ? nodeById(def, selected) : undefined
@@ -135,7 +260,7 @@ function Editor({ id }: { id: string }) {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [dialog, locked, selectedEdge, selected, def, removeLink, deleteNode])
+  }, [dialog, leave, locked, selectedEdge, selected, def, removeLink, deleteNode])
 
   const connectPorts = useCallback(
     (source: string, port: string, target: string) => {
@@ -233,11 +358,16 @@ function Editor({ id }: { id: string }) {
     { label: '編輯草稿' },
   ]
   const onlyStart = !hasEventSource(def)
-  const saveText = ed.saving
-    ? '儲存中…'
-    : ed.dirty || (!ed.savedAt && def.nodes.length <= 1)
-      ? '尚未儲存'
-      : `已自動儲存 ${friendlyTime(ed.savedAt ?? ed.meta?.updatedAt)}`
+  const saveState = ed.saving ? 'busy' : ed.saveError ? 'err' : ed.dirty ? 'dirty' : 'ok'
+  const saveText =
+    saveState === 'busy'
+      ? '儲存中…'
+      : saveState === 'err'
+        ? `儲存失敗：${ed.saveError?.reason ?? ''}`
+        : saveState === 'dirty'
+          ? '有未儲存的變更'
+          : `已儲存（${hhmm(ed.savedAt ?? ed.meta?.updatedAt)}）`
+  const saveOff = !ed.dirty || ed.saving || locked
   const reportShown = ed.reportOpen && !!ed.report
   const panelKey = sel ? `node:${sel.id}` : settingsOpen ? 'settings' : reportShown ? 'report' : null
   const panelLabel = sel ? displayName(sel) : settingsOpen ? '旅程設定' : '驗證結果'
@@ -263,8 +393,11 @@ function Editor({ id }: { id: string }) {
             ))}
           </ol>
         </div>
-        <div className="pagehead">
-          <div>
+        <div className="eh">
+          <AppLink className="btn secondary icon back" to={`/journeys/${encodeURIComponent(id)}`} aria-label="返回旅程頁">
+            <Icon name="back" />
+          </AppLink>
+          <div className="nm">
             <h1>
               {def.name || '未命名旅程'} {published !== null && <Badge tone="success">進行中 v{published}</Badge>}{' '}
               <Badge tone="neutral">草稿 v{(published ?? 0) + 1}</Badge>
@@ -278,14 +411,33 @@ function Editor({ id }: { id: string }) {
                 </>
               )}
               {onlyStart && <>・先設定進入事件才能送審</>}
+              {freeCount > 0 && <span className="status-warn">・還有 {freeCount} 個出口沒接下一步</span>}
             </p>
           </div>
-          <div className="head-act">
+          <div className="acts2">
+            <span className={`sv ${saveState}`} role="status">
+              {saveState === 'ok' && <Icon name="check" size={16} />}
+              {saveState === 'err' && <Icon name="x" size={16} />}
+              {saveState === 'dirty' && <span className="dot" aria-hidden="true" />}
+              {saveState === 'busy' && <span className="spin" aria-hidden="true" />}
+              {saveText}
+            </span>
             <button type="button" className="btn secondary" onClick={openSettings}>
               旅程設定
             </button>
             <button type="button" className="btn secondary" aria-disabled={ed.validating} onClick={() => !ed.validating && void ed.validate()}>
               驗證
+            </button>
+            <button
+              type="button"
+              className={`btn secondary${saveState === 'dirty' || saveState === 'err' ? ' save-dirty' : ''}`}
+              aria-disabled={saveOff}
+              aria-describedby={locked && pending ? `${flowId}-lock` : undefined}
+              aria-keyshortcuts="Control+S Meta+S"
+              onClick={() => !saveOff && void ed.save()}
+            >
+              {saveState === 'err' ? '重試儲存' : '儲存草稿'}
+              <kbd aria-hidden="true">Ctrl S</kbd>
             </button>
             {pending ? (
               <span className="act">
@@ -305,7 +457,7 @@ function Editor({ id }: { id: string }) {
                 )}
               </span>
             ) : (
-              <button type="button" className="btn" onClick={() => setDialog('submit')}>
+              <button type="button" className="btn" aria-disabled={ed.saving} onClick={() => !ed.saving && setDialog('submit')}>
                 送審
               </button>
             )}
@@ -319,7 +471,7 @@ function Editor({ id }: { id: string }) {
             <p>
               <strong>已送審，等待管理員審核</strong>
             </p>
-            <p>草稿已鎖定，不能修改。要改內容請先撤回送審。</p>
+            <p id={`${flowId}-lock`}>草稿已鎖定，不能修改。要改內容請先撤回送審。</p>
           </div>
         </div>
       )}
@@ -340,7 +492,8 @@ function Editor({ id }: { id: string }) {
           layout={layout}
           onLoadLatest={() => void ed.loadLatest()}
           onWithdraw={() => setDialog('withdraw')}
-          onRetry={ed.banner.kind === 'submitFailed' ? () => ed.setBanner(null) : ed.retrySave}
+          onRetry={() => ed.setBanner(null)}
+          onDismiss={() => ed.setBanner(null)}
           onShowReport={() => ed.setReportOpen(true)}
         />
       )}
@@ -428,9 +581,7 @@ function Editor({ id }: { id: string }) {
           </div>
           </div>
 
-          <div className="statusbar">
-            <span role="status">{saveText}</span>
-            {freeCount > 0 && <span className="status-warn">還有 {freeCount} 個出口沒接下一步</span>}
+          <div className="statusbar" hidden={errCount === 0 && loops.length === 0}>
             {errCount > 0 && <span className="status-err">有 {errCount} 個錯誤</span>}
             {loops.map((lp) => (
               <span className="loop-note" role="status" key={`${lp.from}>${lp.to}`}>
@@ -457,6 +608,15 @@ function Editor({ id }: { id: string }) {
       <div className="sr-only" role="status" aria-live="polite">
         {live}
       </div>
+      {leave && (
+        <LeaveDialog
+          leave={leave}
+          reason={ed.saveError ? `${ed.saveError.reason}。` : ed.banner?.kind === 'conflict' ? '草稿已被其他人修改，請回到編輯頁處理。' : '草稿沒有存成功。'}
+          onStay={() => setLeave(null)}
+          onDiscard={() => leaveNow(leave.to)}
+          onSave={() => void saveAndLeave()}
+        />
+      )}
       {dialog === 'submit' && (
         <SubmitDialog
           name={def.name || '未命名旅程'}
