@@ -235,7 +235,7 @@
 <!-- ============ 8 ============ -->
 <section class="sec" id="rt">
   <h2>8 實作追認：設計稿沒畫到、實作時補上的細節<span class="id">rt-ratify</span></h2>
-  <p class="lead">四張前端單（PR #289、#291、#293、#295）實作時自行補上的地方，逐項看過。標「追認」的照實作寫進規格；標「要改」的畫的是修正後的樣子，另開修正單。規格見 <code>canvas-interaction.md</code>「自行決定」表。</p>
+  <p class="lead">四張前端單（PR #289、#291、#293、#295）實作時自行補上的地方，逐項看過。標「追認」的照實作寫進規格；標「已修正」的是追認時要求調整、已由 PR #302 照這裡的畫法實作。規格見 <code>canvas-interaction.md</code>「自行決定」表。</p>
 
   <h3 class="subh first">畫布<small>出口圓點、往左的回頭線、1024 節點庫、事件篩選</small></h3>
   <div class="rt-grid">
@@ -255,15 +255,15 @@
 
     <figure class="rt" id="rt-rail">
       <div class="rt-rails">
-        <div><span class="cap">實作現況：64px、名稱不換行</span>
-          <div class="rt-rail now" aria-label="節點庫（現況示意）">
+        <div><span class="cap">修正前：64px、名稱不換行</span>
+          <div class="rt-rail now" aria-label="節點庫（修正前示意）">
             <button class="it cat-send" type="button"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg><b>訊息</b></button>
             <button class="it cat-wait" type="button"><svg class="ico" aria-hidden="true"><use href="#i-wev"/></svg><b>等事件</b></button>
             <button class="it cat-branch" type="button"><svg class="ico" aria-hidden="true"><use href="#i-ab"/></svg><b>A/B 分流</b></button>
             <button class="it cat-branch" type="button"><svg class="ico" aria-hidden="true"><use href="#i-merge"/></svg><b>合流</b></button>
           </div>
         </div>
-        <div><span class="cap">修正後：72px、名稱最多 2 行</span>
+        <div><span class="cap">修正後（PR #302）：72px、名稱最多 2 行</span>
           <div class="rt-rail fixed" aria-label="節點庫（修正後）">
             <button class="it cat-send" type="button"><svg class="ico" aria-hidden="true"><use href="#i-msg"/></svg><b>訊息</b></button>
             <button class="it cat-wait" type="button"><svg class="ico" aria-hidden="true"><use href="#i-wev"/></svg><b>等事件</b></button>
@@ -272,7 +272,7 @@
           </div>
         </div>
       </div>
-      <figcaption><b><span class="rt-tag ok">追認</span><span class="rt-tag fix">要改</span>1024 節點庫圖示軌保留名稱</b>追認：≤1100px 的圖示軌保留名稱（圖示在上、名稱在下，12px），比只看圖示好認，按鈕名稱也不只靠 <code>title</code>。要改：64px 內扣掉內距與色條只剩約 33px，「A/B 分流」（約 49px）不換行會把整排撐寬、出現水平捲軸，左側色條被切（用 <code>app.css</code> 實測 scrollWidth 70 &gt; clientWidth 62）。改成軌寬 72px、項目撐滿軌寬、名稱置中可換行（最多 2 行，拿掉 <code>nowrap</code>，加 <code>word-break: keep-all</code> 讓「A/B 分流」在空格處斷、不拆開「分流」）；任何名稱都不得讓節點庫水平捲動。</figcaption>
+      <figcaption><b><span class="rt-tag ok">追認</span><span class="rt-tag done">已修正（PR #302）</span>1024 節點庫圖示軌保留名稱</b>追認：≤1100px 的圖示軌保留名稱（圖示在上、名稱在下，12px），比只看圖示好認，按鈕名稱也不只靠 <code>title</code>。修正：64px 內扣掉內距與色條只剩約 33px，「A/B 分流」（約 49px）不換行會把整排撐寬、出現水平捲軸，左側色條被切（用 <code>app.css</code> 實測 scrollWidth 70 &gt; clientWidth 62），已改為軌寬 72px、項目撐滿軌寬、名稱置中可換行（最多 2 行，拿掉 <code>nowrap</code>，加 <code>word-break: keep-all</code> 讓「A/B 分流」在空格處斷、不拆開「分流」）；任何名稱都不得讓節點庫水平捲動。</figcaption>
     </figure>
 
     <figure class="rt" id="rt-filter">
@@ -365,7 +365,7 @@
 
     <figure class="rt" id="rt-leave">
       <div class="dlgbg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="rt-lv-t"><h3 id="rt-lv-t">要把修改存成草稿嗎？</h3><p class="rt-status" role="status" style="color:var(--color-info-fg)"><span class="spin" aria-hidden="true"></span>正在儲存草稿，存好就會離開。</p><div class="foot"><button class="btn secondary fr" type="button">繼續編輯</button><button class="btn danger secondary" type="button" aria-disabled="true">不儲存，直接離開</button><button class="btn" type="button" aria-disabled="true">儲存中…</button></div></div></div>
-      <figcaption><b><span class="rt-tag ok">追認</span><span class="rt-tag fix">要改</span>儲存中點導覽：等存完再離開</b>追認：一般儲存進行中點返回、麵包屑或側欄，直接開離開對話框並等這次存完，成功就導頁、失敗改「儲存失敗，還不能離開」；儲存中又改的內容會一起存（存下來，不會遺失）。要改：現況三顆都停用、Esc 也關不掉，請求一直沒回應時會卡住。改成「繼續編輯」保持可按（Esc 同效）：只取消離開、不中斷儲存，結果照常顯示在標頭；內文改「正在儲存草稿，存好就會離開。」（現況沿用「你有修改還沒儲存…」，與正在儲存矛盾）。</figcaption>
+      <figcaption><b><span class="rt-tag ok">追認</span><span class="rt-tag done">已修正（PR #302）</span>儲存中點導覽：等存完再離開</b>追認：一般儲存進行中點返回、麵包屑或側欄，直接開離開對話框並等這次存完，成功就導頁、失敗改「儲存失敗，還不能離開」；儲存中又改的內容會一起存（存下來，不會遺失）。修正：原本三顆都停用、Esc 也關不掉，請求一直沒回應時會卡住；已改為「繼續編輯」保持可按（Esc 同效）：只取消離開、不中斷儲存，結果照常顯示在標頭；內文改「正在儲存草稿，存好就會離開。」（原本沿用「你有修改還沒儲存…」，與正在儲存矛盾）。</figcaption>
     </figure>
   </div>
 </section>
