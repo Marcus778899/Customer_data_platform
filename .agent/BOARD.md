@@ -163,8 +163,9 @@
 | condition-compare-ux | frontend | done | 2 | PR #293 |
 | journey-header-save-delete | frontend | done | 0 | PR #295 |
 | canvas-ui-ratify | designer | review | 0 |  |
-| login-proxy-doc-align | architect | review | 0 |  |
+| login-proxy-doc-align | architect | done | 0 | PR #305 |
 | canvas-uat-fix | frontend | done | 0 | PR #302 |
+| canvas-add-reveal-fix | frontend | todo | 0 |  |
 
 ## 卡住／待甲方決定
 
@@ -195,11 +196,10 @@
 - 注意：搜尋式／推算式邏輯（例：試算範例客戶）的單元測試要涵蓋每個判斷區間（常數之間、邊界、多值避開、組合），不只 review 舉的例子；qa 驗證時也要自己補幾個區間案例
 - 工具誤判（2026-11-22）：ae pr open journey-header-save-delete 擋「驗收測試跟鎖定時（commit 01ae4b4）不一樣」，但 git diff 01ae4b4..HEAD 在 web/tests/acceptance/ 無變動；只有 manager 追加段「受影響的既有驗收測試」裡點名由 worker 改的單元測試（web/tests/unit/canvas/review-fixes.test.tsx、web/tests/unit/review/model.test.ts）有改。疑似該段標題下的路徑都被算進 lock。處理：派 qa 確認後重新 lock；之後追加時單元測試不要寫在「驗收測試」標題段
 - 下一張 designer 單追認（journey-header-save-delete）：「這個旅程已被刪除」提示條、刪除失敗在原對話框內顯示錯誤、requestFailed 提示條（驗證沒有完成／載入最新草稿失敗）、儲存中離開對話框；backlog #296 瀏覽器上一頁不攔
-- login-proxy-doc-align 文件已完成（2c23d0d），本機 make check 因 app.css.test.ts 的 CRLF regex 失敗（非本單）；canvas-uat-fix 合併後 sync、請原 architect 重跑驗證改 done 再 ae pr open
 - 注意：Windows 本機 core.autocrlf=true，沒有 eol 屬性的檔在 worktree 是 CRLF；測試用 regex 切檔案內容時要容許 \r?\n（CI 是 Linux LF，不會抓到）
 - 注意：多個 agent 共用 Playwright 瀏覽器會互相干擾（designer 導頁觸發 uat 頁的 beforeunload）；同時派 uat／designer／frontend 實測時錯開，或請它們用各自的 headless 瀏覽器
 - canvas-ui-ratify 完成（496d525，8 項追認）：本機 make check 卡 CRLF，canvas-uat-fix 合併後 sync、重跑驗證再 ae pr open → qa → 視覺評審 → architect review。要改的 2 項（1024 圖示軌 72px、儲存中離開對話框，含 #297）已併入 canvas-uat-fix 第 2 輪
-- v0.3.0 收尾：canvas-uat-fix（PR #302）合併；uat 第九輪重測中；canvas-ui-ratify、login-proxy-doc-align 已 sync、重跑驗證中；之後 security 確認 PR #302 的程式變動、甲方驗收；backlog：tokens.css 清理、#296、#301、#303
+- v0.3.0 收尾：uat 第九輪 major 2（F-54、F-59）→ canvas-add-reveal-fix，minor → 新 backlog；canvas-ui-ratify（PR #304）視覺評審中、login-proxy-doc-align（PR #305）qa 中；修完 uat 小範圍重測 F-54／F-59＋未測（不可核准自己送的：uat-admin2 登入失敗待查、儲存中離開、各頁版面腳本）；之後 security 確認 PR #302 起的程式變動、甲方驗收
 
 ## 注意事項（踩過的坑）
 
