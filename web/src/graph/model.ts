@@ -168,6 +168,13 @@ export function buildModel(def: JourneyVersion, overlay: TraceOverlay | null, st
     }
   }
 
+  // 正規化：畫布存的位置可能是負座標或離原點很遠，整體平移到左上角留邊距（只平移不變形）
+  if (pos.size > 0) {
+    const minX = Math.min(...[...pos.values()].map((p) => p.x))
+    const minY = Math.min(...[...pos.values()].map((p) => p.y))
+    for (const [id, p] of pos) pos.set(id, { x: p.x - minX + MARGIN, y: p.y - minY + MARGIN })
+  }
+
   const nodes: PlacedNode[] = def.nodes.map((n) => {
     const [category, categoryLabel] = categoryOf(n.type)
     let state: NodeState = 'plain'

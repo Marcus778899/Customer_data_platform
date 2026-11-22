@@ -93,10 +93,10 @@ function LeaveDialog({
     )
   }
   return (
-    <Dialog key="ask" title="要把修改存成草稿嗎？" onClose={() => !busy && onStay()}>
-      <p>你有修改還沒儲存。現在離開，這些修改會不見。</p>
+    <Dialog key="ask" title="要把修改存成草稿嗎？" onClose={onStay}>
+      <p>{busy ? '正在儲存草稿，存好就會離開。' : '你有修改還沒儲存。現在離開，這些修改會不見。'}</p>
       <div className="dlg-actions lv-actions">
-        <button type="button" className="btn secondary" data-autofocus="" aria-disabled={busy} onClick={() => !busy && onStay()}>
+        <button type="button" className="btn secondary" data-autofocus="" onClick={onStay}>
           繼續編輯
         </button>
         <button type="button" className="btn danger secondary" aria-disabled={busy} onClick={() => !busy && onDiscard()}>
@@ -166,10 +166,13 @@ function Editor({ id }: { id: string }) {
     navigate(to)
   }
   /** 存完（含等進行中的那次）再導頁；失敗改顯示失敗對話框，內容保留 */
+  const leaveSeq = useRef(0)
   const runLeave = async (to: string) => {
+    const mine = ++leaveSeq.current
     setLeave({ to, phase: 'saving' })
     const ok = await ed.flush()
-    if (!guard.current.mounted) return
+    // 離開被取消（繼續編輯／Esc）：儲存照常完成，但忽略結果、不導頁也不跳失敗對話框
+    if (!guard.current.mounted || leaveSeq.current !== mine) return
     if (ok) leaveNow(to)
     else setLeave({ to, phase: 'failed' })
   }
@@ -527,6 +530,20 @@ function Editor({ id }: { id: string }) {
                 </button>
               )}
               <div className="edside" hidden={!panelKey || collapsed}>
+          {ed.reportOpen && ed.report && (
+            <ValidationPanel
+              report={ed.report}
+              busy={ed.validating}
+              onRevalidate={() => void ed.validate()}
+              onClose={() => ed.setReportOpen(false)}
+              onCollapse={() => setCollapsedKey(panelKey)}
+              onLocate={(nid, field) => {
+                select(nid)
+                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
+              }}
+              onSettings={openSettings}
+            />
+          )}
           {sel && (
             <NodePanel
               key={sel.id}
@@ -548,20 +565,6 @@ function Editor({ id }: { id: string }) {
             />
           )}
           {settingsOpen && <SettingsPanel def={def} onChange={setDef} onClose={() => setSettingsOpen(false)} onCollapse={() => setCollapsedKey(panelKey)} />}
-          {ed.reportOpen && ed.report && (
-            <ValidationPanel
-              report={ed.report}
-              busy={ed.validating}
-              onRevalidate={() => void ed.validate()}
-              onClose={() => ed.setReportOpen(false)}
-              onCollapse={() => setCollapsedKey(panelKey)}
-              onLocate={(nid, field) => {
-                select(nid)
-                setLocate({ field, seq: (locate?.seq ?? 0) + 1 })
-              }}
-              onSettings={openSettings}
-            />
-          )}
               </div>
             </LockProvider>
             {onlyStart && (
@@ -612,7 +615,10 @@ function Editor({ id }: { id: string }) {
         <LeaveDialog
           leave={leave}
           reason={ed.saveError ? `${ed.saveError.reason}。` : ed.banner?.kind === 'conflict' ? '草稿已被其他人修改，請回到編輯頁處理。' : '草稿沒有存成功。'}
-          onStay={() => setLeave(null)}
+          onStay={() => {
+            leaveSeq.current++
+            setLeave(null)
+          }}
           onDiscard={() => leaveNow(leave.to)}
           onSave={() => void saveAndLeave()}
         />
