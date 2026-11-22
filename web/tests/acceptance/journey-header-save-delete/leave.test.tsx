@@ -124,6 +124,55 @@ describe('有未儲存變更：返回', () => {
     expect(path()).toBe(EDIT)
     gate.resolve(json(draftBody({ revision: 5 })))
   })
+
+  // canvas-uat-fix（canvas-interaction.md「儲存中離開」rt-leave）：儲存中「繼續編輯」可按、Esc 同效，只取消離開、不中斷儲存
+  async function savingDialog() {
+    const gate = deferred<Response>()
+    const ed = editorBackend({ routes: { [`PUT ${DRAFT_PATH}`]: () => gate.promise } })
+    await openEditor()
+    await makeDirty('cart_leave')
+    await userEvent.click(backControl()!)
+    const d = await leaveDialog()
+    await userEvent.click(dlgButton(d, '儲存並離開'))
+    await waitFor(() => expect(ed.puts().length).toBe(1))
+    return { ed, gate, d }
+  }
+
+  it('儲存中的離開對話框：內文「正在儲存草稿，存好就會離開。」；「繼續編輯」可按（未停用），另兩鈕停用', async () => {
+    const { gate, d } = await savingDialog()
+    expect(d.textContent).toContain('正在儲存草稿，存好就會離開。')
+    const keep = dlgButton(d, '繼續編輯')
+    expect(keep.disabled).toBe(false)
+    expect(keep.getAttribute('aria-disabled')).not.toBe('true')
+    expect(dlgButton(d, '不儲存直接離開').disabled || dlgButton(d, '不儲存直接離開').getAttribute('aria-disabled') === 'true').toBe(true)
+    gate.resolve(json(draftBody({ revision: 5 })))
+  })
+
+  it.each([
+    ['按「繼續編輯」', async (d: HTMLElement) => { await userEvent.click(dlgButton(d, '繼續編輯')) }],
+    ['按 Esc', async () => { await userEvent.keyboard('{Escape}') }],
+  ])('儲存中%s：關閉對話框、不中斷儲存（只送 1 次 PUT）、存好後也不導頁、留在編輯頁', async (_n, act) => {
+    const { ed, gate, d } = await savingDialog()
+    await act(d)
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(path()).toBe(EDIT)
+    gate.resolve(json(draftBody({ revision: 5 })))
+    await waitFor(() => expect(bodyText()).toMatch(/已儲存（\d{2}:\d{2}）/))
+    await sleep(300)
+    expect(path(), '取消離開後，儲存完成不能再導頁').toBe(EDIT)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(ed.puts().length).toBe(1)
+  })
+
+  it('儲存中取消離開後，儲存失敗不跳「儲存失敗，還不能離開」對話框', async () => {
+    const { gate } = await savingDialog()
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    gate.resolve(prob(503, 'UNAVAILABLE', 'REQ-L2'))
+    await sleep(300)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(path()).toBe(EDIT)
+  })
 })
 
 describe('有未儲存變更：麵包屑與側欄連結', () => {

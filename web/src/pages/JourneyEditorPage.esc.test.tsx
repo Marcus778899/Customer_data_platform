@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { BOX, mockLayout, nodeRects, restoreLayout } from '../../tests/acceptance/canvas-fit-fix/fixtures'
-import { cleanup, editorBackend, nodeButtons, openEditor, resetEnv, selectNode, teardown, userEvent, waitFor, type Def } from '../../tests/acceptance/journey-canvas-ui/fixtures'
+import { cleanup, editorBackend, nodeButtons, openEditor, resetEnv, screen, selectNode, teardown, userEvent, waitFor, type Def } from '../../tests/acceptance/journey-canvas-ui/fixtures'
 
 const ORIG = { ...BOX }
 beforeEach(() => {
@@ -45,8 +45,8 @@ describe('Esc 關閉面板並取消選取', () => {
   })
 })
 
-describe('小地圖只在面板展開時扣面板寬', () => {
-  it('畫布 2600 寬、圖約 2380 寬、面板關閉：全圖可見，沒有小地圖；選取節點開面板後才出現', async () => {
+describe('面板在文件流中、畫布已讓出面板寬：小地圖不再扣面板寬', () => {
+  it('畫布 2600 寬、圖約 2380 寬、面板關閉：全圖可見，沒有小地圖；選取節點開面板後仍沒有（面板不蓋畫布）', async () => {
     BOX.w = 2600
     editorBackend({ def: wide(), revision: 1 })
     await openEditor()
@@ -54,6 +54,7 @@ describe('小地圖只在面板展開時扣面板寬', () => {
     await new Promise((r) => setTimeout(r, 300))
     expect(document.querySelector('.react-flow__minimap')).toBeNull()
     await selectNode('結束')
-    await waitFor(() => expect(document.querySelector('.react-flow__minimap')).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('complementary', { name: /結束/ })).toBeTruthy())
+    expect(document.querySelector('.react-flow__minimap')).toBeNull()
   }, 60000)
 })
